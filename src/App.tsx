@@ -128,7 +128,7 @@ function App() {
   const faqs = [
     {
       question: "Is my data secure?",
-      answer: "Yes. EasyHealth AI complies with India's DPDP Act with AI-enhanced encryption & intelligent audit logs."
+      answer: "Yes. EaseHealth complies with India's DPDP Act with encryption & audit logs."
     },
     {
       question: "Do I need Aadhaar?",
@@ -532,7 +532,7 @@ function App() {
           {/* Bottom Bar */}
           <div className="border-t border-gray-300 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-gray-600 text-sm mb-4 md:mb-0">
-              © 2025 EaseHealth. Built with care for Indian patients.
+              © 2025 EasyHealth AI. Built with AI-powered care for Indian patients.
             </p>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Check className="w-4 h-4 text-green-600" />
