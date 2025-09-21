@@ -128,7 +128,7 @@ function App() {
   const faqs = [
     {
       question: "Is my data secure?",
-      answer: "Yes. EaseHealth complies with India's DPDP Act with encryption & audit logs."
+      answer: "Yes. EasyHealth AI complies with India's DPDP Act with AI-enhanced encryption & intelligent audit logs."
     },
     {
       question: "Do I need Aadhaar?",
