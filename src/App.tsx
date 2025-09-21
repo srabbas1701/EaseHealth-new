@@ -12,7 +12,9 @@ import {
   MapPin,
   Phone,
   Mail,
-  Heart
+  Heart,
+  Brain,
+  Zap
 } from 'lucide-react';
 
 function App() {
@@ -150,11 +152,14 @@ function App() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center">
-                <Heart className="w-6 h-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative">
+                <Heart className="w-5 h-5 text-white" />
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
+                  <Brain className="w-2.5 h-2.5 text-white" />
+                </div>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-[#0A2647]">EaseHealth</h1>
+                <h1 className="text-xl font-bold text-[#0A2647]">EasyHealth AI</h1>
                 <p className="text-xs text-gray-600">Your Health. Simplified.</p>
               </div>
             </div>
@@ -231,7 +236,7 @@ function App() {
                 </span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed">
-                From booking your appointment to reminders and real-time queue updates — EaseHealth makes doctor visits effortless.
+                From booking your appointment to reminders and real-time queue updates — EasyHealth AI makes doctor visits effortless with intelligent automation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
@@ -262,10 +267,10 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] mb-4">
-              Why Choose EaseHealth?
+              Why Choose EasyHealth AI?
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Experience healthcare the modern way with features designed for Indian patients
+              Experience healthcare the modern way with AI-powered features designed for Indian patients
             </p>
           </div>
           
@@ -285,7 +290,14 @@ function App() {
                   </div>
                 ) : (
                   <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <benefit.icon className="w-8 h-8 text-white" />
+                    <div className="relative">
+                      <benefit.icon className="w-8 h-8 text-white" />
+                      {benefit.title.includes('Secure') && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
+                          <Zap className="w-2.5 h-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <h3 className="text-xl font-bold text-[#0A2647] mb-3">{benefit.title}</h3>
@@ -469,7 +481,7 @@ function App() {
                 </div>
               </div>
               <p className="text-gray-600 mb-6 leading-relaxed">
-                Making healthcare accessible and convenient for every Indian patient with cutting-edge technology and compassionate care.
+                Making healthcare accessible and convenient for every Indian patient with cutting-edge AI technology and compassionate care.
               </p>
               <div className="flex space-x-4">
                 <button className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform">
