@@ -152,11 +152,12 @@ function App() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative">
-                <Heart className="w-5 h-5 text-white" />
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
-                  <Brain className="w-2.5 h-2.5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden">
+                <Brain className="w-5 h-5 text-white" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
+                  <Zap className="w-2.5 h-2.5 text-white" />
                 </div>
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
               </div>
               <div>
                 <h1 className="text-xl font-bold text-[#0A2647]">EasyHealth AI</h1>
@@ -292,7 +293,7 @@ function App() {
                   <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                     <div className="relative">
                       <benefit.icon className="w-8 h-8 text-white" />
-                      {benefit.title.includes('Secure') && (
+                      {benefit.title.includes('Secure') || benefit.title.includes('Smart') && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                           <Zap className="w-2.5 h-2.5 text-white" />
                         </div>
@@ -472,11 +473,15 @@ function App() {
             {/* Logo and Description */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center">
-                  <Heart className="w-7 h-7 text-white" />
+                <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden">
+                  <Brain className="w-7 h-7 text-white" />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
+                    <Zap className="w-3 h-3 text-white" />
+                  </div>
+                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-[#0A2647]">EaseHealth</h3>
+                  <h3 className="text-xl font-bold text-[#0A2647]">EasyHealth AI</h3>
                   <p className="text-sm text-gray-600">Your Health. Simplified.</p>
                 </div>
               </div>
