@@ -15,6 +15,7 @@ import {
   Search
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
+import { useFocusManagement } from './KeyboardNavigation';
 
 interface NavigationProps {
   userState: 'new' | 'returning' | 'authenticated';
@@ -26,6 +27,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { trapFocus, getFocusableElements } = useFocusManagement();
 
   // Handle scroll effect
   useEffect(() => {
@@ -47,11 +49,63 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Trap focus in mobile menu when open
+  useEffect(() => {
+    if (isMenuOpen) {
+      const mobileMenu = document.querySelector('[data-mobile-menu]') as HTMLElement;
+      if (mobileMenu) {
+        const cleanup = trapFocus(mobileMenu);
+        return cleanup;
+      }
+    }
+  }, [isMenuOpen, trapFocus]);
+
+  // Handle keyboard navigation for dropdown
+  const handleDropdownKeyDown = (event: React.KeyboardEvent) => {
+    if (!dropdownRef.current) return;
+
+    const focusableElements = getFocusableElements(dropdownRef.current);
+    const currentIndex = focusableElements.findIndex(el => el === document.activeElement);
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        const nextIndex = currentIndex < focusableElements.length - 1 ? currentIndex + 1 : 0;
+        focusableElements[nextIndex]?.focus();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : focusableElements.length - 1;
+        focusableElements[prevIndex]?.focus();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setActiveDropdown(null);
+        document.querySelector('[aria-controls="features-dropdown"]')?.focus();
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusableElements[0]?.focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        focusableElements[focusableElements.length - 1]?.focus();
+        break;
+    }
+  };
   // Handle menu toggle
   const handleMenuToggle = () => {
     const newState = !isMenuOpen;
     setIsMenuOpen(newState);
     onMenuToggle?.(newState);
+    
+    // Focus management for mobile menu
+    if (newState) {
+      setTimeout(() => {
+        const firstMenuItem = document.querySelector('[data-mobile-menu] a, [data-mobile-menu] button') as HTMLElement;
+        firstMenuItem?.focus();
+      }, 100);
+    }
   };
 
   // Handle keyboard navigation
@@ -149,7 +203,13 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer">
+            <div 
+              className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
+              tabIndex={0}
+              role="button"
+              aria-label="EasyHealth AI logo - Go to homepage"
+              onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
+            >
               <Brain className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 text-white" />
@@ -157,7 +217,13 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#0A2647] hover:text-[#0075A2] transition-colors cursor-pointer">
+              <h1 
+                className="text-xl font-bold text-[#0A2647] hover:text-[#0075A2] transition-colors cursor-pointer focus-ring"
+                tabIndex={0}
+                role="button"
+                aria-label="EasyHealth AI - Your Health Simplified"
+                onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
+              >
                 EasyHealth AI
               </h1>
               <p className="text-xs text-gray-600">Your Health. Simplified.</p>
@@ -170,8 +236,13 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               <a
                 key={item.label}
                 href={item.href}
-                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium"
+                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 aria-label={item.description}
+                onFocus={() => {
+                  // Announce section when focused
+                  const announcement = `${item.label} navigation link. ${item.description}`;
+                  // Could integrate with screen reader announcements
+                }}
               >
                 {item.label}
               </a>
@@ -180,12 +251,14 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
             {/* Features Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
-                className="flex items-center px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium"
+                className="flex items-center px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
                 onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
                 aria-expanded={activeDropdown === 'features'}
                 aria-haspopup="true"
                 aria-label="Features menu"
+                aria-controls="features-dropdown"
+                id="features-trigger"
               >
                 Features 
                 <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${
@@ -194,14 +267,23 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               </button>
               
               {activeDropdown === 'features' && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#E8E8E8] opacity-100 visible transition-all duration-200 overflow-hidden">
+                <div 
+                  id="features-dropdown"
+                  className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#E8E8E8] opacity-100 visible transition-all duration-200 overflow-hidden"
+                  role="menu"
+                  aria-labelledby="features-trigger"
+                  onKeyDown={handleDropdownKeyDown}
+                  tabIndex={-1}
+                >
                   <div className="p-2">
                     {featuresMenuItems.map((item, index) => (
                       <a
                         key={index}
                         href={item.href}
-                        className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 group"
+                        className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 group focus-ring"
                         onClick={() => setActiveDropdown(null)}
+                        role="menuitem"
+                        tabIndex={0}
                       >
                         <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
                           <item.icon className="w-5 h-5 text-white" />
@@ -221,8 +303,10 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                   <div className="border-t border-[#E8E8E8] p-3 bg-[#F6F6F6]">
                     <a
                       href="#features"
-                      className="text-sm text-[#0075A2] hover:text-[#0A2647] font-medium transition-colors"
+                      className="text-sm text-[#0075A2] hover:text-[#0A2647] font-medium transition-colors focus-ring"
                       onClick={() => setActiveDropdown(null)}
+                      role="menuitem"
+                      tabIndex={0}
                     >
                       View all features →
                     </a>
@@ -235,7 +319,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               <a
                 key={item.label}
                 href={item.href}
-                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium"
+                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 aria-label={item.description}
               >
                 {item.label}
@@ -246,7 +330,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
           {/* Search and CTA */}
           <div className="hidden lg:flex items-center space-x-3">
             <button 
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
@@ -257,7 +341,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
           {/* Mobile menu button */}
           <button 
-            className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200"
+            className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
             onClick={handleMenuToggle}
             onKeyDown={(e) => handleKeyDown(e, handleMenuToggle)}
             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
@@ -273,7 +357,12 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
         {/* Enhanced Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden bg-white border-t border-[#E8E8E8] animate-in slide-in-from-top duration-200">
+          <div 
+            className="lg:hidden bg-white border-t border-[#E8E8E8] animate-in slide-in-from-top duration-200"
+            data-mobile-menu
+            role="navigation"
+            aria-label="Mobile navigation menu"
+          >
             <div className="py-4 space-y-1">
               {/* Search Bar */}
               <div className="px-4 pb-4">
@@ -282,7 +371,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                   <input
                     type="text"
                     placeholder="Search features, FAQs..."
-                    className="w-full pl-10 pr-4 py-2 border border-[#E8E8E8] rounded-lg focus:outline-none focus:border-[#0075A2] transition-colors"
+                    className="w-full pl-10 pr-4 py-2 border border-[#E8E8E8] rounded-lg focus-ring transition-colors"
                   />
                 </div>
               </div>
@@ -292,7 +381,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                 <a
                   key={item.label}
                   href={item.href}
-                  className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium"
+                  className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <div>
@@ -311,7 +400,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                     <a
                       key={index}
                       href={item.href}
-                      className="flex items-center p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200"
+                      className="flex items-center p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       <div className="w-8 h-8 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3">
@@ -334,7 +423,10 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               {/* CTA */}
               <div className="px-4 pt-4 border-t border-[#E8E8E8]">
                 <div className="mb-4">
-                  <DarkModeToggle showDropdown={true} className="w-full justify-center" />
+                  <DarkModeToggle 
+                    showDropdown={true} 
+                    className="w-full justify-center focus-ring" 
+                  />
                 </div>
                 {getDynamicCTA()}
               </div>

@@ -22,6 +22,7 @@ import { useDarkMode } from './hooks/useDarkMode';
 import AccessibleTestimonials from './components/AccessibleTestimonials';
 import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
+import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProvider } from './components/KeyboardNavigation';
 
 function App() {
   const { isDarkMode } = useDarkMode();
@@ -30,6 +31,8 @@ function App() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
+  // Initialize keyboard navigation
+  useKeyboardNavigation();
   // Simulate user state changes for demo
   useEffect(() => {
     const states: ('new' | 'returning' | 'authenticated')[] = ['new', 'returning', 'authenticated'];
@@ -52,6 +55,11 @@ function App() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Focus the main content after scrolling
+    setTimeout(() => {
+      const mainContent = document.getElementById('main-content');
+      mainContent?.focus();
+    }, 500);
   };
 
   // Prevent flash of unstyled content
@@ -63,6 +71,31 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle FAQ keyboard navigation
+  const handleFaqKeyDown = (event: React.KeyboardEvent, index: number) => {
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        const nextFaq = document.querySelector(`[data-faq="${index + 1}"]`) as HTMLElement;
+        nextFaq?.focus();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        const prevFaq = document.querySelector(`[data-faq="${index - 1}"]`) as HTMLElement;
+        prevFaq?.focus();
+        break;
+      case 'Home':
+        event.preventDefault();
+        const firstFaq = document.querySelector('[data-faq="0"]') as HTMLElement;
+        firstFaq?.focus();
+        break;
+      case 'End':
+        event.preventDefault();
+        const lastFaq = document.querySelector(`[data-faq="${faqs.length - 1}"]`) as HTMLElement;
+        lastFaq?.focus();
+        break;
+    }
+  };
   const benefits = [
     {
       icon: Calendar,
@@ -178,10 +211,11 @@ function App() {
   ];
 
   return (
+    <FocusVisibleProvider>
     <FeatureDetection>
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
         {/* Skip Links for keyboard navigation */}
-        <SkipLinks />
+        <KeyboardSkipLinks />
         
         {/* Offline indicator */}
         <OfflineIndicator />
@@ -195,8 +229,13 @@ function App() {
       </div>
 
       {/* Hero Section */}
-      <main id="main-content">
-        <section id="home" className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24">
+      <main id="main-content" tabIndex={-1} aria-label="Main content">
+        <section 
+          id="home" 
+          className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24"
+          aria-label="Hero section - EasyHealth AI introduction"
+          tabIndex={-1}
+        >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -210,12 +249,18 @@ function App() {
                 From booking your appointment to reminders and real-time queue updates — EasyHealth AI makes doctor visits effortless with intelligent automation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all">
+                <button 
+                  className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all focus-ring"
+                  aria-describedby="cta-description"
+                >
                   Book Appointment Now
                 </button>
-                <button className="border-2 border-[#E8E8E8] dark:border-gray-600 text-[#0A2647] dark:text-gray-100 px-8 py-4 rounded-lg font-medium text-lg hover:border-[#0075A2] dark:hover:border-[#0EA5E9] hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">
+                <button className="border-2 border-[#E8E8E8] dark:border-gray-600 text-[#0A2647] dark:text-gray-100 px-8 py-4 rounded-lg font-medium text-lg hover:border-[#0075A2] dark:hover:border-[#0EA5E9] hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">
                   Learn More
                 </button>
+              </div>
+              <div id="cta-description" className="sr-only">
+                Start your healthcare journey with EasyHealth AI. Book an appointment or learn more about our features.
               </div>
             </div>
             <div className="relative">
@@ -234,7 +279,12 @@ function App() {
       </section>
 
       {/* Benefits Section */}
-      <section id="features" className="py-16 lg:py-24">
+      <section 
+        id="features" 
+        className="py-16 lg:py-24"
+        aria-label="Features and benefits of EasyHealth AI"
+        tabIndex={-1}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -245,11 +295,18 @@ function App() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            role="list"
+            aria-label="EasyHealth AI features"
+          >
             {benefits.map((benefit, index) => (
               <div 
                 key={index} 
-                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-700 group"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-700 group focus-ring"
+                role="listitem"
+                tabIndex={0}
+                aria-label={`Feature: ${benefit.title}. ${benefit.description}`}
               >
                 {benefit.image ? (
                   <div className="mb-6">
@@ -280,7 +337,12 @@ function App() {
       </section>
 
       {/* Trust and Compliance Section */}
-      <section id="trust" className="py-16 lg:py-24 bg-white dark:bg-gray-800">
+      <section 
+        id="trust" 
+        className="py-16 lg:py-24 bg-white dark:bg-gray-800"
+        aria-label="Trust and compliance information"
+        tabIndex={-1}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -291,7 +353,11 @@ function App() {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            role="list"
+            aria-label="Trust and compliance features"
+          >
             <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
               <div className="mb-6">
                 <img 
@@ -332,7 +398,12 @@ function App() {
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900">
+      <section 
+        id="how-it-works" 
+        className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900"
+        aria-label="How EasyHealth AI works - 3 simple steps"
+        tabIndex={-1}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -343,10 +414,19 @@ function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div 
+            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            role="list"
+            aria-label="Three steps to use EasyHealth AI"
+          >
             {steps.map((step, index) => (
               <div key={index} className="relative">
-                <div className="bg-[#F6F6F6] dark:bg-gray-800 rounded-2xl p-8 text-center hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9]">
+                <div 
+                  className="bg-[#F6F6F6] dark:bg-gray-800 rounded-2xl p-8 text-center hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring"
+                  role="listitem"
+                  tabIndex={0}
+                  aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
+                >
                   <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-6">
                     {step.number}
                   </div>
@@ -365,7 +445,12 @@ function App() {
       </section>
 
       {/* Testimonials */}
-      <section id="testimonials" className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900">
+      <section 
+        id="testimonials" 
+        className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900"
+        aria-label="Patient testimonials and reviews"
+        tabIndex={-1}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -385,7 +470,12 @@ function App() {
       </section>
 
       {/* FAQs */}
-      <section id="faqs" className="py-16 lg:py-24 bg-white dark:bg-gray-800">
+      <section 
+        id="faqs" 
+        className="py-16 lg:py-24 bg-white dark:bg-gray-800"
+        aria-label="Frequently asked questions"
+        tabIndex={-1}
+      >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -396,18 +486,35 @@ function App() {
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div 
+            className="space-y-4"
+            role="list"
+            aria-label="Frequently asked questions list"
+          >
             {faqs.map((faq, index) => (
-              <div key={index} className="border border-[#E8E8E8] dark:border-gray-700 rounded-2xl overflow-hidden">
+              <div 
+                key={index} 
+                className="border border-[#E8E8E8] dark:border-gray-700 rounded-2xl overflow-hidden"
+                role="listitem"
+              >
                 <button
-                  className="w-full p-6 text-left bg-[#F6F6F6] dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 transition-colors flex items-center justify-between"
+                  className="w-full p-6 text-left bg-[#F6F6F6] dark:bg-gray-700 hover:bg-white dark:hover:bg-gray-600 transition-colors flex items-center justify-between focus-ring"
                   onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  onKeyDown={(e) => handleFaqKeyDown(e, index)}
+                  aria-expanded={openFaq === index}
+                  aria-controls={`faq-answer-${index}`}
+                  data-faq={index}
                 >
                   <span className="font-bold text-[#0A2647] dark:text-gray-100">{faq.question}</span>
                   <ChevronDown className={`w-5 h-5 text-[#0075A2] dark:text-[#0EA5E9] transform transition-transform ${openFaq === index ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === index && (
-                  <div className="p-6 bg-white dark:bg-gray-800 border-t border-[#E8E8E8] dark:border-gray-700">
+                  <div 
+                    id={`faq-answer-${index}`}
+                    className="p-6 bg-white dark:bg-gray-800 border-t border-[#E8E8E8] dark:border-gray-700"
+                    role="region"
+                    aria-labelledby={`faq-question-${index}`}
+                  >
                     <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{faq.answer}</p>
                   </div>
                 )}
@@ -418,7 +525,7 @@ function App() {
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="bg-[#E8E8E8] dark:bg-gray-900 border-t-4 border-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]">
+      <footer id="contact" className="bg-[#E8E8E8] dark:bg-gray-900 border-t-4 border-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]" role="contentinfo" aria-label="Footer with contact information and links">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Logo and Description */}
@@ -440,13 +547,13 @@ function App() {
                 Making healthcare accessible and convenient for every Indian patient with cutting-edge AI technology and compassionate care.
               </p>
               <div className="flex space-x-4">
-                <button className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform">
+                <button className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Contact us on WhatsApp">
                   <MessageSquare className="w-5 h-5" />
                 </button>
-                <button className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform">
+                <button className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Follow us on LinkedIn">
                   <div className="w-5 h-5 bg-white rounded-sm"></div>
                 </button>
-                <button className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform">
+                <button className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Watch our videos on YouTube">
                   <Play className="w-5 h-5 ml-0.5" />
                 </button>
               </div>
@@ -456,12 +563,12 @@ function App() {
             <div>
               <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-4">Quick Links</h4>
               <div className="space-y-2">
-                <a href="#home" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">Home</a>
-                <a href="#features" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">Features</a>
-                <a href="#how-it-works" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">How It Works</a>
-                <a href="#testimonials" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">Testimonials</a>
-                <a href="#" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">Privacy Policy</a>
-                <a href="#contact" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">Contact</a>
+                <a href="#home" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Home</a>
+                <a href="#features" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Features</a>
+                <a href="#how-it-works" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">How It Works</a>
+                <a href="#testimonials" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Testimonials</a>
+                <a href="#" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Privacy Policy</a>
+                <a href="#contact" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Contact</a>
               </div>
             </div>
 
@@ -506,7 +613,7 @@ function App() {
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 z-40"
+          className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 z-40 focus-ring"
           aria-label="Scroll to top"
         >
           <ArrowUp className="w-5 h-5 mx-auto" />
@@ -514,6 +621,7 @@ function App() {
       )}
     </div>
     </FeatureDetection>
+    </FocusVisibleProvider>
   );
 }
 

@@ -59,6 +59,121 @@
   transition: none !important;
 }
 
+/* Enhanced Focus Styles */
+:focus {
+  outline: none;
+}
+
+/* Focus-visible styles for keyboard navigation */
+.keyboard-navigation *:focus,
+*:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* High contrast focus for better visibility */
+@media (prefers-contrast: high) {
+  .keyboard-navigation *:focus,
+  *:focus-visible {
+    outline: 4px solid #000000;
+    outline-offset: 3px;
+    background-color: #FFFF00;
+    color: #000000;
+  }
+  
+  .dark .keyboard-navigation *:focus,
+  .dark *:focus-visible {
+    outline: 4px solid #FFFFFF;
+    background-color: #000000;
+    color: #FFFFFF;
+  }
+}
+
+/* Skip links styling */
+.skip-links {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  z-index: 1000;
+}
+
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 8px;
+  background: var(--color-primary);
+  color: white;
+  padding: 12px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus,
+.skip-link-focused {
+  top: 8px;
+  outline: 3px solid #FFFFFF;
+  outline-offset: 2px;
+}
+
+/* Focus indicators for interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+/* Enhanced focus for form elements */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 117, 162, 0.1);
+}
+
+/* Focus styles for custom components */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+}
+
+.focus-ring-inset {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-inset;
+}
+
+/* Keyboard navigation indicators */
+.keyboard-navigation button:focus,
+.keyboard-navigation a:focus,
+.keyboard-navigation [role="button"]:focus {
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px var(--color-primary), 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Section focus styles */
+section:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* Reduced motion support for focus transitions */
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+  
+  .keyboard-navigation button:focus,
+  .keyboard-navigation a:focus {
+    transform: none;
+  }
+}
 /* Custom utility classes using CSS variables */
 @layer utilities {
   .bg-theme-primary {
