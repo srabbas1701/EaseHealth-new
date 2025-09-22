@@ -246,7 +246,7 @@ function App() {
                 </span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                From booking your appointment to reminders and real-time queue updates — EasyHealth AI makes doctor visits effortless with intelligent automation.
+                From booking your appointment to reminders and real-time queue updates — EaseHealth AI makes doctor visits effortless with intelligent automation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <button 
@@ -282,7 +282,7 @@ function App() {
       <section 
         id="features" 
         className="py-16 lg:py-24"
-        aria-label="Features and benefits of EasyHealth AI"
+        aria-label="Features and benefits of EaseHealth AI"
         tabIndex={-1}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -401,7 +401,7 @@ function App() {
       <section 
         id="how-it-works" 
         className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900"
-        aria-label="How EasyHealth AI works - 3 simple steps"
+        aria-label="How EaseHealth AI works - 3 simple steps"
         tabIndex={-1}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -539,7 +539,6 @@ function App() {
                   <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EasyHealth AI</h3>
                   <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EaseHealth AI</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Your Health. Simplified.</p>
                 </div>
