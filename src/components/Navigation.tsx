@@ -159,8 +159,8 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
     },
     {
       icon: FileText,
-      title: "Digital Pre-Registration",
-      description: "Aadhaar-based check-in and document upload",
+      title: "Patient Pre-Registration",
+      description: "Aadhaar-based check-in and document upload for a faster process",
       to: "/#features" // Changed to 'to' for Link, pointing to home features section
     },
     {
