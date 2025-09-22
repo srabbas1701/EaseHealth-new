@@ -30,6 +30,7 @@ import { Link } from 'react-router-dom';
 // Import your new page component
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 // Create a new component for your landing page content
 function LandingPageContent() {
@@ -123,7 +124,8 @@ function LandingPageContent() {
       icon: FileText,
       title: "Admin Dashboard",
       description: "Comprehensive analytics, patient management, and real-time system monitoring for healthcare providers.",
-      image: "admin dashboard.png"
+      image: "admin dashboard.png",
+      to: "/admin-dashboard"
     },
     {
       icon: Bell,
@@ -673,6 +675,7 @@ function App() {
           <Route path="/" element={<LandingPageContent />} />
           <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
           <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage />} />
+          <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
       </FeatureDetection>

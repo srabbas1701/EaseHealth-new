@@ -167,7 +167,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
       icon: FileText,
       title: "Admin Dashboard",
       description: "Comprehensive analytics and patient management system",
-      to: "/#features"
+      to: "/admin-dashboard"
     },
     {
       icon: Bell,
