@@ -120,22 +120,16 @@ function LandingPageContent() {
       to: "/patient-pre-registration"
     },
     {
-      icon: Clock,
-      title: "Queue Dashboard",
-      description: "Get live updates on patient flow, queue status, and predicted wait times.",
-      image: "queqe dashboard.png"
+      icon: FileText,
+      title: "Admin Dashboard",
+      description: "Comprehensive analytics, patient management, and real-time system monitoring for healthcare providers.",
+      image: "admin dashboard.png"
     },
     {
       icon: Bell,
       title: "Medication & Follow-up Reminders",
       description: "Stay on track with timely alerts for prescriptions and follow-ups.",
       image: "follow up reminders.png"
-    },
-    {
-      icon: Shield,
-      title: "Consent & Secure Data",
-      description: "Your health records are encrypted, consent-logged, and fully DPDP-compliant.",
-      image: "Consent and Secure Data 2.png"
     },
     {
       icon: MessageCircle,

@@ -164,10 +164,10 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
      to: "/patient-pre-registration"
     },
     {
-      icon: Clock,
-      title: "Real-time Queue Dashboard",
-      description: "Live updates on patient flow and wait times",
-      to: "/#features" // Changed to 'to' for Link
+      icon: FileText,
+      title: "Admin Dashboard",
+      description: "Comprehensive analytics and patient management system",
+      to: "/#features"
     },
     {
       icon: Bell,
