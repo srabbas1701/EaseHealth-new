@@ -136,7 +136,7 @@ function LandingPageContent() {
       title: "Seamless Communication",
       description: "Stay connected with your healthcare providers through integrated messaging and 24/7 support.",
       image: "Seamless Communication copy.png"
-    }
+    },
     {
       icon: Clock,
       title: "Queue Dashboard",
