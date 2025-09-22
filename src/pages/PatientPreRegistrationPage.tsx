@@ -124,6 +124,18 @@ function PatientPreRegistrationPage() {
       return;
     }
 
+    // Show login/signup prompt before submitting pre-registration
+    const shouldProceed = window.confirm(
+      `To complete your pre-registration, you need to create an account or log in to securely store your information.\n\nWould you like to proceed with account creation?`
+    );
+    
+    if (!shouldProceed) {
+      return;
+    }
+
+    // TODO: Implement actual login/signup modal or redirect
+    alert('Login/Signup functionality will be implemented here. For now, proceeding with pre-registration.');
+
     setIsSubmitting(true);
     
     // Simulate API call

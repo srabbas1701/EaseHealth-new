@@ -141,7 +141,16 @@ function SmartAppointmentBookingPage() {
   };
 
   const handleConfirmBooking = () => {
-    setAnnouncement(`Booking confirmed for ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}`);
+    // Show login/signup prompt before confirming booking
+    const shouldProceed = window.confirm(
+      `To confirm your booking with ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}, you need to create an account or log in.\n\nWould you like to proceed with account creation?`
+    );
+    
+    if (shouldProceed) {
+      // TODO: Implement actual login/signup modal or redirect
+      alert('Login/Signup functionality will be implemented here. For now, proceeding with booking confirmation.');
+      setAnnouncement(`Booking confirmed for ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}`);
+    }
   };
 
   return (

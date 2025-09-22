@@ -31,27 +31,18 @@ import { Link } from 'react-router-dom';
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import ChooseServicePage from './pages/ChooseServicePage';
 
 // Create a new component for your landing page content
 function LandingPageContent() {
   const { isDarkMode } = useDarkMode();
-  const [userState, setUserState] = useState<'new' | 'returning' | 'authenticated'>('new');
+  const [userState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
   // Initialize keyboard navigation
   useKeyboardNavigation();
-  // Simulate user state changes for demo
-  useEffect(() => {
-    const states: ('new' | 'returning' | 'authenticated')[] = ['new', 'returning', 'authenticated'];
-    let index = 0;
-    const interval = setInterval(() => {
-      index = (index + 1) % states.length;
-      setUserState(states[index]);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Handle scroll to top button
   useEffect(() => {
@@ -259,18 +250,19 @@ function LandingPageContent() {
                 From booking your appointment to reminders and real-time queue updates — EaseHealth AI makes doctor visits effortless with intelligent automation.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <button 
+                <Link
+                  to="/choose-service"
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all focus-ring"
-                 aria-describedby="cta-description"
+                  aria-describedby="cta-description"
                 >
-                  Book Appointment Now
-                </button>
+                  Get Started
+                </Link>
                 <button className="border-2 border-[#E8E8E8] dark:border-gray-600 text-[#0A2647] dark:text-gray-100 px-8 py-4 rounded-lg font-medium text-lg hover:border-[#0075A2] dark:hover:border-[#0EA5E9] hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">
                   Learn More
                 </button>
               </div>
               <div id="cta-description" className="sr-only">
-                Start your healthcare journey with EaseHealth AI. Book an appointment or learn more about our features.
+                Start your healthcare journey with EaseHealth AI. Choose your service or learn more about our features.
               </div>
             </div>
             <div className="relative">
@@ -676,6 +668,7 @@ function App() {
           <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
           <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
+          <Route path="/choose-service" element={<ChooseServicePage />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
       </FeatureDetection>
