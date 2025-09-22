@@ -25,7 +25,7 @@ function AdminDashboardPage() {
   const { isDarkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTriageFlag, setSelectedTriageFlag] = useState('');
+  const [selectedDate, setSelectedDate] = useState('2024-01-15');
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, active: true },
@@ -47,13 +47,6 @@ function AdminDashboardPage() {
     { id: '2', patientName: 'Divya Singh', docsStatus: 'complete', consent: 'pending', registrationTime: '09:45 AM' },
     { id: '3', patientName: 'Vikram Joshi', docsStatus: 'incomplete', consent: 'n/a', registrationTime: '10:20 AM' },
     { id: '4', patientName: 'Anjali Reddy', docsStatus: 'pending', consent: 'signed', registrationTime: '10:55 AM' },
-  ];
-
-  const triageOptions = [
-    { id: 'urgent', label: 'Urgent', value: 'urgent' },
-    { id: 'high', label: 'High Priority', value: 'high' },
-    { id: 'normal', label: 'Normal', value: 'normal' },
-    { id: 'low', label: 'Low Priority', value: 'low' },
   ];
 
   const getStatusColor = (status: string) => {
@@ -90,8 +83,15 @@ function AdminDashboardPage() {
         <div className="w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700">
           {/* Clinic Info */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">Aarogya Clinic</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Receptionist</p>
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white font-bold">
+                AS
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">Anjali Sharma</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Administrator</p>
+              </div>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -126,14 +126,59 @@ function AdminDashboardPage() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto">
+          {/* Page Header */}
+          <div className="bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-8 lg:py-12 border-b border-gray-200 dark:border-gray-700">
+            <div className="max-w-7xl mx-auto px-6">
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center relative overflow-hidden">
+                    <BarChart3 className="w-8 h-8 text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
+                      <Users className="w-3 h-3 text-white" />
+                    </div>
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
+                  </div>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
+                  Admin{' '}
+                  <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
+                    Dashboard
+                  </span>
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">
+                  Comprehensive patient management, appointment tracking, and real-time analytics
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Receptionist Dashboard</h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">Manage appointments, patients, and daily operations</p>
+                <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Dashboard Overview</h2>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Today's appointments and patient management for {new Date(selectedDate).toLocaleDateString('en-IN', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </p>
               </div>
               <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Date:
+                  </label>
+                  <input
+                    type="date"
+                    id="date-filter"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
@@ -270,45 +315,52 @@ function AdminDashboardPage() {
                 </div>
 
                 {/* Triage Flags */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Triage Flags</h3>
-                  
-                  <div className="space-y-4">
-                    <AccessibleDropdown
-                      options={triageOptions}
-                      value={selectedTriageFlag}
-                      onChange={(value) => setSelectedTriageFlag(value as string)}
-                      placeholder="Select Triage Flag"
-                      className="w-full"
-                    />
-                    
-                    <button className="w-full bg-[#F6F6F6] dark:bg-gray-700 text-[#0A2647] dark:text-gray-100 py-2 px-4 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center">
-                      <Flag className="w-4 h-4 mr-2" />
-                      Apply Flag
-                    </button>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 relative overflow-hidden">
+                  {/* Blur overlay */}
+                  <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <Flag className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Coming Soon</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">Triage Flags</p>
+                    </div>
                   </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center text-red-600 dark:text-red-400">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        Urgent
-                      </span>
-                      <span className="font-medium">3</span>
+                  
+                  {/* Blurred content */}
+                  <div className="filter blur-sm">
+                    <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Triage Flags</h3>
+                    <div className="space-y-4">
+                      <div className="w-full bg-[#F6F6F6] dark:bg-gray-700 py-3 px-4 rounded-lg">
+                        <span className="text-gray-500">Select Triage Flag</span>
+                      </div>
+                      <button className="w-full bg-[#F6F6F6] dark:bg-gray-700 text-[#0A2647] dark:text-gray-100 py-2 px-4 rounded-lg font-medium flex items-center justify-center">
+                        <Flag className="w-4 h-4 mr-2" />
+                        Apply Flag
+                      </button>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center text-yellow-600 dark:text-yellow-400">
-                        <Clock className="w-3 h-3 mr-1" />
-                        High Priority
-                      </span>
-                      <span className="font-medium">7</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center text-green-600 dark:text-green-400">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Normal
-                      </span>
-                      <span className="font-medium">15</span>
+                    <div className="mt-4 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center text-red-600 dark:text-red-400">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Urgent
+                        </span>
+                        <span className="font-medium">3</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center text-yellow-600 dark:text-yellow-400">
+                          <Clock className="w-3 h-3 mr-1" />
+                          High Priority
+                        </span>
+                        <span className="font-medium">7</span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center text-green-600 dark:text-green-400">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Normal
+                        </span>
+                        <span className="font-medium">15</span>
+                      </div>
                     </div>
                   </div>
                 </div>
