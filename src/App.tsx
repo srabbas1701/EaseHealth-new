@@ -19,12 +19,16 @@ import {
 } from 'lucide-react';
 import Navigation from './components/Navigation';
 import { useDarkMode } from './hooks/useDarkMode';
+import AccessibleTestimonials from './components/AccessibleTestimonials';
+import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
+import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
 
 function App() {
   const { isDarkMode } = useDarkMode();
   const [userState, setUserState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
 
   // Simulate user state changes for demo
   useEffect(() => {
@@ -118,19 +122,39 @@ function App() {
 
   const testimonials = [
     {
+      id: '1',
       text: "Booking was quick and I got SMS reminders before my visit.",
       author: "Priya S.",
-      location: "Mumbai"
+      location: "Mumbai",
+      rating: 5
     },
     {
+      id: '2',
       text: "Pre-registration saved me 30 minutes at the clinic.",
       author: "Rajesh K.", 
-      location: "Delhi"
+      location: "Delhi",
+      rating: 5
     },
     {
+      id: '3',
       text: "I could track my turn on the app — no more waiting blindly.",
       author: "Anjali M.",
-      location: "Bangalore"
+      location: "Bangalore",
+      rating: 5
+    },
+    {
+      id: '4',
+      text: "The digital pre-registration made my visit so smooth and efficient.",
+      author: "Vikram P.",
+      location: "Chennai",
+      rating: 4
+    },
+    {
+      id: '5',
+      text: "Finally, a healthcare app that actually works! Love the reminders.",
+      author: "Meera K.",
+      location: "Pune",
+      rating: 5
     }
   ];
 
@@ -154,12 +178,25 @@ function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+    <FeatureDetection>
+      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+        {/* Skip Links for keyboard navigation */}
+        <SkipLinks />
+        
+        {/* Offline indicator */}
+        <OfflineIndicator />
+        
+        {/* Accessibility announcements */}
+        <AccessibilityAnnouncer message={announcement} />
+
       {/* Enhanced Navigation */}
-      <Navigation userState={userState} />
+      <div id="navigation">
+        <Navigation userState={userState} />
+      </div>
 
       {/* Hero Section */}
-      <section id="home" className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24">
+      <main id="main-content">
+        <section id="home" className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -339,30 +376,11 @@ function App() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow border border-[#E8E8E8] dark:border-gray-700">
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-5 h-5 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full mr-1"></div>
-                  ))}
-                </div>
-                <p className="text-gray-700 dark:text-gray-300 mb-6 italic">"{testimonial.text}"</p>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white font-bold mr-4">
-                    {testimonial.author.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-bold text-[#0A2647] dark:text-gray-100">{testimonial.author}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {testimonial.location}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <AccessibleTestimonials 
+            testimonials={testimonials}
+            autoPlay={true}
+            showRatings={true}
+          />
         </div>
       </section>
 
@@ -482,6 +500,7 @@ function App() {
           </div>
         </div>
       </footer>
+      </main>
 
       {/* Scroll to Top Button */}
       {showScrollTop && (
@@ -494,6 +513,7 @@ function App() {
         </button>
       )}
     </div>
+    </FeatureDetection>
   );
 }
 
