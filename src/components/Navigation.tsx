@@ -17,7 +17,6 @@ import {
 import DarkModeToggle from './DarkModeToggle';
 import { useFocusManagement } from './KeyboardNavigation';
 import { Link } from 'react-router-dom'; // Import Link from react-router-dom
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 
 interface NavigationProps {
   userState: 'new' | 'returning' | 'authenticated';
