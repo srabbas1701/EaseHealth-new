@@ -185,48 +185,50 @@ function PatientPreRegistrationPage() {
 
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-        <Navigation userState="new" />
-        
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
-            <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Pre-Registration Successful!
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-              Your pre-registration has been submitted successfully. You'll receive a confirmation SMS shortly with your queue token.
-            </p>
-            <div className="space-y-4">
-              <Link 
-                to="/smart-appointment-booking" 
-                className="inline-block bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
-              >
-                Book Another Appointment
-              </Link>
-              <div>
+      <>
+        <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+          <Navigation userState="new" />
+          
+          <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
+              <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-12 h-12 text-white" />
+              </div>
+              <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
+                Pre-Registration Successful!
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
+                Your pre-registration has been submitted successfully. You'll receive a confirmation SMS shortly with your queue token.
+              </p>
+              <div className="space-y-4">
                 <Link 
-                  to="/" 
-                  className="text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors focus-ring"
+                  to="/smart-appointment-booking" 
+                  className="inline-block bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
                 >
-                  Return to Home
+                  Book Another Appointment
                 </Link>
+                <div>
+                  <Link 
+                    to="/" 
+                    className="text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors focus-ring"
+                  >
+                    Return to Home
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </main>
-      </div>
+          </main>
+        </div>
 
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-        mode="signup"
-        context={authContext}
-      />
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={handleAuthSuccess}
+          mode="signup"
+          context={authContext}
+        />
+      </>
     );
   }
 
