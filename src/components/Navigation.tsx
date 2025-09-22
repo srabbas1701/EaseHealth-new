@@ -207,13 +207,13 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <Link // Changed to Link
-            <Link // Changed to Link
               to="/" // Changed to 'to'
               className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
               tabIndex={0}
               role="button"
               aria-label="EaseHealth AI - Your Health Simplified"
               // onKeyDown removed as Link handles navigation
+            >
               <Brain className="w-6 h-6 text-white" />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 text-white" />
@@ -339,7 +339,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
             <DarkModeToggle showDropdown={true} />
             {getDynamicCTA()}
           </div>
-            </Link>
+
           {/* Mobile menu button */}
           <button 
             className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
@@ -420,16 +420,13 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                   <span>+91 80-EASEHEALTH</span>
                 </div>
               </div>
-              <Link // Changed to Link
-                to="/" // Changed to 'to'
+
               {/* CTA */}
               <div className="px-4 pt-4 border-t border-[#E8E8E8]">
                 <div className="mb-4">
-                  <DarkModeToggle 
-                // onKeyDown removed as Link handles navigation
-                  />
+                  <DarkModeToggle />
                 </div>
-              </Link>
+                {getDynamicCTA()}
               </div>
             </div>
           </div>
