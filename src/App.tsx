@@ -107,7 +107,7 @@ function LandingPageContent() {
       icon: Calendar,
       title: "Smart Appointment Booking",
       description: "Optimized slots, instant confirmation, and SMS/WhatsApp reminders.",
-      image: "smart appointment booking.png"
+      image: "smart appointment booking.png",
       to: "/smart-appointment-booking" // Changed to 'to' for Link
     },
     {
