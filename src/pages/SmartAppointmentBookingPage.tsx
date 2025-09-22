@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
+import AuthModal from '../components/AuthModal';
 import { 
   ChevronDown, 
   ChevronLeft, 
@@ -25,6 +26,8 @@ function SmartAppointmentBookingPage() {
   const [currentMonth, setCurrentMonth] = useState('July 2024');
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   // Handle scroll to top button
   React.useEffect(() => {
@@ -141,16 +144,19 @@ function SmartAppointmentBookingPage() {
   };
 
   const handleConfirmBooking = () => {
-    // Show login/signup prompt before confirming booking
-    const shouldProceed = window.confirm(
-      `To confirm your booking with ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}, you need to create an account or log in.\n\nWould you like to proceed with account creation?`
-    );
-    
-    if (shouldProceed) {
-      // TODO: Implement actual login/signup modal or redirect
-      alert('Login/Signup functionality will be implemented here. For now, proceeding with booking confirmation.');
-      setAnnouncement(`Booking confirmed for ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}`);
-    }
+    setShowAuthModal(true);
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    setBookingConfirmed(true);
+    setAnnouncement(`Booking confirmed for ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}`);
+  };
+
+  const authContext = {
+    title: 'Complete Your Booking',
+    description: `To confirm your appointment with ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}, please create an account or sign in to your existing account.`,
+    actionText: 'Confirm Booking'
   };
 
   return (
@@ -335,10 +341,22 @@ function SmartAppointmentBookingPage() {
                   {/* Confirm Booking Button */}
                   <button
                     onClick={handleConfirmBooking}
-                    className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2"
+                    disabled={bookingConfirmed}
+                    className={`w-full font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 ${
+                      bookingConfirmed
+                        ? 'bg-green-600 text-white cursor-default'
+                        : 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] text-white'
+                    }`}
                     aria-describedby="booking-summary"
                   >
-                    Confirm Booking
+                    {bookingConfirmed ? (
+                      <div className="flex items-center justify-center">
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        Booking Confirmed!
+                      </div>
+                    ) : (
+                      'Confirm Booking'
+                    )}
                   </button>
 
                   {/* Booking Summary for Screen Readers */}
@@ -436,6 +454,15 @@ function SmartAppointmentBookingPage() {
           </div>
         </section>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+        mode="signup"
+        context={authContext}
+      />
 
       {/* Scroll to Top Button */}
       {showScrollTop && (

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
+import AuthModal from '../components/AuthModal';
 
 interface FormData {
   fullName: string;
@@ -36,6 +37,7 @@ function PatientPreRegistrationPage() {
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const genderOptions = [
     { id: 'male', label: 'Male', value: 'male' },
@@ -123,19 +125,12 @@ function PatientPreRegistrationPage() {
     if (!validateForm()) {
       return;
     }
-
-    // Show login/signup prompt before submitting pre-registration
-    const shouldProceed = window.confirm(
-      `To complete your pre-registration, you need to create an account or log in to securely store your information.\n\nWould you like to proceed with account creation?`
-    );
     
-    if (!shouldProceed) {
-      return;
-    }
+    setShowAuthModal(true);
+  };
 
-    // TODO: Implement actual login/signup modal or redirect
-    alert('Login/Signup functionality will be implemented here. For now, proceeding with pre-registration.');
-
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
     setIsSubmitting(true);
     
     // Simulate API call
@@ -147,6 +142,12 @@ function PatientPreRegistrationPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const authContext = {
+    title: 'Complete Your Pre-Registration',
+    description: 'To securely store your pre-registration information and medical documents, please create an account or sign in to your existing account.',
+    actionText: 'Complete Pre-Registration'
   };
 
   const benefits = [
@@ -217,6 +218,15 @@ function PatientPreRegistrationPage() {
           </div>
         </main>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+        mode="signup"
+        context={authContext}
+      />
     );
   }
 
