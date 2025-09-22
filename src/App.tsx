@@ -76,7 +76,6 @@ function App() {
       icon: Shield,
       title: "Consent & Secure Data",
       description: "Your health records are encrypted, consent-logged, and fully DPDP-compliant.",
-      image: "http://googleusercontent.com/image_generation_content/4"
     }
   ];
 
