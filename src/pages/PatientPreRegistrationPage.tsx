@@ -137,6 +137,24 @@ function PatientPreRegistrationPage() {
     }
   };
 
+  const benefits = [
+    {
+      icon: Calendar,
+      title: "Skip the Queue",
+      description: "Pre-register and get your digital token to avoid waiting in long lines."
+    },
+    {
+      icon: FileText,
+      title: "Secure Document Upload",
+      description: "Upload your documents safely with end-to-end encryption and DPDP compliance."
+    },
+    {
+      icon: CheckCircle,
+      title: "Instant Confirmation",
+      description: "Get immediate confirmation and SMS updates about your registration status."
+    }
+  ];
+
   if (submitSuccess) {
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
@@ -179,7 +197,7 @@ function PatientPreRegistrationPage() {
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
       <Navigation userState="new" />
       
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link 
           to="/" 
@@ -189,316 +207,364 @@ function PatientPreRegistrationPage() {
           Back to Home
         </Link>
 
-        {/* Page Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-            Patient Pre-Registration Form
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Please fill out this form to streamline your visit
-          </p>
-        </div>
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Form (2/3 width) */}
+          <div className="lg:col-span-2">
+            {/* Page Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
+                Patient Pre-Registration Form
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                Please fill out this form to streamline your visit
+              </p>
+            </div>
 
-        {/* Form */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Demographics Section */}
-            <div>
-              <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
-                <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Demographics
-              </h2>
-              
-              <div className="space-y-6">
-                {/* Full Name */}
+            {/* Form */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+              <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Demographics Section */}
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => handleInputChange('fullName', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                      errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Enter your full name"
-                    aria-describedby={errors.fullName ? 'fullName-error' : undefined}
-                  />
-                  {errors.fullName && (
-                    <p id="fullName-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.fullName}
-                    </p>
-                  )}
+                  <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                    <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                    Demographics
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    {/* Full Name */}
+                    <div>
+                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Full Name *
+                      </label>
+                      <input
+                        type="text"
+                        id="fullName"
+                        value={formData.fullName}
+                        onChange={(e) => handleInputChange('fullName', e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                          errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                        placeholder="Enter your full name"
+                        aria-describedby={errors.fullName ? 'fullName-error' : undefined}
+                      />
+                      {errors.fullName && (
+                        <p id="fullName-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.fullName}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Age and Gender */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Age *
+                        </label>
+                        <input
+                          type="number"
+                          id="age"
+                          value={formData.age}
+                          onChange={(e) => handleInputChange('age', e.target.value)}
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                            errors.age ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                          placeholder="Your age"
+                          min="1"
+                          max="120"
+                          aria-describedby={errors.age ? 'age-error' : undefined}
+                        />
+                        {errors.age && (
+                          <p id="age-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                            <AlertCircle className="w-4 h-4 mr-1" />
+                            {errors.age}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <AccessibleDropdown
+                          label="Gender *"
+                          options={genderOptions}
+                          value={formData.gender}
+                          onChange={(value) => handleInputChange('gender', value as string)}
+                          placeholder="Select gender"
+                          error={errors.gender}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        id="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                          errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                        placeholder="Enter your phone number"
+                        aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
+                      />
+                      {errors.phoneNumber && (
+                        <p id="phoneNumber-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                          <AlertCircle className="w-4 h-4 mr-1" />
+                          {errors.phoneNumber}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* City and State */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          City *
+                        </label>
+                        <input
+                          type="text"
+                          id="city"
+                          value={formData.city}
+                          onChange={(e) => handleInputChange('city', e.target.value)}
+                          className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                            errors.city ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                          placeholder="Enter your city"
+                          aria-describedby={errors.city ? 'city-error' : undefined}
+                        />
+                        {errors.city && (
+                          <p id="city-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                            <AlertCircle className="w-4 h-4 mr-1" />
+                            {errors.city}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <AccessibleDropdown
+                          label="State *"
+                          options={stateOptions}
+                          value={formData.state}
+                          onChange={(value) => handleInputChange('state', value as string)}
+                          placeholder="Select state"
+                          searchable={true}
+                          error={errors.state}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Age and Gender */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Symptoms Section */}
+                <div>
+                  <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                    <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                    Symptoms
+                  </h2>
+                  
                   <div>
-                    <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Age *
+                    <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Brief description of your symptoms *
                     </label>
-                    <input
-                      type="number"
-                      id="age"
-                      value={formData.age}
-                      onChange={(e) => handleInputChange('age', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.age ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    <textarea
+                      id="symptoms"
+                      value={formData.symptoms}
+                      onChange={(e) => handleInputChange('symptoms', e.target.value)}
+                      rows={4}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-vertical ${
+                        errors.symptoms ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
-                      placeholder="Your age"
-                      min="1"
-                      max="120"
-                      aria-describedby={errors.age ? 'age-error' : undefined}
+                      placeholder="e.g. Fever, cough, and headache for the last 3 days"
+                      aria-describedby={errors.symptoms ? 'symptoms-error' : undefined}
                     />
-                    {errors.age && (
-                      <p id="age-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                    {errors.symptoms && (
+                      <p id="symptoms-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.age}
+                        {errors.symptoms}
                       </p>
                     )}
                   </div>
+                </div>
 
-                  <div>
-                    <AccessibleDropdown
-                      label="Gender *"
-                      options={genderOptions}
-                      value={formData.gender}
-                      onChange={(value) => handleInputChange('gender', value as string)}
-                      placeholder="Select gender"
-                      error={errors.gender}
-                    />
+                {/* Upload Documents Section */}
+                <div>
+                  <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                    <Upload className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                    Upload Documents
+                  </h2>
+                  
+                  <div className="space-y-6">
+                    {/* Lab Reports */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Lab Reports (PDF/JPG)
+                      </label>
+                      <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
+                            Upload a file
+                          </span>
+                          {' '}or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg"
+                          onChange={(e) => handleFileUpload('labReports', e.target.files?.[0] || null)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          id="labReports"
+                        />
+                      </div>
+                      {formData.labReports && (
+                        <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          {formData.labReports.name} uploaded
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Aadhaar */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Aadhaar / ID (PDF/JPG)
+                      </label>
+                      <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
+                            Upload a file
+                          </span>
+                          {' '}or drag and drop
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
+                        <input
+                          type="file"
+                          accept=".pdf,.jpg,.jpeg"
+                          onChange={(e) => handleFileUpload('aadhaar', e.target.files?.[0] || null)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          id="aadhaar"
+                        />
+                      </div>
+                      {formData.aadhaar && (
+                        <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          {formData.aadhaar.name} uploaded
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Phone Number */}
+                {/* Digital Consent Section */}
                 <div>
-                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Phone Number *
-                  </label>
-                  <input
-                    type="tel"
-                    id="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                      errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Enter your phone number"
-                    aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
-                  />
-                  {errors.phoneNumber && (
-                    <p id="phoneNumber-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                      <AlertCircle className="w-4 h-4 mr-1" />
-                      {errors.phoneNumber}
-                    </p>
-                  )}
-                </div>
-
-                {/* City and State */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      City *
-                    </label>
-                    <input
-                      type="text"
-                      id="city"
-                      value={formData.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.city ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
-                      placeholder="Enter your city"
-                      aria-describedby={errors.city ? 'city-error' : undefined}
-                    />
-                    {errors.city && (
-                      <p id="city-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                  <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                    <CheckCircle className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                    Digital Consent
+                  </h2>
+                  
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <div className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                      <p className="mb-3">
+                        I hereby consent to the collection, processing, and storage of my personal and health information by 
+                        EaseHealth for the purpose of providing healthcare services. I understand that my data will be kept 
+                        confidential and used in accordance with applicable data privacy laws.
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        मैं एतद्द्वारा स्वास्थ्य सेवाएं प्रदान करने के उद्देश्य से EaseHealth द्वारा मेरी व्यक्तिगत और स्वास्थ्य जानकारी के संग्रह, प्रसंस्करण और भंडारण के लिए 
+                        अपनी सहमति देता/देती हूँ। मैं समझता/समझती हूँ कि मेरा डेटा गोपनीय रखा जाएगा और लागू डेटा गोपनीयता कानूनों के अनुसार उसका उपयोग किया जाएगा।
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        id="consent"
+                        checked={formData.consent}
+                        onChange={(e) => handleInputChange('consent', e.target.checked)}
+                        className="mt-1 w-4 h-4 text-[#0075A2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#0075A2] focus:ring-2"
+                      />
+                      <label htmlFor="consent" className="ml-3 text-sm text-gray-700 dark:text-gray-300">
+                        I have read, understood, and agree to the consent form *
+                      </label>
+                    </div>
+                    {errors.consent && (
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.city}
+                        {errors.consent}
                       </p>
                     )}
                   </div>
-
-                  <div>
-                    <AccessibleDropdown
-                      label="State *"
-                      options={stateOptions}
-                      value={formData.state}
-                      onChange={(value) => handleInputChange('state', value as string)}
-                      placeholder="Select state"
-                      searchable={true}
-                      error={errors.state}
-                    />
-                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Symptoms Section */}
-            <div>
-              <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
-                <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Symptoms
-              </h2>
-              
-              <div>
-                <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Brief description of your symptoms *
-                </label>
-                <textarea
-                  id="symptoms"
-                  value={formData.symptoms}
-                  onChange={(e) => handleInputChange('symptoms', e.target.value)}
-                  rows={4}
-                  className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-vertical ${
-                    errors.symptoms ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                  }`}
-                  placeholder="e.g. Fever, cough, and headache for the last 3 days"
-                  aria-describedby={errors.symptoms ? 'symptoms-error' : undefined}
-                />
-                {errors.symptoms && (
-                  <p id="symptoms-error" className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.symptoms}
-                  </p>
-                )}
-              </div>
+                {/* Submit Button */}
+                <div className="pt-6">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Submitting Pre-Registration...
+                      </div>
+                    ) : (
+                      'Submit Pre-Registration'
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
+          </div>
 
-            {/* Upload Documents Section */}
-            <div>
-              <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
-                <Upload className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Upload Documents
-              </h2>
+          {/* Right Column - Benefits (1/3 width) */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 sticky top-24">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 text-center">
+                Why Pre-Register?
+              </h3>
               
               <div className="space-y-6">
-                {/* Lab Reports */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Lab Reports (PDF/JPG)
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                      <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
-                        Upload a file
-                      </span>
-                      {' '}or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg"
-                      onChange={(e) => handleFileUpload('labReports', e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="labReports"
-                    />
-                    <label htmlFor="labReports" className="cursor-pointer absolute inset-0"></label>
+                {benefits.map((benefit, index) => (
+                  <div key={index} className="flex items-start space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white">
+                        <benefit.icon className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-2">{benefit.title}</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                    </div>
                   </div>
-                  {formData.labReports && (
-                    <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      {formData.labReports.name} uploaded
-                    </p>
-                  )}
-                </div>
-
-                {/* Aadhaar */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Aadhaar / ID (PDF/JPG)
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                      <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
-                        Upload a file
-                      </span>
-                      {' '}or drag and drop
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg"
-                      onChange={(e) => handleFileUpload('aadhaar', e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="aadhaar"
-                    />
-                    <label htmlFor="aadhaar" className="cursor-pointer absolute inset-0"></label>
-                  </div>
-                  {formData.aadhaar && (
-                    <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      {formData.aadhaar.name} uploaded
-                    </p>
-                  )}
-                </div>
+                ))}
               </div>
-            </div>
-
-            {/* Digital Consent Section */}
-            <div>
-              <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
-                <CheckCircle className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Digital Consent
-              </h2>
               
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
-                <div className="text-sm text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
-                  <p className="mb-3">
-                    I hereby consent to the collection, processing, and storage of my personal and health information by 
-                    EaseHealth for the purpose of providing healthcare services. I understand that my data will be kept 
-                    confidential and used in accordance with applicable data privacy laws.
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    मैं एतद्द्वारा स्वास्थ्य सेवाएं प्रदान करने के उद्देश्य से EaseHealth द्वारा मेरी व्यक्तिगत और स्वास्थ्य जानकारी के संग्रह, प्रसंस्करण और भंडारण के लिए 
-                    अपनी सहमति देता/देती हूँ। मैं समझता/समझती हूँ कि मेरा डेटा गोपनीय रखा जाएगा और लागू डेटा गोपनीयता कानूनों के अनुसार उसका उपयोग किया जाएगा।
-                  </p>
-                </div>
-                
-                <div className="flex items-start">
-                  <input
-                    type="checkbox"
-                    id="consent"
-                    checked={formData.consent}
-                    onChange={(e) => handleInputChange('consent', e.target.checked)}
-                    className="mt-1 w-4 h-4 text-[#0075A2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#0075A2] focus:ring-2"
-                  />
-                  <label htmlFor="consent" className="ml-3 text-sm text-gray-700 dark:text-gray-300">
-                    I have read, understood, and agree to the consent form *
-                  </label>
-                </div>
-                {errors.consent && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    {errors.consent}
-                  </p>
-                )}
+              {/* Additional Tips */}
+              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-3">💡 Quick Tips</h4>
+                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+                  <li className="flex items-start">
+                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                    Have your Aadhaar and lab reports ready
+                  </li>
+                  <li className="flex items-start">
+                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                    Fill accurate information for faster check-in
+                  </li>
+                  <li className="flex items-start">
+                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
+                    Get SMS confirmation with queue token
+                  </li>
+                </ul>
               </div>
             </div>
-
-            {/* Submit Button */}
-            <div className="pt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <div className="flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Submitting Pre-Registration...
-                  </div>
-                ) : (
-                  'Submit Pre-Registration'
-                )}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
       </main>
     </div>
