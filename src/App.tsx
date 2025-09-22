@@ -30,6 +30,7 @@ import { Routes, Route } from 'react-router-dom';
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 
 // Create a new component for your landing page content
+function LandingPageContent() {
   const { isDarkMode } = useDarkMode();
   const [userState, setUserState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -323,7 +324,7 @@ import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
                   <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                     <div className="relative">
                       <benefit.icon className="w-8 h-8 text-white" />
-                      {benefit.title.includes('Secure') || benefit.title.includes('Smart') && (
+                      {(benefit.title.includes('Secure') || benefit.title.includes('Smart')) && (
                         <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
                           <Zap className="w-2.5 h-2.5 text-white" />
                         </div>
