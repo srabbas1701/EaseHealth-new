@@ -271,7 +271,7 @@ function SmartAppointmentBookingPage() {
                               ${dayObj.disabled || !dayObj.day 
                                 ? 'text-transparent cursor-default' 
                                 : dayObj.selected 
-                                  ? 'bg-[#00D4AA] text-white shadow-md transform scale-105' 
+                                  ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-md transform scale-105' 
                                   : dayObj.highlighted 
                                     ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]' 
                                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -303,7 +303,7 @@ function SmartAppointmentBookingPage() {
                           className={`
                             px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
                             ${selectedTime === slot.time
-                              ? 'bg-[#00D4AA] text-white shadow-md transform scale-105'
+                              ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-md transform scale-105'
                               : slot.highlighted
                                 ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]'
                                 : slot.available
@@ -326,7 +326,7 @@ function SmartAppointmentBookingPage() {
                   {/* Confirm Booking Button */}
                   <button
                     onClick={handleConfirmBooking}
-                    className="w-full bg-[#00D4AA] hover:bg-[#00c299] text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00D4AA] focus:ring-offset-2"
+                    className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2"
                     aria-describedby="booking-summary"
                   >
                     Confirm Booking
