@@ -14,6 +14,7 @@ import {
   Phone,
   Search
 } from 'lucide-react';
+import DarkModeToggle from './DarkModeToggle';
 
 interface NavigationProps {
   userState: 'new' | 'returning' | 'authenticated';
@@ -245,11 +246,12 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
           {/* Search and CTA */}
           <div className="hidden lg:flex items-center space-x-3">
             <button 
-              className="p-2 text-gray-600 hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200"
+              className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
               aria-label="Search"
             >
               <Search className="w-5 h-5" />
             </button>
+            <DarkModeToggle showDropdown={true} />
             {getDynamicCTA()}
           </div>
 
@@ -331,6 +333,9 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
               {/* CTA */}
               <div className="px-4 pt-4 border-t border-[#E8E8E8]">
+                <div className="mb-4">
+                  <DarkModeToggle showDropdown={true} className="w-full justify-center" />
+                </div>
                 {getDynamicCTA()}
               </div>
             </div>
