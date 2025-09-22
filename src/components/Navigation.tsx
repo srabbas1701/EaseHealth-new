@@ -12,7 +12,8 @@ import {
   Shield,
   ArrowRight,
   Phone,
-  Search
+  Search,
+  User
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
 import { useFocusManagement } from './KeyboardNavigation';
@@ -133,6 +134,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
         return (
           <button 
             className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+            onClick={() => window.location.href = '/patient-dashboard'}
             aria-label="Go to your dashboard"
           >
             My Dashboard
@@ -180,6 +182,12 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
       title: "Secure Data Management",
       description: "DPDP-compliant health record protection",
       to: "/#features" // Changed to 'to' for Link
+    },
+    {
+      icon: User, // Placeholder icon
+      title: "Patient Dashboard",
+      description: "Your personalized health overview and quick access to services.",
+      to: "/patient-dashboard"
     }
   ];
 
