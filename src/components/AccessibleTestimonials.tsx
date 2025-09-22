@@ -30,9 +30,7 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
   // Detect user preference for motion
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    if (mediaQuery.matches) {
-      setPreferredFormat('list');
-    }
+    // Keep slideshow as default even for reduced motion users, but they can switch to list view
   }, []);
 
   // Convert testimonials to carousel items
