@@ -31,6 +31,7 @@ import { Link } from 'react-router-dom';
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import PatientDashboardPage from './pages/PatientDashboardPage'; // Import the new page
 import ChooseServicePage from './pages/ChooseServicePage';
 
 // Create a new component for your landing page content
@@ -118,11 +119,13 @@ function LandingPageContent() {
       image: "admin dashboard.png",
       to: "/admin-dashboard"
     },
+    // Removed "Medication & Follow-up Reminders" as per requirements
     {
-      icon: Bell,
-      title: "Medication & Follow-up Reminders",
-      description: "Stay on track with timely alerts for prescriptions and follow-ups.",
-      image: "follow up reminders.png"
+      icon: User, // Placeholder icon
+      title: "Patient Dashboard",
+      description: "Your personalized health overview and quick access to services.",
+      image: "patient dashboard.png", // Placeholder image name
+      to: "/patient-dashboard"
     },
     {
       icon: MessageCircle,
@@ -668,6 +671,7 @@ function App() {
           <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
           <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage />} />
           <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
+          <Route path="/patient-dashboard" element={<PatientDashboardPage />} /> {/* New Patient Dashboard Route */}
           <Route path="/choose-service" element={<ChooseServicePage />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
