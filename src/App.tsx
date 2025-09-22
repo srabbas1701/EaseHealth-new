@@ -24,7 +24,12 @@ import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/Prog
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProvider } from './components/KeyboardNavigation';
 
-function App() {
+// Import routing components
+import { Routes, Route } from 'react-router-dom';
+// Import your new page component
+import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
+
+// Create a new component for your landing page content
   const { isDarkMode } = useDarkMode();
   const [userState, setUserState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -211,17 +216,15 @@ function App() {
   ];
 
   return (
-    <FocusVisibleProvider>
-    <FeatureDetection>
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-        {/* Skip Links for keyboard navigation */}
-        <KeyboardSkipLinks />
-        
-        {/* Offline indicator */}
-        <OfflineIndicator />
-        
-        {/* Accessibility announcements */}
-        <AccessibilityAnnouncer message={announcement} />
+    <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+      {/* Skip Links for keyboard navigation */}
+      <KeyboardSkipLinks />
+      
+      {/* Offline indicator */}
+      <OfflineIndicator />
+      
+      {/* Accessibility announcements */}
+      <AccessibilityAnnouncer message={announcement} />
 
       {/* Enhanced Navigation */}
       <div id="navigation">
@@ -620,7 +623,20 @@ function App() {
         </button>
       )}
     </div>
-    </FeatureDetection>
+  );
+}
+
+// Main App component now handles routing
+function App() {
+  return (
+    <FocusVisibleProvider>
+      <FeatureDetection>
+        <Routes>
+          <Route path="/" element={<LandingPageContent />} />
+          <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
+          {/* Add more routes here as you create new pages */}
+        </Routes>
+      </FeatureDetection>
     </FocusVisibleProvider>
   );
 }
