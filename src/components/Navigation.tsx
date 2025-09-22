@@ -210,7 +210,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               aria-label="EaseHealth AI - Your Health Simplified"
               onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
             >
-              EaseHealth AI
+              <Brain className="w-6 h-6 text-white" />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 text-white" />
               </div>
@@ -224,7 +224,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                 aria-label="EasyHealth AI - Your Health Simplified"
                 onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
               >
-                EasyHealth AI
+                EaseHealth AI
               </h1>
               <p className="text-xs text-gray-600">Your Health. Simplified.</p>
             </div>

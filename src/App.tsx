@@ -482,7 +482,7 @@ function App() {
               Got Questions?
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Find answers to common questions about EaseHealth
+              Find answers to common questions about EaseHealth AI
             </p>
           </div>
 
