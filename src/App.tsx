@@ -15,7 +15,8 @@ import {
   Mail,
   Brain,
   Zap,
-  ArrowUp
+  ArrowUp,
+  User
 } from 'lucide-react';
 import Navigation from './components/Navigation';
 import { useDarkMode } from './hooks/useDarkMode';
