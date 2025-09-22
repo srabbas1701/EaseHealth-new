@@ -249,7 +249,7 @@ function App() {
                 <img 
                   src="/dpdp compliance.png" 
                   alt="DPDP Compliance"
-                  className="w-full h-48 object-contain rounded-lg mx-auto"
+                  className="w-full h-48 object-cover rounded-lg"
                 />
               </div>
               <h3 className="text-xl font-bold text-[#0A2647] mb-3">DPDP Compliance</h3>
@@ -261,7 +261,7 @@ function App() {
                 <img 
                   src="/India Data Residency.png" 
                   alt="India Data Residency"
-                  className="w-full h-48 object-contain rounded-lg mx-auto"
+                  className="w-full h-48 object-cover rounded-lg"
                 />
               </div>
               <h3 className="text-xl font-bold text-[#0A2647] mb-3">India Data Residency</h3>
@@ -273,7 +273,7 @@ function App() {
                 <img 
                   src="/Immutable Audit Logs.png" 
                   alt="Immutable Audit Logs"
-                  className="w-full h-48 object-contain rounded-lg mx-auto"
+                  className="w-full h-48 object-cover rounded-lg"
                 />
               </div>
               <h3 className="text-xl font-bold text-[#0A2647] mb-3">Immutable Audit Logs</h3>
