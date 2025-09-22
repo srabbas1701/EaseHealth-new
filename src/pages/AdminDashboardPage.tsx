@@ -115,6 +115,48 @@ function AdminDashboardPage() {
             </ul>
           </nav>
 
+          {/* Today's Overview - Moved to Sidebar */}
+          <div className="px-4 pb-4">
+            <div className="bg-gradient-to-br from-[#E8F4F8] dark:from-gray-700 to-white dark:to-gray-800 rounded-xl p-4 border border-[#0075A2]/20 dark:border-gray-600">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-[#0A2647] dark:text-gray-100">Today's Overview</h3>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-blue-100 dark:border-gray-600">
+                  <div className="text-lg font-bold text-[#0075A2] dark:text-[#0EA5E9]">24</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Appointments</div>
+                </div>
+                <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-green-100 dark:border-gray-600">
+                  <div className="text-lg font-bold text-green-600 dark:text-green-400">18</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Completed</div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-yellow-100 dark:border-gray-600">
+                  <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">6</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Pending</div>
+                </div>
+                <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-purple-100 dark:border-gray-600">
+                  <div className="text-lg font-bold text-purple-600 dark:text-purple-400">12</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">Pre-Registered</div>
+                </div>
+              </div>
+              
+              {/* Progress Bar */}
+              <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  <span>Progress</span>
+                  <span>75%</span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                  <div className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#00D4AA] dark:to-[#06D6A0] h-1.5 rounded-full transition-all duration-500" style={{ width: '75%' }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
           {/* Logout */}
           <div className="absolute bottom-4 left-4 right-4">
             <button className="w-full flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]">
@@ -394,30 +436,6 @@ function AdminDashboardPage() {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Today's Overview</h3>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <div className="text-2xl font-bold text-[#0075A2] dark:text-[#0EA5E9]">24</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Appointments</div>
-                    </div>
-                    <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">18</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Completed</div>
-                    </div>
-                    <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                      <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">6</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Pending</div>
-                    </div>
-                    <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">12</div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">Pre-Registered</div>
-                    </div>
                   </div>
                 </div>
               </div>
