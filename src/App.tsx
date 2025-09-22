@@ -26,6 +26,7 @@ import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProv
 
 // Import routing components
 import { Routes, Route } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 // Import your new page component
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 
@@ -306,36 +307,69 @@ function LandingPageContent() {
             aria-label="EaseHealth AI features"
           >
             {benefits.map((benefit, index) => (
-              <div 
-                key={index} 
-                className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-700 group focus-ring"
-                role="listitem"
-                tabIndex={0}
-                aria-label={`Feature: ${benefit.title}. ${benefit.description}`}
-              >
-                {benefit.image ? (
-                  <div className="mb-6">
-                    <img 
-                      src={`/${benefit.image}`} 
-                      alt={benefit.title}
-                      className={benefit.image === "Seamless Communication copy.png" ? "w-full h-48 object-contain rounded-lg" : "w-full h-48 object-cover rounded-lg"}
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <div className="relative">
-                      <benefit.icon className="w-8 h-8 text-white" />
-                      {(benefit.title.includes('Secure') || benefit.title.includes('Smart')) && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
-                          <Zap className="w-2.5 h-2.5 text-white" />
-                        </div>
-                      )}
+              benefit.to ? (
+                <Link
+                  key={index}
+                  to={benefit.to}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-700 group focus-ring block"
+                  role="listitem"
+                  aria-label={`Feature: ${benefit.title}. ${benefit.description}. Click to learn more.`}
+                >
+                  {benefit.image ? (
+                    <div className="mb-6">
+                      <img 
+                        src={`/${benefit.image}`} 
+                        alt={benefit.title}
+                        className={benefit.image === "Seamless Communication copy.png" ? "w-full h-48 object-contain rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+                      />
                     </div>
-                  </div>
-                )}
-                <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">{benefit.title}</h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
-              </div>
+                  ) : (
+                    <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <div className="relative">
+                        <benefit.icon className="w-8 h-8 text-white" />
+                        {(benefit.title.includes('Secure') || benefit.title.includes('Smart')) && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
+                            <Zap className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">{benefit.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                </Link>
+              ) : (
+                <div 
+                  key={index} 
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-700 group focus-ring"
+                  role="listitem"
+                  tabIndex={0}
+                  aria-label={`Feature: ${benefit.title}. ${benefit.description}`}
+                >
+                  {benefit.image ? (
+                    <div className="mb-6">
+                      <img 
+                        src={`/${benefit.image}`} 
+                        alt={benefit.title}
+                        className={benefit.image === "Seamless Communication copy.png" ? "w-full h-48 object-contain rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <div className="relative">
+                        <benefit.icon className="w-8 h-8 text-white" />
+                        {(benefit.title.includes('Secure') || benefit.title.includes('Smart')) && (
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
+                            <Zap className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">{benefit.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                </div>
+              )
             ))}
           </div>
         </div>
