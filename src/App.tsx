@@ -125,7 +125,7 @@ function LandingPageContent() {
       icon: User, // Placeholder icon
       title: "Patient Dashboard",
       description: "Your personalized health overview and quick access to services.",
-      image: "patient dashboard.png", // Placeholder image name
+      image: "patient dashboard.png",
       to: "/patient-dashboard"
     },
     {
