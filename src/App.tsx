@@ -137,6 +137,12 @@ function LandingPageContent() {
       description: "Stay connected with your healthcare providers through integrated messaging and 24/7 support.",
       image: "Seamless Communication copy.png"
     }
+    {
+      icon: Clock,
+      title: "Queue Dashboard",
+      description: "Real-time queue management and patient flow optimization for healthcare facilities.",
+      image: "queqe dashboard.png"
+    }
   ];
 
   const steps = [
