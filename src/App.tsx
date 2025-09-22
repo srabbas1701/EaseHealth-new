@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Calendar, 
-  FileText, 
-  Clock, 
-  Bell, 
-  Shield, 
-  ChevronDown, 
+  Calendar,
+  FileText,
+  Clock,
+  Bell,
+  Shield,
+  ChevronDown,
   Play, 
   Check, 
   MessageSquare,
   MapPin,
   Phone,
   Mail,
-  Heart,
   Brain,
-  Zap
+  Zap,
+  ArrowUp
 } from 'lucide-react';
+import Navigation from './components/Navigation';
 
 function App() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userState, setUserState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Simulate user state changes for demo
   useEffect(() => {
@@ -33,27 +34,17 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const getDynamicCTA = () => {
-    switch (userState) {
-      case 'returning':
-        return (
-          <button className="bg-white text-[#0075A2] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors border border-[#E8E8E8]">
-            Log In
-          </button>
-        );
-      case 'authenticated':
-        return (
-          <button className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
-            My Dashboard
-          </button>
-        );
-      default:
-        return (
-          <button className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all">
-            Get Started
-          </button>
-        );
-    }
+  // Handle scroll to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const benefits = [
@@ -146,84 +137,8 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] text-[#0A2647]">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden">
-                <Brain className="w-5 h-5 text-white" />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
-                  <Zap className="w-2.5 h-2.5 text-white" />
-                </div>
-                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-[#0A2647]">EasyHealth AI</h1>
-                <p className="text-xs text-gray-600">Your Health. Simplified.</p>
-              </div>
-            </div>
-
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center space-x-8">
-              <a href="#home" className="text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Home</a>
-              <div className="relative group">
-                <button className="flex items-center text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">
-                  Features <ChevronDown className="w-4 h-4 ml-1" />
-                </button>
-                <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                  <div className="p-4 space-y-3">
-                    <a href="#features" className="block text-sm hover:text-[#0075A2] transition-colors">• Appointment Booking</a>
-                    <a href="#features" className="block text-sm hover:text-[#0075A2] transition-colors">• Digital Pre-Registration</a>
-                    <a href="#features" className="block text-sm hover:text-[#0075A2] transition-colors">• Queue Dashboard</a>
-                    <a href="#features" className="block text-sm hover:text-[#0075A2] transition-colors">• Smart Reminders</a>
-                    <a href="#features" className="block text-sm hover:text-[#0075A2] transition-colors">• Secure Consent Management</a>
-                  </div>
-                </div>
-              </div>
-              <a href="#how-it-works" className="text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">How It Works</a>
-              <a href="#testimonials" className="text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Testimonials</a>
-              <a href="#faqs" className="text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">FAQs</a>
-              <a href="#contact" className="text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Contact</a>
-            </nav>
-
-            {/* Dynamic CTA */}
-            <div className="hidden lg:block">
-              {getDynamicCTA()}
-            </div>
-
-            {/* Mobile menu button */}
-            <button 
-              className="lg:hidden"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              <div className="w-6 h-6 flex flex-col justify-center items-center">
-                <span className={`bg-[#0A2647] block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
-                <span className={`bg-[#0A2647] block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-                <span className={`bg-[#0A2647] block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
-              </div>
-            </button>
-          </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="lg:hidden bg-white border-t border-[#E8E8E8] py-4">
-              <div className="space-y-4">
-                <a href="#home" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Home</a>
-                <a href="#features" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Features</a>
-                <a href="#how-it-works" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">How It Works</a>
-                <a href="#testimonials" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Testimonials</a>
-                <a href="#faqs" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">FAQs</a>
-                <a href="#contact" className="block text-[#0A2647] hover:text-[#0075A2] transition-colors font-medium">Contact</a>
-                <div className="pt-4 border-t border-[#E8E8E8]">
-                  {getDynamicCTA()}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+      {/* Enhanced Navigation */}
+      <Navigation userState={userState} />
 
       {/* Hero Section */}
       <section id="home" className="relative bg-gradient-to-br from-white to-[#F6F6F6] py-16 lg:py-24">
@@ -310,7 +225,7 @@ function App() {
       </section>
 
       {/* Trust and Compliance Section */}
-      <section className="py-16 lg:py-24 bg-white">
+      <section id="trust" className="py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] mb-4">
@@ -549,6 +464,17 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 z-40"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-5 h-5 mx-auto" />
+        </button>
+      )}
     </div>
   );
 }
