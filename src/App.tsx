@@ -625,7 +625,7 @@ function LandingPageContent() {
                 </div>
                 <div className="flex items-start text-gray-600 dark:text-gray-300">
                   <MapPin className="w-4 h-4 mr-2 mt-0.5" />
-                  <span className="text-sm">Bangalore, Karnataka<br />India</span>
+                  <span className="text-sm">Noida, UttarPradesh<br />India</span>
                 </div>
               </div>
             </div>
@@ -670,6 +670,7 @@ function App() {
         <Routes>
           <Route path="/" element={<LandingPageContent />} />
           <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
+          <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
       </FeatureDetection>
