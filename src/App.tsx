@@ -113,7 +113,7 @@ function LandingPageContent() {
     },
     {
       icon: FileText,
-      title: "Digital Pre-Registration",
+      title: "Patient Pre-Registration",
       description: "Aadhaar-based check-in and secure document upload — skip waiting lines.",
       image: "digital pre-registration.png"
     },
