@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Upload, FileText, User, Phone, MapPin, Calendar, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, User, Phone, MapPin, Calendar, CheckCircle, AlertCircle, Clock, Shield, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
@@ -141,17 +141,32 @@ function PatientPreRegistrationPage() {
     {
       icon: Calendar,
       title: "Skip the Queue",
-      description: "Pre-register and get your digital token to avoid waiting in long lines."
+      description: "Pre-register and get your digital token to avoid waiting in long lines.",
+      details: [
+        "Get SMS with queue number",
+        "Track your position in real-time",
+        "Estimated wait time updates"
+      ]
     },
     {
       icon: FileText,
       title: "Secure Document Upload",
-      description: "Upload your documents safely with end-to-end encryption and DPDP compliance."
+      description: "Upload your documents safely with end-to-end encryption and DPDP compliance.",
+      details: [
+        "Aadhaar & lab reports in one place",
+        "Automatic document verification",
+        "Reduces clinic paperwork by 80%"
+      ]
     },
     {
       icon: CheckCircle,
       title: "Instant Confirmation",
-      description: "Get immediate confirmation and SMS updates about your registration status."
+      description: "Get immediate confirmation and SMS updates about your registration status.",
+      details: [
+        "Real-time SMS notifications",
+        "Email confirmation with details",
+        "Appointment reminders included"
+      ]
     }
   ];
 
@@ -524,42 +539,135 @@ function PatientPreRegistrationPage() {
 
           {/* Right Column - Benefits (1/3 width) */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 sticky top-24">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700 sticky top-24">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 text-center">
-                Why Pre-Register?
+                Benefits of Pre-Registration
               </h3>
               
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {benefits.map((benefit, index) => (
                   <div key={index} className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
-                      <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white">
-                        <benefit.icon className="w-5 h-5" />
+                      <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-xl flex items-center justify-center text-white shadow-md">
+                        <benefit.icon className="w-6 h-6" />
                       </div>
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-2">{benefit.title}</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                      <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-base mb-3">{benefit.title}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-2">{benefit.description}</p>
+                      {benefit.details && (
+                        <ul className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          {benefit.details.map((detail, idx) => (
+                            <li key={idx} className="flex items-start">
+                              <span className="w-1 h-1 bg-[#00D4AA] rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
               
-              {/* Additional Tips */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-3">💡 Quick Tips</h4>
-                <ul className="space-y-2 text-xs text-gray-600 dark:text-gray-300">
+              {/* Process Timeline */}
+              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-base mb-4 flex items-center">
+                  <Clock className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  Pre-Registration Process
+                </h4>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                    <div>
+                      <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100">Fill Form Online</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">Complete registration from home</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                    <div>
+                      <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100">Get Queue Token</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">Receive SMS with your number</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <div className="w-6 h-6 bg-[#00D4AA] text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                    <div>
+                      <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100">Walk-in & Consult</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">Skip registration desk entirely</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Tips */}
+              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-base mb-4 flex items-center">
+                  💡 Preparation Tips
+                </h4>
+                <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
                   <li className="flex items-start">
-                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                    Have your Aadhaar and lab reports ready
+                    <CheckCircle className="w-4 h-4 text-[#00D4AA] mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <span className="font-medium">Documents Ready:</span> Keep Aadhaar and recent lab reports in PDF/JPG format
+                    </div>
                   </li>
                   <li className="flex items-start">
-                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                    Fill accurate information for faster check-in
+                    <CheckCircle className="w-4 h-4 text-[#00D4AA] mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <span className="font-medium">Accurate Details:</span> Double-check phone number and address for SMS updates
+                    </div>
                   </li>
                   <li className="flex items-start">
-                    <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full mt-1.5 mr-2 flex-shrink-0"></span>
-                    Get SMS confirmation with queue token
+                    <CheckCircle className="w-4 h-4 text-[#00D4AA] mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <span className="font-medium">Symptom Details:</span> Describe symptoms clearly to help doctors prepare
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Security & Privacy */}
+              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-base mb-4 flex items-center">
+                  <Shield className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  Security & Privacy
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    <span>DPDP Act Compliant</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    <span>End-to-End Encryption</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                    <span>Data Stored in India</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Support Contact */}
+              <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-base mb-4 flex items-center">
+                  <Phone className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  Need Help?
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <Phone className="w-4 h-4 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
+                    <span>+91 80-EASEHEALTH</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <MessageCircle className="w-4 h-4 mr-3 text-[#25D366]" />
+                    <span>WhatsApp Support</span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Available 24/7 for technical assistance
+                  </p>
                   </li>
                 </ul>
               </div>
