@@ -668,8 +668,6 @@ function PatientPreRegistrationPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Available 24/7 for technical assistance
                   </p>
-                  </li>
-                </ul>
               </div>
             </div>
           </div>
