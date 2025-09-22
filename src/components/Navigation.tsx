@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
 import { useFocusManagement } from './KeyboardNavigation';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 
 interface NavigationProps {
   userState: 'new' | 'returning' | 'authenticated';
@@ -108,7 +109,8 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
     }
   };
 
-  // Handle keyboard navigation
+  // handleKeyDown is generally not needed for Link components as they handle navigation on Enter/Space by default.
+  // Keeping it for buttons or other interactive elements that are not Links.
   const handleKeyDown = (event: React.KeyboardEvent, action: () => void) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -153,41 +155,41 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
       icon: Calendar,
       title: "Smart Appointment Booking",
       description: "AI-optimized scheduling with instant confirmation",
-      href: "#features"
+      to: "/smart-appointment-booking" // Changed to 'to' for Link
     },
     {
       icon: FileText,
       title: "Digital Pre-Registration",
       description: "Aadhaar-based check-in and document upload",
-      href: "#features"
+      to: "/#features" // Changed to 'to' for Link, pointing to home features section
     },
     {
       icon: Clock,
       title: "Real-time Queue Dashboard",
       description: "Live updates on patient flow and wait times",
-      href: "#features"
+      to: "/#features" // Changed to 'to' for Link
     },
     {
       icon: Bell,
       title: "Smart Reminders",
       description: "Medication and follow-up notifications",
-      href: "#features"
+      to: "/#features" // Changed to 'to' for Link
     },
     {
       icon: Shield,
       title: "Secure Data Management",
       description: "DPDP-compliant health record protection",
-      href: "#features"
+      to: "/#features" // Changed to 'to' for Link
     }
   ];
 
   const navigationItems = [
-    { label: "Home", href: "#home", description: "Back to homepage" },
-    { label: "How It Works", href: "#how-it-works", description: "Learn our 3-step process" },
-    { label: "Testimonials", href: "#testimonials", description: "Patient success stories" },
-    { label: "Security", href: "#trust", description: "Data protection & compliance" },
-    { label: "FAQs", href: "#faqs", description: "Common questions answered" },
-    { label: "Contact", href: "#contact", description: "Get in touch with us" }
+    { label: "Home", to: "/", description: "Back to homepage" }, // Changed to 'to' for Link
+    { label: "How It Works", to: "/#how-it-works", description: "Learn our 3-step process" }, // Changed to 'to' for Link
+    { label: "Testimonials", to: "/#testimonials", description: "Patient success stories" }, // Changed to 'to' for Link
+    { label: "Security", to: "/#trust", description: "Data protection & compliance" }, // Changed to 'to' for Link
+    { label: "FAQs", to: "/#faqs", description: "Common questions answered" }, // Changed to 'to' for Link
+    { label: "Contact", to: "/#contact", description: "Get in touch with us" } // Changed to 'to' for Link
   ];
 
   return (
@@ -203,29 +205,31 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div 
+            <Link // Changed to Link
+              to="/" // Changed to 'to'
               className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
               tabIndex={0}
               role="button"
               aria-label="EaseHealth AI - Your Health Simplified"
-              onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
+              // onKeyDown removed as Link handles navigation
             >
               <Brain className="w-6 h-6 text-white" />
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 text-white" />
               </div>
               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
-            </div>
+            </Link>
             <div>
-              <h1 
+              <Link // Changed to Link
+                to="/" // Changed to 'to'
                 className="text-xl font-bold text-[#0A2647] hover:text-[#0075A2] transition-colors cursor-pointer focus-ring"
                 tabIndex={0}
                 role="button"
                 aria-label="EasyHealth AI - Your Health Simplified"
-                onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
+                // onKeyDown removed as Link handles navigation
               >
                 EaseHealth AI
-              </h1>
+              </Link>
               <p className="text-xs text-gray-600">Your Health. Simplified.</p>
             </div>
           </div>
@@ -233,19 +237,15 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
             {navigationItems.slice(0, 1).map((item) => (
-              <a
+              <Link // Changed to Link
                 key={item.label}
-                href={item.href}
+                to={item.to} // Changed to 'to'
                 className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 aria-label={item.description}
-                onFocus={() => {
-                  // Announce section when focused
-                  const announcement = `${item.label} navigation link. ${item.description}`;
-                  // Could integrate with screen reader announcements
-                }}
+                // onFocus removed as Link handles navigation
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
 
             {/* Features Dropdown */}
@@ -277,11 +277,11 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                 >
                   <div className="p-2">
                     {featuresMenuItems.map((item, index) => (
-                      <a
+                      <Link // Changed to Link
                         key={index}
-                        href={item.href}
+                        to={item.to} // Changed to 'to'
                         className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 group focus-ring"
-                        onClick={() => setActiveDropdown(null)}
+                        onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                         role="menuitem"
                         tabIndex={0}
                       >
@@ -297,33 +297,33 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                           </p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] transition-colors" />
-                      </a>
+                      </Link>
                     ))}
                   </div>
                   <div className="border-t border-[#E8E8E8] p-3 bg-[#F6F6F6]">
-                    <a
-                      href="#features"
+                    <Link // Changed to Link
+                      to="/#features" // Changed to 'to'
                       className="text-sm text-[#0075A2] hover:text-[#0A2647] font-medium transition-colors focus-ring"
-                      onClick={() => setActiveDropdown(null)}
+                      onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                       role="menuitem"
                       tabIndex={0}
                     >
                       View all features →
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )}
             </div>
 
             {navigationItems.slice(1).map((item) => (
-              <a
+              <Link // Changed to Link
                 key={item.label}
-                href={item.href}
+                to={item.to} // Changed to 'to'
                 className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 aria-label={item.description}
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
           </nav>
 
@@ -378,18 +378,18 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
               {/* Navigation Items */}
               {navigationItems.map((item, index) => (
-                <a
+                <Link // Changed to Link
                   key={item.label}
-                  href={item.href}
+                  to={item.to} // Changed to 'to'
                   className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={() => setIsMenuOpen(false)} // Keep onClick to close menu
                 >
                   <div>
                     <div className="font-medium">{item.label}</div>
                     <div className="text-sm text-gray-600">{item.description}</div>
                   </div>
                   <ArrowRight className="w-4 h-4 text-gray-400" />
-                </a>
+                </Link>
               ))}
 
               {/* Features Section */}
@@ -397,17 +397,17 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
                 <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Features</h3>
                 <div className="space-y-1">
                   {featuresMenuItems.slice(0, 3).map((item, index) => (
-                    <a
+                    <Link // Changed to Link
                       key={index}
-                      href={item.href}
+                      to={item.to} // Changed to 'to'
                       className="flex items-center p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
-                      onClick={() => setIsMenuOpen(false)}
+                      onClick={() => setIsMenuOpen(false)} // Keep onClick to close menu
                     >
                       <div className="w-8 h-8 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3">
                         <item.icon className="w-4 h-4 text-white" />
                       </div>
                       <span className="text-sm font-medium text-[#0A2647]">{item.title}</span>
-                    </a>
+                    </Link>
                   ))}
                 </div>
               </div>
