@@ -29,6 +29,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 // Import your new page component
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
+import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
 
 // Create a new component for your landing page content
 function LandingPageContent() {
