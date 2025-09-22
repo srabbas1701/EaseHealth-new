@@ -152,10 +152,11 @@ function SmartAppointmentBookingPage() {
       <Navigation userState="new" />
 
       <main id="main-content" tabIndex={-1} aria-label="Smart Appointment Booking">
-        {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24">
+        {/* Hero Section with Immediate Booking */}
+        <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            {/* Page Header */}
+            <div className="text-center mb-12">
               <div className="flex items-center justify-center mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center relative overflow-hidden">
                   <Brain className="w-8 h-8 text-white" />
@@ -165,15 +166,175 @@ function SmartAppointmentBookingPage() {
                   <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
                 </div>
               </div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
                 Smart Appointment{' '}
                 <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
                   Booking
                 </span>
               </h1>
-              <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
-                Experience the future of healthcare scheduling with AI-powered appointment booking. Get instant confirmations, smart reminders, and seamless integration with your healthcare journey.
+              <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-2xl mx-auto">
+                Book your appointment in seconds with AI-powered scheduling and instant confirmations
               </p>
+            </div>
+
+            {/* Main Booking Interface */}
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+                <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-8 text-center">
+                  Book an Appointment
+                </h2>
+
+                {/* Step 1: Select Doctor */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4 flex items-center">
+                    <span className="w-6 h-6 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">1</span>
+                    Select Doctor
+                  </h3>
+                  
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2]"
+                      aria-expanded={isDoctorDropdownOpen}
+                      aria-haspopup="listbox"
+                    >
+                      <span className="text-[#0A2647] dark:text-gray-100">{selectedDoctor}</span>
+                      <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDoctorDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isDoctorDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                        {doctors.map((doctor, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleDoctorSelect(doctor)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700"
+                            role="option"
+                            aria-selected={selectedDoctor === doctor}
+                          >
+                            <div className="flex items-center">
+                              <User className="w-4 h-4 text-gray-400 mr-3" />
+                              <span className="text-[#0A2647] dark:text-gray-100">{doctor}</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Step 2: Select Date */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4 flex items-center">
+                    <span className="w-6 h-6 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">2</span>
+                    Select Date
+                  </h3>
+
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    {/* Calendar Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <button 
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
+                        aria-label="Previous month"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      </button>
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100">{currentMonth}</h4>
+                      <button 
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
+                        aria-label="Next month"
+                      >
+                        <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      </button>
+                    </div>
+
+                    {/* Week Days Header */}
+                    <div className="grid grid-cols-7 gap-1 mb-2">
+                      {weekDays.map((day, index) => (
+                        <div key={index} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {calendarDays.map((dayObj, index) => (
+                        <button
+                          key={index}
+                          onClick={() => dayObj.day && !dayObj.disabled && handleDateSelect(dayObj.day)}
+                          disabled={dayObj.disabled || !dayObj.day}
+                          className={`
+                            h-10 w-10 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
+                            ${dayObj.disabled || !dayObj.day 
+                              ? 'text-transparent cursor-default' 
+                              : dayObj.selected 
+                                ? 'bg-[#00D4AA] text-white shadow-md transform scale-105' 
+                                : dayObj.highlighted 
+                                  ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]' 
+                                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            }
+                          `}
+                          aria-label={dayObj.day ? `July ${dayObj.day}, 2024` : ''}
+                          aria-selected={dayObj.selected}
+                        >
+                          {dayObj.day || ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 3: Select Time Slot */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4 flex items-center">
+                    <span className="w-6 h-6 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">3</span>
+                    Select Time Slot for July {selectedDate}, 2024
+                  </h3>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {timeSlots.map((slot, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleTimeSelect(slot.time)}
+                        disabled={!slot.available}
+                        className={`
+                          px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
+                          ${selectedTime === slot.time
+                            ? 'bg-[#00D4AA] text-white shadow-md transform scale-105'
+                            : slot.highlighted
+                              ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]'
+                              : slot.available
+                                ? 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500'
+                                : 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          }
+                        `}
+                        aria-label={`${slot.time} ${slot.available ? 'available' : 'unavailable'}`}
+                        aria-selected={selectedTime === slot.time}
+                      >
+                        <div className="flex items-center justify-center">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {slot.time}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Confirm Booking Button */}
+                <button
+                  onClick={handleConfirmBooking}
+                  className="w-full bg-[#00D4AA] hover:bg-[#00c299] text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00D4AA] focus:ring-offset-2"
+                  aria-describedby="booking-summary"
+                >
+                  Confirm Booking
+                </button>
+
+                {/* Booking Summary for Screen Readers */}
+                <div id="booking-summary" className="sr-only">
+                  Booking summary: {selectedDoctor} on July {selectedDate}, 2024 at {selectedTime}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -212,167 +373,8 @@ function SmartAppointmentBookingPage() {
           </div>
         </section>
 
-        {/* Booking Interface */}
-        <section className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-8 text-center">
-                Book an Appointment
-              </h2>
-
-              {/* Step 1: Select Doctor */}
-              <div className="mb-8">
-                <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4">
-                  1. Select Doctor
-                </h3>
-                
-                <div className="relative">
-                  <button
-                    onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
-                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2]"
-                    aria-expanded={isDoctorDropdownOpen}
-                    aria-haspopup="listbox"
-                  >
-                    <span className="text-[#0A2647] dark:text-gray-100">{selectedDoctor}</span>
-                    <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDoctorDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {isDoctorDropdownOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                      {doctors.map((doctor, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleDoctorSelect(doctor)}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700"
-                          role="option"
-                          aria-selected={selectedDoctor === doctor}
-                        >
-                          <div className="flex items-center">
-                            <User className="w-4 h-4 text-gray-400 mr-3" />
-                            <span className="text-[#0A2647] dark:text-gray-100">{doctor}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Step 2: Select Date */}
-              <div className="mb-8">
-                <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4">
-                  2. Select Date
-                </h3>
-
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button 
-                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
-                      aria-label="Previous month"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100">{currentMonth}</h4>
-                    <button 
-                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
-                      aria-label="Next month"
-                    >
-                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-                  </div>
-
-                  {/* Week Days Header */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {weekDays.map((day, index) => (
-                      <div key={index} className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 py-2">
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Calendar Grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {calendarDays.map((dayObj, index) => (
-                      <button
-                        key={index}
-                        onClick={() => dayObj.day && !dayObj.disabled && handleDateSelect(dayObj.day)}
-                        disabled={dayObj.disabled || !dayObj.day}
-                        className={`
-                          h-10 w-10 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
-                          ${dayObj.disabled || !dayObj.day 
-                            ? 'text-transparent cursor-default' 
-                            : dayObj.selected 
-                              ? 'bg-[#00D4AA] text-white shadow-md transform scale-105' 
-                              : dayObj.highlighted 
-                                ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]' 
-                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                          }
-                        `}
-                        aria-label={dayObj.day ? `July ${dayObj.day}, 2024` : ''}
-                        aria-selected={dayObj.selected}
-                      >
-                        {dayObj.day || ''}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Step 3: Select Time Slot */}
-              <div className="mb-8">
-                <h3 className="text-lg font-medium text-[#0075A2] dark:text-[#0EA5E9] mb-4">
-                  3. Select Time Slot for July {selectedDate}, 2024
-                </h3>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {timeSlots.map((slot, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleTimeSelect(slot.time)}
-                      disabled={!slot.available}
-                      className={`
-                        px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
-                        ${selectedTime === slot.time
-                          ? 'bg-[#00D4AA] text-white shadow-md transform scale-105'
-                          : slot.highlighted
-                            ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]'
-                            : slot.available
-                              ? 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500'
-                              : 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        }
-                      `}
-                      aria-label={`${slot.time} ${slot.available ? 'available' : 'unavailable'}`}
-                      aria-selected={selectedTime === slot.time}
-                    >
-                      <div className="flex items-center justify-center">
-                        <Clock className="w-4 h-4 mr-2" />
-                        {slot.time}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Confirm Booking Button */}
-              <button
-                onClick={handleConfirmBooking}
-                className="w-full bg-[#00D4AA] hover:bg-[#00c299] text-white font-semibold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#00D4AA] focus:ring-offset-2"
-                aria-describedby="booking-summary"
-              >
-                Confirm Booking
-              </button>
-
-              {/* Booking Summary for Screen Readers */}
-              <div id="booking-summary" className="sr-only">
-                Booking summary: {selectedDoctor} on July {selectedDate}, 2024 at {selectedTime}
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Benefits Section */}
-        <section className="py-16 lg:py-24 bg-white dark:bg-gray-800">
+        <section className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
@@ -384,7 +386,7 @@ function SmartAppointmentBookingPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mx-auto">
                   <Calendar className="w-8 h-8 text-white" />
                 </div>
@@ -392,7 +394,7 @@ function SmartAppointmentBookingPage() {
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">See live doctor schedules and book instantly without waiting for confirmations.</p>
               </div>
               
-              <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mx-auto">
                   <Bell className="w-8 h-8 text-white" />
                 </div>
@@ -400,7 +402,7 @@ function SmartAppointmentBookingPage() {
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Get SMS and WhatsApp reminders so you never miss an appointment.</p>
               </div>
               
-              <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
                 <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform mx-auto">
                   <FileText className="w-8 h-8 text-white" />
                 </div>
