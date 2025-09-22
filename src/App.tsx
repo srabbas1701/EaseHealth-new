@@ -233,7 +233,7 @@ function App() {
         <section 
           id="home" 
           className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-16 lg:py-24"
-          aria-label="Hero section - EasyHealth AI introduction"
+          aria-label="How EaseHealth AI works - 3 simple steps"
           tabIndex={-1}
         >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -251,7 +251,7 @@ function App() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <button 
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all focus-ring"
-                  aria-describedby="cta-description"
+                 aria-describedby="cta-description"
                 >
                   Book Appointment Now
                 </button>
@@ -260,7 +260,7 @@ function App() {
                 </button>
               </div>
               <div id="cta-description" className="sr-only">
-                Start your healthcare journey with EasyHealth AI. Book an appointment or learn more about our features.
+                Start your healthcare journey with EaseHealth AI. Book an appointment or learn more about our features.
               </div>
             </div>
             <div className="relative">
@@ -288,7 +288,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Why Choose EasyHealth AI?
+              Why Choose EaseHealth AI?
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Experience healthcare the modern way with AI-powered features designed for Indian patients
@@ -298,7 +298,7 @@ function App() {
           <div 
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
             role="list"
-            aria-label="EasyHealth AI features"
+            aria-label="EaseHealth AI features"
           >
             {benefits.map((benefit, index) => (
               <div 
@@ -417,7 +417,7 @@ function App() {
           <div 
             className="grid grid-cols-1 md:grid-cols-3 gap-8"
             role="list"
-            aria-label="Three steps to use EasyHealth AI"
+            aria-label="Three steps to use EaseHealth AI"
           >
             {steps.map((step, index) => (
               <div key={index} className="relative">
@@ -540,6 +540,7 @@ function App() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EasyHealth AI</h3>
+                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EaseHealth AI</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Your Health. Simplified.</p>
                 </div>
               </div>
@@ -595,7 +596,7 @@ function App() {
           {/* Bottom Bar */}
           <div className="border-t border-gray-300 dark:border-gray-700 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 md:mb-0">
-              © 2025 EasyHealth AI. Built with AI-powered care for Indian patients.
+              © 2025 EaseHealth AI. Built with AI-powered care for Indian patients.
             </p>
             <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
               <Check className="w-4 h-4 text-green-600" />

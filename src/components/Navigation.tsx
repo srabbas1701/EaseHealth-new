@@ -207,10 +207,10 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
               className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
               tabIndex={0}
               role="button"
-              aria-label="EasyHealth AI logo - Go to homepage"
+              aria-label="EaseHealth AI - Your Health Simplified"
               onKeyDown={(e) => handleKeyDown(e, () => window.location.href = '#home')}
             >
-              <Brain className="w-5 h-5 text-white transition-transform group-hover:scale-110" />
+              EaseHealth AI
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 text-white" />
               </div>
