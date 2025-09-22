@@ -202,16 +202,6 @@ export const FeatureDetection: React.FC<{ children: React.ReactNode }> = ({ chil
         {children}
       </div>
 
-      {/* Development info (remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 left-4 bg-black/80 text-white text-xs p-2 rounded font-mono">
-          <div>Online: {capabilities.isOnline ? '✓' : '✗'}</div>
-          <div>JS: {capabilities.isJavaScriptEnabled ? '✓' : '✗'}</div>
-          <div>IntersectionObserver: {capabilities.supportsIntersectionObserver ? '✓' : '✗'}</div>
-          <div>LocalStorage: {capabilities.supportsLocalStorage ? '✓' : '✗'}</div>
-          <div>Connection: {capabilities.connectionType}</div>
-        </div>
-      )}
     </div>
   );
 };
