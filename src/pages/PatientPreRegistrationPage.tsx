@@ -129,7 +129,7 @@ function PatientPreRegistrationPage() {
     setShowAuthModal(true);
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setShowAuthModal(false);
     setIsSubmitting(true);
     
