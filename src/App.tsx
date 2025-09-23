@@ -41,14 +41,15 @@ interface AuthProps {
   user: any;
   session: any;
   profile: any;
-  loading: boolean;
+  isLoadingInitialAuth: boolean;
+  isProfileLoading: boolean;
   userState: 'new' | 'returning' | 'authenticated';
   isAuthenticated: boolean;
   handleLogout: () => Promise<void>;
 }
 
 // Create a new component for your landing page content
-function LandingPageContent({ user, session, profile, loading, userState, isAuthenticated, handleLogout }: AuthProps) {
+function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isProfileLoading, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -685,8 +686,8 @@ function App() {
   const authData = useAuth();
   
   // Show loading screen while checking authentication
-  if (authData.loading) {
-    console.log('🔄 App showing loading screen, auth loading:', authData.loading)
+  if (authData.isLoadingInitialAuth) {
+    console.log('🔄 App showing loading screen, initial auth loading:', authData.isLoadingInitialAuth)
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -701,8 +702,8 @@ function App() {
   }
 
   console.log('✅ App loaded, auth state:', {
-    loading: authData.loading,
     isAuthenticated: authData.isAuthenticated,
+    isLoadingInitialAuth: authData.isLoadingInitialAuth,
     userState: authData.userState,
     hasUser: !!authData.user,
     hasProfile: !!authData.profile

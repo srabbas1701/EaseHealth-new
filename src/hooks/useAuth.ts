@@ -6,12 +6,14 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoadingInitialAuth, setIsLoadingInitialAuth] = useState(true)
+  const [isProfileLoading, setIsProfileLoading] = useState(false)
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
       console.log('🔄 Starting initial session check...')
+      setIsLoadingInitialAuth(true)
       
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -25,8 +27,12 @@ export const useAuth = () => {
         setSession(session)
         setUser(session?.user ?? null)
         
+        // Set initial auth loading to false as soon as we know the session status
+        setIsLoadingInitialAuth(false)
+        
         if (session?.user) {
           console.log('👤 Fetching profile for user:', session.user.id)
+          setIsProfileLoading(true)
           try {
             const userProfile = await getProfile(session.user.id)
             console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
@@ -34,6 +40,8 @@ export const useAuth = () => {
           } catch (error) {
             console.error('❌ Unexpected error fetching profile:', error)
             setProfile(null)
+          } finally {
+            setIsProfileLoading(false)
           }
         }
       } catch (error) {
@@ -41,9 +49,9 @@ export const useAuth = () => {
         setSession(null)
         setUser(null)
         setProfile(null)
+        setIsLoadingInitialAuth(false)
       } finally {
-        console.log('✅ Initial session check complete, setting loading to false')
-        setLoading(false)
+        console.log('✅ Initial session check complete')
       }
     }
 
@@ -60,6 +68,7 @@ export const useAuth = () => {
           
           if (session?.user) {
             console.log('👤 Fetching profile for user after auth change:', session.user.id)
+            setIsProfileLoading(true)
             try {
               const userProfile = await getProfile(session.user.id)
               console.log('✅ Profile fetched after auth change:', userProfile ? 'Profile found' : 'No profile')
@@ -67,6 +76,8 @@ export const useAuth = () => {
             } catch (error) {
               console.error('❌ Error fetching profile after auth change:', error)
               setProfile(null)
+            } finally {
+              setIsProfileLoading(false)
             }
           } else {
             console.log('🚪 User logged out, clearing profile')
@@ -76,8 +87,7 @@ export const useAuth = () => {
           console.error('❌ Error in auth state change handler:', error)
           setProfile(null)
         } finally {
-          console.log('✅ Auth state change complete, setting loading to false')
-          setLoading(false)
+          console.log('✅ Auth state change complete')
         }
       }
     )
@@ -96,7 +106,8 @@ export const useAuth = () => {
     user,
     session,
     profile,
-    loading,
+    isLoadingInitialAuth,
+    isProfileLoading,
     userState: getUserState(),
     isAuthenticated: !!user && !!session,
     handleLogout: async () => {
