@@ -44,7 +44,6 @@ export const createProfile = async (userId: string, profileData: Omit<Profile, '
     .from('profiles')
     .insert([
       {
-        console.error('⏰ Profile fetch timed out after 30 seconds')
         id: userId,
         ...profileData
       }
