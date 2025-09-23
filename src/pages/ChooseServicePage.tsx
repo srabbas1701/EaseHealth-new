@@ -116,7 +116,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
               className="group bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700 hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 focus-ring block"
             >
               <div className="flex items-start space-x-6">
-                <div className={`w-16 h-16 bg-gradient-to-r ${service.color} dark:${service.darkColor} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
+                <div className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
                   <service.icon className="w-8 h-8 text-white" />
                 </div>
                 <div className="flex-1">
@@ -130,7 +130,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
                   {/* Features List */}
                   <ul className="space-y-2 mb-6">
                     {service.features.map((feature, index) => (
-                          <CheckCircle className="w-4 h-4 text-[#0075A2] dark:text-[#0EA5E9] mr-2 flex-shrink-0" />
+                      <li key={index} className="flex items-center text-gray-600 dark:text-gray-300 text-sm">
                         <CheckCircle className="w-4 h-4 text-[#00D4AA] dark:text-[#06D6A0] mr-2 flex-shrink-0" />
                         {feature}
                       </li>
@@ -139,7 +139,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
                   
                   {/* CTA */}
                   <div className="flex items-center text-[#0075A2] dark:text-[#0EA5E9] font-medium group-hover:text-[#0A2647] dark:group-hover:text-gray-100 transition-colors">
-                  <div className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
+                    Get Started
                     <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
