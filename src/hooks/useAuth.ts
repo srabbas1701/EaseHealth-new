@@ -34,12 +34,16 @@ export const useAuth = () => {
           } catch (error) {
             console.error('❌ Unexpected error fetching profile:', error)
             setProfile(null)
+      } catch (error) {
+        console.error('❌ Error during initial session check:', error)
+        setSession(null)
+        setUser(null)
+        setProfile(null)
           }
               } finally {
         console.log('✅ Initial session check complete, setting loading to false')
         setLoading(false)
       }
-          }
     }
 
     getInitialSession()
