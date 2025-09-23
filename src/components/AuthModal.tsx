@@ -155,7 +155,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
             setAuthError('Invalid email or password. Please check your credentials and try again.');
             break;
           case 'User already registered':
-            setAuthError('An account with this email already exists. Please try logging in instead.');
+            setAuthError('An account with this email already exists. Switching to login...');
+            // Auto-switch to login mode and clear password fields
+            setTimeout(() => {
+              setMode('login');
+              setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+              setAuthError('');
+            }, 2000);
             break;
           case 'Password should be at least 6 characters':
             setAuthError('Password must be at least 8 characters long.');
