@@ -193,11 +193,11 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
   const navigationItems = [
     { label: "Home", to: "/", description: "Back to homepage" }, // Changed to 'to' for Link
-    { label: "How It Works", to: "/#how-it-works", description: "Learn our 3-step process" }, // Changed to 'to' for Link
-    { label: "Testimonials", to: "/#testimonials", description: "Patient success stories" }, // Changed to 'to' for Link
-    { label: "Security", to: "/#trust", description: "Data protection & compliance" }, // Changed to 'to' for Link
-    { label: "FAQs", to: "/#faqs", description: "Common questions answered" }, // Changed to 'to' for Link
-    { label: "Contact", to: "/#contact", description: "Get in touch with us" } // Changed to 'to' for Link
+    { label: "How It Works", href: "#how-it-works", description: "Learn our 3-step process" },
+    { label: "Testimonials", href: "#testimonials", description: "Patient success stories" },
+    { label: "Security", href: "#trust", description: "Data protection & compliance" },
+    { label: "FAQs", href: "#faqs", description: "Common questions answered" },
+    { label: "Contact", href: "#contact", description: "Get in touch with us" }
   ];
 
   return (
@@ -324,14 +324,14 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
             </div>
 
             {navigationItems.slice(1).map((item) => (
-              <Link // Changed to Link
+              <a
                 key={item.label}
-                to={item.to} // Changed to 'to'
+                href={item.href}
                 className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
                 aria-label={item.description}
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
           </nav>
 
@@ -386,18 +386,33 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
               {/* Navigation Items */}
               {navigationItems.map((item, index) => (
-                <Link // Changed to Link
-                  key={item.label}
-                  to={item.to} // Changed to 'to'
-                  className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
-                  onClick={() => setIsMenuOpen(false)} // Keep onClick to close menu
-                >
-                  <div>
-                    <div className="font-medium">{item.label}</div>
-                    <div className="text-sm text-gray-600">{item.description}</div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-gray-400" />
-                </Link>
+                {item.href ? (
+                  <a
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <div>
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-sm text-gray-600">{item.description}</div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                  </a>
+                ) : (
+                  <Link
+                    key={item.label}
+                    to={item.to}
+                    className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <div>
+                      <div className="font-medium">{item.label}</div>
+                      <div className="text-sm text-gray-600">{item.description}</div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                  </Link>
+                )
               ))}
 
               {/* Features Section */}
