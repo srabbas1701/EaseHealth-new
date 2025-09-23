@@ -59,11 +59,22 @@ export const getProfile = async (userId: string) => {
   try {
     console.log('🔍 Attempting to fetch profile for user:', userId)
     
-    const { data, error } = await supabase
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Profile fetch timeout'))
+      }, 10000) // 10 second timeout
+    })
+
+    // Create the profile fetch promise
+    const profilePromise = supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
+
+    // Race between the profile fetch and timeout
+    const { data, error } = await Promise.race([profilePromise, timeoutPromise])
 
     if (error) {
       console.log('⚠️ Profile fetch error:', error.code, error.message)
@@ -74,7 +85,11 @@ export const getProfile = async (userId: string) => {
     console.log('✅ Profile fetched successfully:', data ? 'Profile found' : 'No data returned')
     return data
   } catch (error) {
-    console.error('❌ Unexpected error in getProfile:', error)
+    if (error.message === 'Profile fetch timeout') {
+      console.error('⏰ Profile fetch timed out after 10 seconds')
+    } else {
+      console.error('❌ Unexpected error in getProfile:', error)
+    }
     // Always return null, never throw
     return null
   }
