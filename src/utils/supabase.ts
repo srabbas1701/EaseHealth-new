@@ -71,7 +71,7 @@ export const getProfile = async (userId: string) => {
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single()
+      .maybeSingle()
 
     // Race between the profile fetch and timeout
     const { data, error } = await Promise.race([profilePromise, timeoutPromise])
