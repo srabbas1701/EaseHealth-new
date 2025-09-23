@@ -452,8 +452,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                             {slot.time}
                           </div>
                         </button>
-                      ))}
-                      )}
+                      )))}
                     </div>
                   </div>
 
@@ -526,7 +525,11 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         Reschedule anytime before visit
                       </li>
                     </ul>
-                  Booking summary: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
+                  </div>
+                  {/* Booking Summary for Screen Readers */}
+                  <div id="booking-summary" className="sr-only">
+                    Booking summary: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
+                  </div>
                 </div>
               </div>
             </div>
