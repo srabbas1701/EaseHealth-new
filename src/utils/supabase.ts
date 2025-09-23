@@ -56,22 +56,28 @@ export const createProfile = async (userId: string, profileData: Omit<Profile, '
 }
 
 export const getProfile = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
+  try {
+    console.log('🔍 Attempting to fetch profile for user:', userId)
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single()
 
-  if (error) {
-    // If no profile exists, return null instead of throwing error
-    if (error.code === 'PGRST116') {
-      console.log('No profile found for user:', userId)
+    if (error) {
+      console.log('⚠️ Profile fetch error:', error.code, error.message)
+      // Always return null for any error - don't throw
       return null
     }
-    console.error('Error fetching profile:', error)
-    throw error
+    
+    console.log('✅ Profile fetched successfully:', data ? 'Profile found' : 'No data returned')
+    return data
+  } catch (error) {
+    console.error('❌ Unexpected error in getProfile:', error)
+    // Always return null, never throw
+    return null
   }
-  return data
 }
 
 export const updateProfile = async (userId: string, updates: Partial<Profile>) => {

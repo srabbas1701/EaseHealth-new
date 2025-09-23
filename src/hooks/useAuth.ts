@@ -32,18 +32,9 @@ export const useAuth = () => {
             console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
             setProfile(userProfile)
           } catch (error) {
-            console.error('❌ Error fetching profile:', error)
+            console.error('❌ Unexpected error fetching profile:', error)
             setProfile(null)
           }
-        } else {
-          setProfile(null)
-        }
-      } catch (error) {
-        console.error('❌ Critical error in getInitialSession:', error)
-        // Reset all states on critical error
-        setSession(null)
-        setUser(null)
-        setProfile(null)
       } finally {
         console.log('✅ Initial session check complete, setting loading to false')
         setLoading(false)
