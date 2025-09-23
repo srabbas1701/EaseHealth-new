@@ -22,6 +22,12 @@ import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 import { useAuth } from '../hooks/useAuth';
 import { signOut } from '../utils/supabase';
 
+// Helper function to get first name from full name
+const getFirstName = (fullName: string): string => {
+  if (!fullName) return '';
+  return fullName.split(' ')[0];
+};
+
 interface NavigationProps {
   onMenuToggle?: (isOpen: boolean) => void;
 }
@@ -146,7 +152,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
           <div className="flex items-center space-x-3">
             <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
               <User className="w-4 h-4" />
-              <span>Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+              <span>Hi, {profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || 'User')}</span>
             </div>
             <Link
               to="/patient-dashboard"
@@ -157,7 +163,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
             </Link>
             <button
               onClick={handleLogout}
-              className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -167,12 +173,13 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
         );
       default:
         return (
-          <button 
-            className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-            aria-label="Get started with EasyHealth AI"
+          <Link
+            to="/choose-service"
+            className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 inline-block text-center"
+            aria-label="Get started with EaseHealth AI"
           >
             Get Started
-          </button>
+          </Link>
         );
     }
   };
@@ -237,7 +244,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
+          <div className="logo-section space-x-3">
             <Link // Changed to Link
               to="/" // Changed to 'to'
               className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
@@ -268,7 +275,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
+          <nav className="nav-section hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
             {navigationItems.slice(0, 1).map((item) => (
               <Link // Changed to Link
                 key={item.label}
@@ -361,7 +368,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
           </nav>
 
           {/* Search and CTA */}
-          <div className="hidden lg:flex items-center space-x-3">
+          <div className="cta-section hidden lg:flex items-center space-x-3">
             <button 
               className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
               aria-label="Search"
@@ -466,11 +473,12 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-2">
                       <User className="w-4 h-4 mr-2" />
-                      <span>Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+                      <span>Hi, {profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || 'User')}</span>
                     </div>
                     <button
                       onClick={handleLogout}
                       className="flex items-center text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                      title="Log out"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out

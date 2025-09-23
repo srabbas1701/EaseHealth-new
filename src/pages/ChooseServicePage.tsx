@@ -2,10 +2,10 @@ import React from 'react';
 import { Calendar, FileText, ArrowRight, Users, Clock, Shield, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
-import { useDarkMode } from '../hooks/useDarkMode';
+import { useAuth } from '../hooks/useAuth';
 
 function ChooseServicePage() {
-  const { isDarkMode } = useDarkMode();
+  const { userState } = useAuth();
 
   const services = [
     {
@@ -161,7 +161,10 @@ function ChooseServicePage() {
         {/* Help Section */}
         <div className="mt-12 text-center">
           <p className="text-gray-600 dark:text-gray-300 mb-4">
-            Need help choosing the right service?
+            {userState === 'authenticated' 
+              ? 'Need help with your services?' 
+              : 'Need help choosing the right service?'
+            }
           </p>
           <Link 
             to="/#contact" 
