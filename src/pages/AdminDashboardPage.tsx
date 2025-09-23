@@ -76,7 +76,7 @@ function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-      <Navigation userState="authenticated" />
+      <Navigation />
       
       <div className="flex h-screen pt-16">
         {/* Sidebar */}

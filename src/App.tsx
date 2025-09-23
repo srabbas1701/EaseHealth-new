@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import Navigation from './components/Navigation';
 import { useDarkMode } from './hooks/useDarkMode';
-import { useAuth } from './hooks/useAuth';
 import AccessibleTestimonials from './components/AccessibleTestimonials';
 import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
@@ -39,7 +38,7 @@ import ChooseServicePage from './pages/ChooseServicePage';
 // Create a new component for your landing page content
 function LandingPageContent() {
   const { isDarkMode } = useDarkMode();
-  const { userState, loading: authLoading } = useAuth();
+  const [userState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -231,7 +230,7 @@ function LandingPageContent() {
 
       {/* Enhanced Navigation */}
       <div id="navigation">
-        <Navigation userState={userState} />
+        <Navigation />
       </div>
 
       {/* Hero Section */}
@@ -665,27 +664,6 @@ function LandingPageContent() {
 
 // Main App component now handles routing
 function App() {
-  const { loading: authLoading } = useAuth();
-
-  // Show loading screen while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center relative overflow-hidden mx-auto mb-4">
-            <Brain className="w-8 h-8 text-white animate-pulse" />
-            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
-              <Zap className="w-3 h-3 text-white" />
-            </div>
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
-          </div>
-          <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">EaseHealth AI</h2>
-          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <FocusVisibleProvider>
       <FeatureDetection>

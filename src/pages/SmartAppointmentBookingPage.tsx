@@ -164,7 +164,7 @@ function SmartAppointmentBookingPage() {
       <KeyboardSkipLinks />
       <AccessibilityAnnouncer message={announcement} />
 
-      <Navigation userState="new" />
+      <Navigation />
 
       <main id="main-content" tabIndex={-1} aria-label="Smart Appointment Booking">
         {/* Hero Section with Immediate Booking */}
