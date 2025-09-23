@@ -43,7 +43,7 @@ export const createProfile = async (userId: string, profileData: Omit<Profile, '
   const { data, error } = await supabase
     .from('profiles')
     .insert([
-      {
+        console.error('⏰ Profile fetch timed out after 30 seconds')
         id: userId,
         ...profileData
       }
@@ -63,7 +63,7 @@ export const getProfile = async (userId: string) => {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Profile fetch timeout'))
-      }, 20000) // 20 second timeout
+      }, 30000) // 30 second timeout
     })
 
     // Create the profile fetch promise
