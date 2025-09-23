@@ -248,7 +248,7 @@ export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' |
       ignoreDuplicates: false 
     })
     .select()
-    .single()
+    .maybeSingle()
 
   if (error) throw error
   return data
