@@ -386,7 +386,7 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
               {/* Navigation Items */}
               {navigationItems.map((item, index) => (
-                {item.href ? (
+                item.href ? (
                   <a
                     key={item.label}
                     href={item.href}
