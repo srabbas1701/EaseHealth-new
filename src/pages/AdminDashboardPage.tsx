@@ -5,6 +5,16 @@ import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
 
+// Auth props interface
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
 interface Appointment {
   id: string;
   patientName: string;
@@ -21,7 +31,7 @@ interface PreRegisteredPatient {
   registrationTime: string;
 }
 
-function AdminDashboardPage() {
+function AdminDashboardPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,7 +86,14 @@ function AdminDashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-      <Navigation />
+      <Navigation 
+        user={user}
+        session={session}
+        profile={profile}
+        userState={userState}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+      />
       
       <div className="flex h-screen pt-16">
         {/* Sidebar */}

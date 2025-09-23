@@ -3,6 +3,17 @@ import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
 import AuthModal from '../components/AuthModal';
+
+// Auth props interface
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
 import { 
   ChevronDown, 
   ChevronLeft, 
@@ -18,7 +29,7 @@ import {
   ArrowUp
 } from 'lucide-react';
 
-function SmartAppointmentBookingPage() {
+function SmartAppointmentBookingPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const [announcement, setAnnouncement] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState('Dr. Anjali Sharma - Cardiologist');
   const [selectedDate, setSelectedDate] = useState(5); // July 5th
@@ -164,7 +175,14 @@ function SmartAppointmentBookingPage() {
       <KeyboardSkipLinks />
       <AccessibilityAnnouncer message={announcement} />
 
-      <Navigation />
+      <Navigation 
+        user={user}
+        session={session}
+        profile={profile}
+        userState={userState}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+      />
 
       <main id="main-content" tabIndex={-1} aria-label="Smart Appointment Booking">
         {/* Hero Section with Immediate Booking */}

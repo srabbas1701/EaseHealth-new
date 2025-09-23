@@ -28,6 +28,7 @@ import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProv
 // Import routing components
 import { Routes, Route } from 'react-router-dom';
 import { Link } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
 // Import your new page component
 import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
 import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
@@ -35,10 +36,20 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import PatientDashboardPage from './pages/PatientDashboardPage'; // Import the new page
 import ChooseServicePage from './pages/ChooseServicePage';
 
+// Auth props interface
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  loading: boolean;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
 // Create a new component for your landing page content
-function LandingPageContent() {
+function LandingPageContent({ user, session, profile, loading, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
-  const [userState] = useState<'new' | 'returning' | 'authenticated'>('new');
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -230,7 +241,14 @@ function LandingPageContent() {
 
       {/* Enhanced Navigation */}
       <div id="navigation">
-        <Navigation />
+        <Navigation 
+          user={user}
+          session={session}
+          profile={profile}
+          userState={userState}
+          isAuthenticated={isAuthenticated}
+          handleLogout={handleLogout}
+        />
       </div>
 
       {/* Hero Section */}
@@ -664,16 +682,32 @@ function LandingPageContent() {
 
 // Main App component now handles routing
 function App() {
+  const authData = useAuth();
+  
+  // Show loading screen while checking authentication
+  if (authData.loading) {
+    return (
+      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Brain className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-gray-600 dark:text-gray-300">Loading EaseHealth AI...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <FocusVisibleProvider>
       <FeatureDetection>
         <Routes>
-          <Route path="/" element={<LandingPageContent />} />
-          <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage />} />
-          <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage />} />
-          <Route path="/admin-dashboard" element={<AdminDashboardPage />} />
-          <Route path="/patient-dashboard" element={<PatientDashboardPage />} /> {/* New Patient Dashboard Route */}
-          <Route path="/choose-service" element={<ChooseServicePage />} />
+          <Route path="/" element={<LandingPageContent {...authData} />} />
+          <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage {...authData} />} />
+          <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage {...authData} />} />
+          <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
+          <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
+          <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
       </FeatureDetection>

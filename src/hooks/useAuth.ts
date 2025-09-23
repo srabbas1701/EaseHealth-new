@@ -68,6 +68,15 @@ export const useAuth = () => {
     profile,
     loading,
     userState: getUserState(),
-    isAuthenticated: !!user && !!session
+    isAuthenticated: !!user && !!session,
+    handleLogout: async () => {
+      try {
+        const { error } = await supabase.auth.signOut()
+        if (error) throw error
+      } catch (error) {
+        console.error('Error signing out:', error)
+        throw error
+      }
+    }
   }
 }

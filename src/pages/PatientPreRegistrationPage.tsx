@@ -6,6 +6,16 @@ import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
 import AuthModal from '../components/AuthModal';
 
+// Auth props interface
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
 interface FormData {
   fullName: string;
   age: string;
@@ -19,7 +29,7 @@ interface FormData {
   consent: boolean;
 }
 
-function PatientPreRegistrationPage() {
+function PatientPreRegistrationPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -187,7 +197,14 @@ function PatientPreRegistrationPage() {
     return (
       <>
         <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-          <Navigation userState="new" />
+          <Navigation 
+            user={user}
+            session={session}
+            profile={profile}
+            userState={userState}
+            isAuthenticated={isAuthenticated}
+            handleLogout={handleLogout}
+          />
           
           <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-12 text-center">
@@ -234,7 +251,14 @@ function PatientPreRegistrationPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-      <Navigation />
+      <Navigation 
+        user={user}
+        session={session}
+        profile={profile}
+        userState={userState}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+      />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}

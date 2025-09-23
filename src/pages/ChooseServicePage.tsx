@@ -2,10 +2,18 @@ import React from 'react';
 import { Calendar, FileText, ArrowRight, Users, Clock, Shield, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
-import { useAuth } from '../hooks/useAuth';
 
-function ChooseServicePage() {
-  const { userState } = useAuth();
+// Auth props interface
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
+function ChooseServicePage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
 
   const services = [
     {
@@ -60,7 +68,14 @@ function ChooseServicePage() {
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-      <Navigation />
+      <Navigation 
+        user={user}
+        session={session}
+        profile={profile}
+        userState={userState}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+      />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}

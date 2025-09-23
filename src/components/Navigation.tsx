@@ -19,8 +19,6 @@ import {
 import DarkModeToggle from './DarkModeToggle';
 import { useFocusManagement } from './KeyboardNavigation';
 import { Link } from 'react-router-dom'; // Import Link from react-router-dom
-import { useAuth } from '../hooks/useAuth';
-import { signOut } from '../utils/supabase';
 
 // Helper function to get first name from full name
 const getFirstName = (fullName: string): string => {
@@ -28,12 +26,28 @@ const getFirstName = (fullName: string): string => {
   return fullName.split(' ')[0];
 };
 
-interface NavigationProps {
+interface AuthProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
+interface NavigationProps extends AuthProps {
   onMenuToggle?: (isOpen: boolean) => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
-  const { userState, user, profile } = useAuth();
+const Navigation: React.FC<NavigationProps> = ({ 
+  user, 
+  session, 
+  profile, 
+  userState, 
+  isAuthenticated, 
+  handleLogout, 
+  onMenuToggle 
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -128,9 +142,9 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogoutClick = async () => {
     try {
-      await signOut();
+      await handleLogout();
       // The auth state change will be handled by the useAuth hook
     } catch (error) {
       console.error('Error signing out:', error);
@@ -162,7 +176,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
               Dashboard
             </Link>
             <button
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               aria-label="Sign out"
               title="Sign out"
@@ -476,7 +490,7 @@ const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
                       <span>Hi, {profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || 'User')}</span>
                     </div>
                     <button
-                      onClick={handleLogout}
+                      onClick={handleLogoutClick}
                       className="flex items-center text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                       title="Log out"
                     >
