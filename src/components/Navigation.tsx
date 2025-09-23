@@ -234,6 +234,12 @@ const Navigation: React.FC<NavigationProps> = ({
       title: "Patient Dashboard",
       description: "Your personalized health overview and quick access to services.",
       to: "/patient-dashboard"
+    },
+    {
+      icon: Calendar,
+      title: "Doctor Schedule Configuration",
+      description: "Manage your availability and appointment slots as a healthcare provider.",
+      to: "/doctor-schedule-config"
     }
   ];
 
@@ -294,7 +300,7 @@ const Navigation: React.FC<NavigationProps> = ({
               <Link // Changed to Link
                 key={item.label}
                 to={item.to} // Changed to 'to'
-                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
+                className="px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
                 aria-label={item.description}
                 // onFocus removed as Link handles navigation
               >
@@ -305,7 +311,7 @@ const Navigation: React.FC<NavigationProps> = ({
             {/* Features Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
-                className="flex items-center px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
+                className="flex items-center px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
                 onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
                 onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
                 aria-expanded={activeDropdown === 'features'}
@@ -323,7 +329,7 @@ const Navigation: React.FC<NavigationProps> = ({
               {activeDropdown === 'features' && (
                 <div 
                   id="features-dropdown"
-                  className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-[#E8E8E8] opacity-100 visible transition-all duration-200 overflow-hidden"
+                  className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-[#E8E8E8] dark:border-gray-700 opacity-100 visible transition-all duration-200 overflow-hidden z-50"
                   role="menu"
                   aria-labelledby="features-trigger"
                   onKeyDown={handleDropdownKeyDown}
@@ -334,30 +340,30 @@ const Navigation: React.FC<NavigationProps> = ({
                       <Link // Changed to Link
                         key={index}
                         to={item.to} // Changed to 'to'
-                        className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 group focus-ring"
+                        className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring"
                         onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                         role="menuitem"
                         tabIndex={0}
                       >
-                        <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
+                        <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
                           <item.icon className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-[#0A2647] text-sm mb-1 group-hover:text-[#0075A2] transition-colors">
+                          <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-1 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors">
                             {item.title}
                           </h4>
-                          <p className="text-xs text-gray-600 leading-relaxed">
+                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
                             {item.description}
                           </p>
                         </div>
-                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] transition-colors" />
+                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors" />
                       </Link>
                     ))}
                   </div>
-                  <div className="border-t border-[#E8E8E8] p-3 bg-[#F6F6F6]">
+                  <div className="border-t border-[#E8E8E8] dark:border-gray-700 p-3 bg-[#F6F6F6] dark:bg-gray-700">
                     <Link // Changed to Link
                       to="/#features" // Changed to 'to'
-                      className="text-sm text-[#0075A2] hover:text-[#0A2647] font-medium transition-colors focus-ring"
+                      className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
                       onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                       role="menuitem"
                       tabIndex={0}
@@ -373,7 +379,7 @@ const Navigation: React.FC<NavigationProps> = ({
               <a
                 key={item.label}
                 href={item.href}
-                className="px-4 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring"
+                className="px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
                 aria-label={item.description}
               >
                 {item.label}

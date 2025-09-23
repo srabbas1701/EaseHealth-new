@@ -106,3 +106,230 @@ export const updateProfile = async (userId: string, updates: Partial<Profile>) =
   if (error) throw error
   return data
 }
+
+// Pre-registration types and functions
+export interface PreRegistration {
+  id?: string
+  user_id?: string
+  full_name: string
+  age: number
+  gender: string
+  phone_number: string
+  city: string
+  state: string
+  symptoms: string
+  lab_reports_url?: string
+  aadhaar_url?: string
+  consent_agreed: boolean
+  status?: string
+  queue_token?: string
+  registration_time?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export const createPreRegistration = async (userId: string, data: Omit<PreRegistration, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const { data: result, error } = await supabase
+    .from('pre_registrations')
+    .insert([
+      {
+        user_id: userId,
+        ...data
+      }
+    ])
+    .select()
+    .single()
+
+  if (error) throw error
+  return result
+}
+
+export const getPreRegistration = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('pre_registrations')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+// Doctor types and functions
+export interface Doctor {
+  id: string
+  user_id?: string
+  full_name: string
+  email: string
+  phone_number: string
+  specialty: string
+  license_number: string
+  experience_years: number
+  qualification: string
+  hospital_affiliation?: string
+  consultation_fee?: number
+  profile_image_url?: string
+  bio?: string
+  is_verified: boolean
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface DoctorSchedule {
+  id?: string
+  doctor_id: string
+  day_of_week: number
+  start_time: string
+  end_time: string
+  slot_duration_minutes: number
+  break_start_time?: string
+  break_end_time?: string
+  is_available: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export interface TimeSlot {
+  id?: string
+  doctor_id: string
+  schedule_date: string
+  start_time: string
+  end_time: string
+  duration_minutes: number
+  status: 'available' | 'booked' | 'blocked' | 'break'
+  appointment_id?: string
+  notes?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export const getDoctors = async () => {
+  const { data, error } = await supabase
+    .from('doctors')
+    .select('*')
+    .eq('is_active', true)
+    .eq('is_verified', true)
+    .order('full_name')
+
+  if (error) throw error
+  return data
+}
+
+export const getDoctorByUserId = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('doctors')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+export const getDoctorSchedules = async (doctorId: string) => {
+  const { data, error } = await supabase
+    .from('doctor_schedules')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .order('day_of_week')
+
+  if (error) throw error
+  return data
+}
+
+export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' | 'created_at' | 'updated_at'>) => {
+  const { data, error } = await supabase
+    .from('doctor_schedules')
+    .upsert(schedule, { 
+      onConflict: 'doctor_id,day_of_week',
+      ignoreDuplicates: false 
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const getAvailableTimeSlots = async (doctorId: string, date: string) => {
+  const { data, error } = await supabase
+    .from('time_slots')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .eq('schedule_date', date)
+    .eq('status', 'available')
+    .order('start_time')
+
+  if (error) throw error
+  return data
+}
+
+export const generateTimeSlots = async (doctorId: string, date: string) => {
+  // This function would generate time slots based on doctor's schedule
+  // Implementation would involve checking doctor_schedules and creating time_slots
+  const dayOfWeek = new Date(date).getDay()
+  
+  const { data: schedule, error: scheduleError } = await supabase
+    .from('doctor_schedules')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .eq('day_of_week', dayOfWeek)
+    .eq('is_available', true)
+    .maybeSingle()
+
+  if (scheduleError) throw scheduleError
+  if (!schedule) return []
+
+  // Generate time slots based on schedule
+  const slots = []
+  const startTime = new Date(`2000-01-01T${schedule.start_time}`)
+  const endTime = new Date(`2000-01-01T${schedule.end_time}`)
+  const breakStart = schedule.break_start_time ? new Date(`2000-01-01T${schedule.break_start_time}`) : null
+  const breakEnd = schedule.break_end_time ? new Date(`2000-01-01T${schedule.break_end_time}`) : null
+  
+  let currentTime = new Date(startTime)
+  
+  while (currentTime < endTime) {
+    const slotEnd = new Date(currentTime.getTime() + schedule.slot_duration_minutes * 60000)
+    
+    // Skip break time
+    if (breakStart && breakEnd && 
+        ((currentTime >= breakStart && currentTime < breakEnd) ||
+         (slotEnd > breakStart && slotEnd <= breakEnd))) {
+      currentTime = new Date(breakEnd)
+      continue
+    }
+    
+    if (slotEnd <= endTime) {
+      slots.push({
+        doctor_id: doctorId,
+        schedule_date: date,
+        start_time: currentTime.toTimeString().slice(0, 8),
+        end_time: slotEnd.toTimeString().slice(0, 8),
+        duration_minutes: schedule.slot_duration_minutes,
+        status: 'available' as const
+      })
+    }
+    
+    currentTime = slotEnd
+  }
+
+  // Insert generated slots
+  if (slots.length > 0) {
+    const { data, error } = await supabase
+      .from('time_slots')
+      .upsert(slots, { 
+        onConflict: 'doctor_id,schedule_date,start_time',
+        ignoreDuplicates: true 
+      })
+      .select()
+
+    if (error) throw error
+    return data
+  }
+
+  return []
+}

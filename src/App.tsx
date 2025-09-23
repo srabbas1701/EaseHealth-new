@@ -35,6 +35,7 @@ import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import PatientDashboardPage from './pages/PatientDashboardPage'; // Import the new page
 import ChooseServicePage from './pages/ChooseServicePage';
+import DoctorScheduleConfigPage from './pages/DoctorScheduleConfigPage';
 
 // Auth props interface
 interface AuthProps {
@@ -719,6 +720,7 @@ function App() {
           <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
           <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
           <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
+          <Route path="/doctor-schedule-config" element={<DoctorScheduleConfigPage {...authData} />} />
           {/* Add more routes here as you create new pages */}
         </Routes>
       </FeatureDetection>

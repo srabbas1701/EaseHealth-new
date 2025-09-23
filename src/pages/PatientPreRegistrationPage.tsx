@@ -5,6 +5,7 @@ import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
 import AuthModal from '../components/AuthModal';
+import { createPreRegistration, PreRegistration } from '../utils/supabase';
 
 // Auth props interface
 interface AuthProps {
@@ -143,12 +144,32 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
     setShowAuthModal(false);
     setIsSubmitting(true);
     
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const preRegistrationData: Omit<PreRegistration, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
+        full_name: formData.fullName,
+        age: parseInt(formData.age),
+        gender: formData.gender,
+        phone_number: formData.phoneNumber,
+        city: formData.city,
+        state: formData.state,
+        symptoms: formData.symptoms,
+        consent_agreed: formData.consent,
+        // TODO: Handle file uploads for lab_reports_url and aadhaar_url
+        // For now, we'll store placeholder URLs if files are present
+        lab_reports_url: formData.labReports ? `placeholder-lab-reports-${user.id}` : undefined,
+        aadhaar_url: formData.aadhaar ? `placeholder-aadhaar-${user.id}` : undefined
+      };
+
+      await createPreRegistration(user.id, preRegistrationData);
       setSubmitSuccess(true);
+      setAnnouncement('Pre-registration submitted successfully! You will receive a confirmation SMS shortly.');
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('Pre-registration submission error:', error);
+      setAuthError('Failed to submit pre-registration. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

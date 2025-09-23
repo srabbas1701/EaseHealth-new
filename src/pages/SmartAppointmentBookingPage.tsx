@@ -3,6 +3,7 @@ import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
 import AuthModal from '../components/AuthModal';
+import { getDoctors, getAvailableTimeSlots, generateTimeSlots, Doctor } from '../utils/supabase';
 
 // Auth props interface
 interface AuthProps {
@@ -31,7 +32,8 @@ import {
 
 function SmartAppointmentBookingPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const [announcement, setAnnouncement] = useState('');
-  const [selectedDoctor, setSelectedDoctor] = useState('Dr. Anjali Sharma - Cardiologist');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedDate, setSelectedDate] = useState(5); // July 5th
   const [selectedTime, setSelectedTime] = useState('9:30 AM');
   const [currentMonth, setCurrentMonth] = useState('July 2024');
@@ -39,6 +41,9 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState<any[]>([]);
 
   // Handle scroll to top button
   React.useEffect(() => {
@@ -57,13 +62,57 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     }, 500);
   };
 
-  const doctors = [
-    'Dr. Anjali Sharma - Cardiologist',
-    'Dr. Rajesh Kumar - Neurologist',
-    'Dr. Priya Patel - Dermatologist',
-    'Dr. Amit Singh - Orthopedic',
-    'Dr. Meera Gupta - Pediatrician'
-  ];
+  // Load doctors on component mount
+  React.useEffect(() => {
+    loadDoctors();
+  }, []);
+
+  // Load time slots when doctor or date changes
+  React.useEffect(() => {
+    if (selectedDoctor) {
+      loadTimeSlots();
+    }
+  }, [selectedDoctor, selectedDate]);
+
+  const loadDoctors = async () => {
+    try {
+      setIsLoadingDoctors(true);
+      const doctorsList = await getDoctors();
+      setDoctors(doctorsList || []);
+      if (doctorsList && doctorsList.length > 0) {
+        setSelectedDoctor(doctorsList[0]);
+      }
+    } catch (error) {
+      console.error('Error loading doctors:', error);
+      setAnnouncement('Failed to load doctors. Please refresh the page.');
+    } finally {
+      setIsLoadingDoctors(false);
+    }
+  };
+
+  const loadTimeSlots = async () => {
+    if (!selectedDoctor) return;
+
+    try {
+      setIsLoadingSlots(true);
+      const selectedDateStr = `2024-07-${selectedDate.toString().padStart(2, '0')}`;
+      
+      // First try to get existing slots
+      let slots = await getAvailableTimeSlots(selectedDoctor.id, selectedDateStr);
+      
+      // If no slots exist, generate them
+      if (!slots || slots.length === 0) {
+        slots = await generateTimeSlots(selectedDoctor.id, selectedDateStr);
+      }
+      
+      setAvailableSlots(slots || []);
+    } catch (error) {
+      console.error('Error loading time slots:', error);
+      setAvailableSlots([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  };
 
   const timeSlots = [
     { time: '9:00 AM', available: true },
@@ -139,7 +188,10 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   ];
 
   const handleDoctorSelect = (doctor: string) => {
-    setSelectedDoctor(doctor);
+    const doctorObj = doctors.find(d => `${d.full_name} - ${d.specialty}` === doctor);
+    if (doctorObj) {
+      setSelectedDoctor(doctorObj);
+    }
     setIsDoctorDropdownOpen(false);
     setAnnouncement(`Selected doctor: ${doctor}`);
   };
@@ -166,7 +218,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
   const authContext = {
     title: 'Complete Your Booking',
-    description: `To confirm your appointment with ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}, please create an account or sign in to your existing account.`,
+    description: `To confirm your appointment with ${selectedDoctor?.full_name} on July ${selectedDate}, 2024 at ${selectedTime}, please create an account or sign in to your existing account.`,
     actionText: 'Confirm Booking'
   };
 
@@ -229,30 +281,44 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                     <div className="relative">
                       <button
                         onClick={() => setIsDoctorDropdownOpen(!isDoctorDropdownOpen)}
-                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2]"
+                        className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] disabled:opacity-50"
                         aria-expanded={isDoctorDropdownOpen}
                         aria-haspopup="listbox"
+                        disabled={isLoadingDoctors}
                       >
-                        <span className="text-[#0A2647] dark:text-gray-100">{selectedDoctor}</span>
+                        <span className="text-[#0A2647] dark:text-gray-100">
+                          {isLoadingDoctors ? 'Loading doctors...' : 
+                           selectedDoctor ? `${selectedDoctor.full_name} - ${selectedDoctor.specialty}` : 
+                           'Select a doctor'}
+                        </span>
                         <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDoctorDropdownOpen ? 'rotate-180' : ''}`} />
                       </button>
 
                       {isDoctorDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
-                          {doctors.map((doctor, index) => (
+                          {doctors.map((doctor, index) => {
+                            const doctorDisplay = `${doctor.full_name} - ${doctor.specialty}`;
+                            return (
                             <button
                               key={index}
-                              onClick={() => handleDoctorSelect(doctor)}
+                              onClick={() => handleDoctorSelect(doctorDisplay)}
                               className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700"
                               role="option"
-                              aria-selected={selectedDoctor === doctor}
+                              aria-selected={selectedDoctor?.id === doctor.id}
                             >
                               <div className="flex items-center">
                                 <User className="w-4 h-4 text-gray-400 mr-3" />
-                                <span className="text-[#0A2647] dark:text-gray-100">{doctor}</span>
+                                <div>
+                                  <span className="text-[#0A2647] dark:text-gray-100 font-medium">{doctor.full_name}</span>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">{doctor.specialty}</p>
+                                  {doctor.consultation_fee && (
+                                    <p className="text-xs text-[#0075A2] dark:text-[#0EA5E9]">₹{doctor.consultation_fee}</p>
+                                  )}
+                                </div>
                               </div>
                             </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -328,7 +394,41 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                     </h3>
 
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {timeSlots.map((slot, index) => (
+                      {isLoadingSlots ? (
+                        <div className="col-span-full text-center py-4">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto mb-2"></div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">Loading available slots...</p>
+                        </div>
+                      ) : availableSlots.length > 0 ? (
+                        availableSlots.map((slot, index) => {
+                          const timeDisplay = new Date(`2000-01-01T${slot.start_time}`).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          });
+                          return (
+                            <button
+                              key={index}
+                              onClick={() => handleTimeSelect(timeDisplay)}
+                              className={`
+                                px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
+                                ${selectedTime === timeDisplay
+                                  ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-md transform scale-105'
+                                  : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500'
+                                }
+                              `}
+                              aria-label={`${timeDisplay} available`}
+                              aria-selected={selectedTime === timeDisplay}
+                            >
+                              <div className="flex items-center justify-center">
+                                <Clock className="w-4 h-4 mr-2" />
+                                {timeDisplay}
+                              </div>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        timeSlots.map((slot, index) => (
                         <button
                           key={index}
                           onClick={() => handleTimeSelect(slot.time)}
@@ -353,6 +453,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                           </div>
                         </button>
                       ))}
+                      )}
                     </div>
                   </div>
 
@@ -425,7 +526,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         Reschedule anytime before visit
                       </li>
                     </ul>
-                  </div>
+                  Booking summary: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
                 </div>
               </div>
             </div>

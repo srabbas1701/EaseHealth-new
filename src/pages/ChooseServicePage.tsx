@@ -28,8 +28,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
         'SMS & WhatsApp reminders',
         'Easy rescheduling'
       ],
-      color: 'from-[#0075A2] to-[#0A2647]',
-      darkColor: 'from-[#0EA5E9] to-[#0284C7]'
+      color: 'from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]'
     },
     {
       id: 'pre-register',
@@ -43,8 +42,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
         'Get queue token',
         'Skip registration desk'
       ],
-      color: 'from-[#00D4AA] to-[#0075A2]',
-      darkColor: 'from-[#06D6A0] to-[#0EA5E9]'
+      color: 'from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]'
     }
   ];
 
@@ -132,7 +130,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
                   {/* Features List */}
                   <ul className="space-y-2 mb-6">
                     {service.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <CheckCircle className="w-4 h-4 text-[#0075A2] dark:text-[#0EA5E9] mr-2 flex-shrink-0" />
                         <CheckCircle className="w-4 h-4 text-[#00D4AA] dark:text-[#06D6A0] mr-2 flex-shrink-0" />
                         {feature}
                       </li>
@@ -141,7 +139,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
                   
                   {/* CTA */}
                   <div className="flex items-center text-[#0075A2] dark:text-[#0EA5E9] font-medium group-hover:text-[#0A2647] dark:group-hover:text-gray-100 transition-colors">
-                    Get Started
+                  <div className={`w-16 h-16 bg-gradient-to-r ${service.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0`}>
                     <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>
