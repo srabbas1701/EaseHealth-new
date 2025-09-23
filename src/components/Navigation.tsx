@@ -13,18 +13,21 @@ import {
   ArrowRight,
   Phone,
   Search,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
 import { useFocusManagement } from './KeyboardNavigation';
 import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { useAuth } from '../hooks/useAuth';
+import { signOut } from '../utils/supabase';
 
 interface NavigationProps {
-  userState: 'new' | 'returning' | 'authenticated';
   onMenuToggle?: (isOpen: boolean) => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
+const Navigation: React.FC<NavigationProps> = ({ onMenuToggle }) => {
+  const { userState, user, profile } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -119,6 +122,14 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      // The auth state change will be handled by the useAuth hook
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
   const getDynamicCTA = () => {
     switch (userState) {
       case 'returning':
@@ -132,13 +143,27 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
         );
       case 'authenticated':
         return (
-          <button 
-            className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-            onClick={() => window.location.href = '/patient-dashboard'}
-            aria-label="Go to your dashboard"
-          >
-            My Dashboard
-          </button>
+          <div className="flex items-center space-x-3">
+            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+              <User className="w-4 h-4" />
+              <span>Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+            </div>
+            <Link
+              to="/patient-dashboard"
+              className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
+              aria-label="Go to your dashboard"
+            >
+              Dashboard
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500"
+              aria-label="Sign out"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         );
       default:
         return (
@@ -437,6 +462,21 @@ const Navigation: React.FC<NavigationProps> = ({ userState, onMenuToggle }) => {
 
               {/* Contact Info */}
               <div className="px-4 py-2 border-t border-[#E8E8E8] mt-4">
+                {userState === 'authenticated' && (
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-2">
+                      <User className="w-4 h-4 mr-2" />
+                      <span>Hi, {profile?.full_name || user?.email?.split('@')[0] || 'User'}</span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
                 <div className="flex items-center text-sm text-gray-600 mb-2">
                   <Phone className="w-4 h-4 mr-2" />
                   <span>+91 80-EASEHEALTH</span>

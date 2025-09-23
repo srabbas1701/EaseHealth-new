@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase, createProfile } from '../utils/supabase';
+import { AuthError } from '@supabase/supabase-js';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -54,6 +57,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+    // Clear auth error when user starts typing
+    if (authError) {
+      setAuthError('');
+    }
   };
 
   // Validate form
@@ -77,8 +84,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     if (!formData.password.trim()) newErrors.password = 'Password is required';
-    else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
     }
 
     setErrors(newErrors);
@@ -92,13 +101,80 @@ const AuthModal: React.FC<AuthModalProps> = ({
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setAuthError('');
     
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      onSuccess();
+      if (mode === 'signup') {
+        // Sign up the user
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (authData.user) {
+          // Create user profile
+          try {
+            await createProfile(authData.user.id, {
+              full_name: formData.name,
+              phone_number: formData.phone,
+            });
+          } catch (profileError) {
+            console.error('Error creating profile:', profileError);
+            // Don't throw here - user is created, profile creation failed
+            // We can handle this gracefully
+          }
+        }
+
+        onSuccess();
+      } else {
+        // Sign in the user
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (authError) {
+          throw authError;
+        }
+
+        onSuccess();
+      }
     } catch (error) {
-      console.error('Auth error:', error);
+      console.error('Authentication error:', error);
+      
+      // Handle specific Supabase auth errors
+      if (error instanceof Error) {
+        const authError = error as AuthError;
+        
+        switch (authError.message) {
+          case 'Invalid login credentials':
+            setAuthError('Invalid email or password. Please check your credentials and try again.');
+            break;
+          case 'User already registered':
+            setAuthError('An account with this email already exists. Please try logging in instead.');
+            break;
+          case 'Password should be at least 6 characters':
+            setAuthError('Password must be at least 8 characters long.');
+            break;
+          case 'Signup requires a valid password':
+            setAuthError('Please enter a valid password.');
+            break;
+          case 'Unable to validate email address: invalid format':
+            setAuthError('Please enter a valid email address.');
+            break;
+          case 'Email rate limit exceeded':
+            setAuthError('Too many requests. Please wait a moment before trying again.');
+            break;
+          default:
+            setAuthError(authError.message || 'An error occurred during authentication. Please try again.');
+        }
+      } else {
+        setAuthError('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -161,6 +237,16 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Form */}
         <div className="p-6">
+          {/* Authentication Error Display */}
+          {authError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+                <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                {authError}
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name field (signup only) */}
             {mode === 'signup' && (
@@ -247,7 +333,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
             {/* Password field */}
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Password *
+                Password * {mode === 'signup' && <span className="text-xs text-gray-500">(min 8 chars, include uppercase, lowercase, number)</span>}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -309,7 +395,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed mt-6"
+              className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] disabled:from-gray-400 disabled:to-gray-500 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center">
@@ -340,7 +426,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <div className="flex items-start">
               <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 mt-0.5 mr-2 flex-shrink-0" />
               <p className="text-xs text-gray-600 dark:text-gray-300">
-                Your data is protected with end-to-end encryption and complies with India's DPDP Act.
+                Your data is protected with enterprise-grade security and complies with India's DPDP Act. 
+                {mode === 'signup' && ' You may receive a confirmation email to verify your account.'}
               </p>
             </div>
           </div>
