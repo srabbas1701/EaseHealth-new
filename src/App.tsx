@@ -686,6 +686,7 @@ function App() {
   
   // Show loading screen while checking authentication
   if (authData.loading) {
+    console.log('🔄 App showing loading screen, auth loading:', authData.loading)
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -693,10 +694,19 @@ function App() {
             <Brain className="w-8 h-8 text-white" />
           </div>
           <p className="text-gray-600 dark:text-gray-300">Loading EaseHealth AI...</p>
+          <p className="text-xs text-gray-500 mt-2">Checking authentication status...</p>
         </div>
       </div>
     );
   }
+
+  console.log('✅ App loaded, auth state:', {
+    loading: authData.loading,
+    isAuthenticated: authData.isAuthenticated,
+    userState: authData.userState,
+    hasUser: !!authData.user,
+    hasProfile: !!authData.profile
+  })
 
   return (
     <FocusVisibleProvider>

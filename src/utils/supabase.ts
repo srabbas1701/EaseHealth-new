@@ -62,7 +62,15 @@ export const getProfile = async (userId: string) => {
     .eq('id', userId)
     .single()
 
-  if (error) throw error
+  if (error) {
+    // If no profile exists, return null instead of throwing error
+    if (error.code === 'PGRST116') {
+      console.log('No profile found for user:', userId)
+      return null
+    }
+    console.error('Error fetching profile:', error)
+    throw error
+  }
   return data
 }
 

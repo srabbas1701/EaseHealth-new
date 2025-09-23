@@ -11,21 +11,43 @@ export const useAuth = () => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setSession(session)
-      setUser(session?.user ?? null)
+      console.log('🔄 Starting initial session check...')
       
-      if (session?.user) {
-        try {
-          const userProfile = await getProfile(session.user.id)
-          setProfile(userProfile)
-        } catch (error) {
-          console.error('Error fetching profile:', error)
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error('❌ Error getting session:', sessionError)
+          throw sessionError
+        }
+        
+        console.log('✅ Session fetched:', session ? 'User logged in' : 'No active session')
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          console.log('👤 Fetching profile for user:', session.user.id)
+          try {
+            const userProfile = await getProfile(session.user.id)
+            console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
+            setProfile(userProfile)
+          } catch (error) {
+            console.error('❌ Error fetching profile:', error)
+            setProfile(null)
+          }
+        } else {
           setProfile(null)
         }
+      } catch (error) {
+        console.error('❌ Critical error in getInitialSession:', error)
+        // Reset all states on critical error
+        setSession(null)
+        setUser(null)
+        setProfile(null)
+      } finally {
+        console.log('✅ Initial session check complete, setting loading to false')
+        setLoading(false)
       }
-      
-      setLoading(false)
     }
 
     getInitialSession()
@@ -33,22 +55,33 @@ export const useAuth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
+        console.log('🔄 Auth state change:', event, session ? 'User session active' : 'No session')
         
-        if (session?.user) {
-          try {
-            const userProfile = await getProfile(session.user.id)
-            setProfile(userProfile)
-          } catch (error) {
-            console.error('Error fetching profile:', error)
+        try {
+          setSession(session)
+          setUser(session?.user ?? null)
+          
+          if (session?.user) {
+            console.log('👤 Fetching profile for user after auth change:', session.user.id)
+            try {
+              const userProfile = await getProfile(session.user.id)
+              console.log('✅ Profile fetched after auth change:', userProfile ? 'Profile found' : 'No profile')
+              setProfile(userProfile)
+            } catch (error) {
+              console.error('❌ Error fetching profile after auth change:', error)
+              setProfile(null)
+            }
+          } else {
+            console.log('🚪 User logged out, clearing profile')
             setProfile(null)
           }
-        } else {
+        } catch (error) {
+          console.error('❌ Error in auth state change handler:', error)
           setProfile(null)
+        } finally {
+          console.log('✅ Auth state change complete, setting loading to false')
+          setLoading(false)
         }
-        
-        setLoading(false)
       }
     )
 
@@ -70,11 +103,16 @@ export const useAuth = () => {
     userState: getUserState(),
     isAuthenticated: !!user && !!session,
     handleLogout: async () => {
+      console.log('🚪 Logging out user...')
       try {
         const { error } = await supabase.auth.signOut()
-        if (error) throw error
+        if (error) {
+          console.error('❌ Error during logout:', error)
+          throw error
+        }
+        console.log('✅ User logged out successfully')
       } catch (error) {
-        console.error('Error signing out:', error)
+        console.error('❌ Critical error signing out:', error)
         throw error
       }
     }
