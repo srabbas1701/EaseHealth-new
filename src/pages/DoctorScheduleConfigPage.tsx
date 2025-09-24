@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AuthModal from '../components/AuthModal';
+import DoctorRegistrationForm from '../components/DoctorRegistrationForm';
 import { getDoctorByUserId, getDoctorSchedules, upsertDoctorSchedule, DoctorSchedule, Doctor, supabase } from '../utils/supabase';
 
 // Auth props interface
@@ -30,6 +31,7 @@ interface ScheduleForm {
 function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setSaving] = useState(false);
@@ -112,8 +114,14 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
-    // Reload the page to get updated user data
-    window.location.reload();
+    // Show registration form after successful auth
+    setShowRegistrationForm(true);
+  };
+
+  const handleRegistrationSuccess = () => {
+    setShowRegistrationForm(false);
+    // Reload doctor data after successful registration
+    loadDoctorData();
   };
 
   const handleScheduleChange = (dayId: number, field: string, value: string | number | boolean) => {
@@ -185,45 +193,6 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
     setSaveSuccess(false);
   };
 
-  // Create a temporary doctor profile for testing
-  const createTempDoctorProfile = async () => {
-    if (!user) return;
-    
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('doctors')
-        .insert([
-          {
-            user_id: user.id,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Doctor',
-            email: user.email,
-            phone_number: '+91 9876543210',
-            specialty: 'General Medicine',
-            license_number: `LIC${Date.now()}`,
-            experience_years: 5,
-            qualification: 'MBBS',
-            hospital_affiliation: 'City Hospital',
-            consultation_fee: 500,
-            is_verified: true,
-            is_active: true
-          }
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      setDoctor(data);
-      setError('');
-    } catch (error) {
-      console.error('Error creating doctor profile:', error);
-      setError('Failed to create doctor profile. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const authContext = {
     title: 'Doctor Authentication Required',
     description: 'Please sign in with your doctor account to access the schedule configuration system.',
@@ -270,6 +239,13 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
           onSuccess={handleAuthSuccess}
           mode="login"
           context={authContext}
+        />
+
+        <DoctorRegistrationForm
+          isOpen={showRegistrationForm}
+          onClose={() => setShowRegistrationForm(false)}
+          onSuccess={handleRegistrationSuccess}
+          userId={user?.id}
         />
       </>
     );
@@ -322,10 +298,10 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
             </p>
             {error.includes('Doctor profile not found') && (
               <button
-                onClick={createTempDoctorProfile}
+                onClick={() => setShowRegistrationForm(true)}
                 className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring mr-4"
               >
-                Create Doctor Profile
+                Register as Doctor
               </button>
             )}
             <Link 
