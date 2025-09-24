@@ -3,7 +3,8 @@ import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
 import AuthModal from '../components/AuthModal';
-import { getDoctors, getAvailableTimeSlots, generateTimeSlots, Doctor } from '../utils/supabase';
+import { getDoctors, getAvailableTimeSlots, generateTimeSlots, Doctor, createPreRegistration } from '../utils/supabase';
+import { Link } from 'react-router-dom';
 
 // Auth props interface
 interface AuthProps {
@@ -44,6 +45,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
+  const [authError, setAuthError] = useState<string>('');
 
   // Handle scroll to top button
   React.useEffect(() => {
@@ -210,10 +212,13 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     setShowAuthModal(true);
   };
 
-  const handleAuthSuccess = () => {
+  const handleAuthSuccess = async () => {
     setShowAuthModal(false);
     setBookingConfirmed(true);
-    setAnnouncement(`Booking confirmed for ${selectedDoctor} on July ${selectedDate}, 2024 at ${selectedTime}`);
+    setAnnouncement(`Booking confirmed for ${selectedDoctor?.full_name} on July ${selectedDate}, 2024 at ${selectedTime}`);
+    
+    // Here you could also create an actual appointment record in the database
+    // For now, we'll just show the confirmation
   };
 
   const authContext = {
@@ -239,6 +244,17 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       <main id="main-content" tabIndex={-1} aria-label="Smart Appointment Booking">
         {/* Hero Section with Immediate Booking */}
         <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-8 lg:py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Back Button */}
+            <Link 
+              to="/" 
+              className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
+            >
+              <ChevronLeft className="w-5 h-5 mr-2" />
+              Back to Home
+            </Link>
+          </div>
+          
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Page Header */}
             <div className="text-center mb-8">
@@ -287,8 +303,8 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         disabled={isLoadingDoctors}
                       >
                         <span className="text-[#0A2647] dark:text-gray-100">
-                          {isLoadingDoctors ? 'Loading doctors...' : 
-                           selectedDoctor ? `${selectedDoctor.full_name} - ${selectedDoctor.specialty}` : 
+                          {isLoadingDoctors ? 'Loading doctors...' :
+                           selectedDoctor ? `${selectedDoctor.full_name} - ${selectedDoctor.specialty}` :
                            'Select a doctor'}
                         </span>
                         <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDoctorDropdownOpen ? 'rotate-180' : ''}`} />
@@ -299,24 +315,24 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                           {doctors.map((doctor, index) => {
                             const doctorDisplay = `${doctor.full_name} - ${doctor.specialty}`;
                             return (
-                            <button
-                              key={index}
-                              onClick={() => handleDoctorSelect(doctorDisplay)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700"
-                              role="option"
-                              aria-selected={selectedDoctor?.id === doctor.id}
-                            >
-                              <div className="flex items-center">
-                                <User className="w-4 h-4 text-gray-400 mr-3" />
-                                <div>
-                                  <span className="text-[#0A2647] dark:text-gray-100 font-medium">{doctor.full_name}</span>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">{doctor.specialty}</p>
-                                  {doctor.consultation_fee && (
-                                    <p className="text-xs text-[#0075A2] dark:text-[#0EA5E9]">₹{doctor.consultation_fee}</p>
-                                  )}
+                              <button
+                                key={index}
+                                onClick={() => handleDoctorSelect(doctorDisplay)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700"
+                                role="option"
+                                aria-selected={selectedDoctor?.id === doctor.id}
+                              >
+                                <div className="flex items-center">
+                                  <User className="w-4 h-4 text-gray-400 mr-3" />
+                                  <div>
+                                    <span className="text-[#0A2647] dark:text-gray-100 font-medium">{doctor.full_name}</span>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{doctor.specialty}</p>
+                                    {doctor.consultation_fee && (
+                                      <p className="text-xs text-[#0075A2] dark:text-[#0EA5E9]">₹{doctor.consultation_fee}</p>
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            </button>
+                              </button>
                             );
                           })}
                         </div>
@@ -429,30 +445,30 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         })
                       ) : (
                         timeSlots.map((slot, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleTimeSelect(slot.time)}
-                          disabled={!slot.available}
-                          className={`
-                            px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
-                            ${selectedTime === slot.time
-                              ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-md transform scale-105'
-                              : slot.highlighted
-                                ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]'
-                                : slot.available
-                                  ? 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500'
-                                  : 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                            }
-                          `}
-                          aria-label={`${slot.time} ${slot.available ? 'available' : 'unavailable'}`}
-                          aria-selected={selectedTime === slot.time}
-                        >
-                          <div className="flex items-center justify-center">
-                            <Clock className="w-4 h-4 mr-2" />
-                            {slot.time}
-                          </div>
-                        </button>
-                      )))}
+                          <button
+                            key={index}
+                            onClick={() => handleTimeSelect(slot.time)}
+                            disabled={!slot.available}
+                            className={`
+                              px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2]
+                              ${selectedTime === slot.time
+                                ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-md transform scale-105'
+                                : slot.highlighted
+                                  ? 'bg-[#0075A2] text-white hover:bg-[#005a7a]'
+                                  : slot.available
+                                    ? 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500'
+                                    : 'bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                              }
+                            `}
+                            aria-label={`${slot.time} ${slot.available ? 'available' : 'unavailable'}`}
+                            aria-selected={selectedTime === slot.time}
+                          >
+                            <div className="flex items-center justify-center">
+                              <Clock className="w-4 h-4 mr-2" />
+                              {slot.time}
+                            </div>
+                          </button>
+                        )))}
                     </div>
                   </div>
 
@@ -479,7 +495,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
                   {/* Booking Summary for Screen Readers */}
                   <div id="booking-summary" className="sr-only">
-                    Booking summary: {selectedDoctor} on July {selectedDate}, 2024 at {selectedTime}
+                    Booking summary: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
                   </div>
                 </div>
               </div>
@@ -528,7 +544,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                   </div>
                   {/* Booking Summary for Screen Readers */}
                   <div id="booking-summary" className="sr-only">
-                    Booking summary: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
+                    Current booking: {selectedDoctor?.full_name} on July {selectedDate}, 2024 at {selectedTime}
                   </div>
                 </div>
               </div>
