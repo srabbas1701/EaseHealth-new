@@ -27,8 +27,7 @@ import {
   FileText,
   Bell,
   Brain,
-  Zap,
-  ArrowUp
+  Zap
 } from 'lucide-react';
 
 function SmartAppointmentBookingPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
@@ -39,30 +38,12 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [selectedTime, setSelectedTime] = useState('9:30 AM');
   const [currentMonth, setCurrentMonth] = useState('July 2024');
   const [isDoctorDropdownOpen, setIsDoctorDropdownOpen] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<any[]>([]);
   const [authError, setAuthError] = useState<string>('');
-
-  // Handle scroll to top button
-  React.useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => {
-      const mainContent = document.getElementById('main-content');
-      mainContent?.focus();
-    }, 500);
-  };
 
   // Load doctors on component mount
   React.useEffect(() => {
@@ -602,16 +583,6 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         context={authContext}
       />
 
-      {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 z-40 focus-ring"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp className="w-5 h-5 mx-auto" />
-        </button>
-      )}
     </div>
   );
 }

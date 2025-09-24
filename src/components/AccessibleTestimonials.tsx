@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote, MapPin } from 'lucide-react';
-import AccessibleCarousel from './AccessibleCarousel';
 
 interface Testimonial {
   id: string;
@@ -27,24 +26,18 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
 }) => {
   const [preferredFormat, setPreferredFormat] = useState<'carousel' | 'list'>('carousel');
 
-  // Detect user preference for motion
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    // Keep slideshow as default even for reduced motion users, but they can switch to list view
-  }, []);
+  // Simple carousel state
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Convert testimonials to carousel items
-  const carouselItems = testimonials.map(testimonial => ({
-    id: testimonial.id,
-    title: `Testimonial from ${testimonial.author}`,
-    description: `${testimonial.rating} star review from ${testimonial.location}`,
-    content: (
-      <TestimonialCard 
-        testimonial={testimonial} 
-        showRatings={showRatings}
-      />
-    )
-  }));
+  // Auto-advance carousel
+  useEffect(() => {
+    if (autoPlay && preferredFormat === 'carousel') {
+      const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+      }, 7000);
+      return () => clearInterval(interval);
+    }
+  }, [autoPlay, preferredFormat, testimonials.length]);
 
   // List view for users who prefer reduced motion or static content
   const ListView = () => (
@@ -54,6 +47,38 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
           <TestimonialCard testimonial={testimonial} showRatings={showRatings} />
         </div>
       ))}
+    </div>
+  );
+
+  // Simple carousel view
+  const CarouselView = () => (
+    <div className="relative max-w-4xl mx-auto">
+      <div className="overflow-hidden rounded-lg">
+        <div 
+          className="flex transition-transform duration-300 ease-in-out"
+          style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+        >
+          {testimonials.map((testimonial, index) => (
+            <div key={testimonial.id} className="w-full flex-shrink-0">
+              <TestimonialCard testimonial={testimonial} showRatings={showRatings} />
+            </div>
+          ))}
+        </div>
+      </div>
+      
+      {/* Navigation buttons */}
+      <button
+        onClick={() => setCurrentIndex((prev) => prev === 0 ? testimonials.length - 1 : prev - 1)}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => setCurrentIndex((prev) => (prev + 1) % testimonials.length)}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
     </div>
   );
 
@@ -94,13 +119,7 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
       {/* Content area */}
       <div id="testimonials-content" role="tabpanel">
         {preferredFormat === 'carousel' ? (
-          <AccessibleCarousel
-            items={carouselItems}
-            autoPlay={autoPlay}
-            autoPlayInterval={7000}
-            ariaLabel="Customer testimonials slideshow"
-            className="max-w-4xl mx-auto"
-          />
+          <CarouselView />
         ) : (
           <ListView />
         )}
