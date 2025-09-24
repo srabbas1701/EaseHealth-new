@@ -63,7 +63,7 @@ export const getProfile = async (userId: string) => {
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Profile fetch timeout'))
-      }, 30000) // 30 second timeout
+      }, 60000) // 60 second timeout
     })
 
     // Create the profile fetch promise
@@ -85,8 +85,8 @@ export const getProfile = async (userId: string) => {
     console.log('✅ Profile fetched successfully:', data ? 'Profile found' : 'No data returned')
     return data
   } catch (error) {
-    if (error.message === 'Profile fetch timeout') {
-      console.error('⏰ Profile fetch timed out after 20 seconds')
+    if (error instanceof Error && error.message === 'Profile fetch timeout') {
+      console.error('⏰ Profile fetch timed out after 60 seconds')
     } else {
       console.error('❌ Unexpected error in getProfile:', error)
     }
