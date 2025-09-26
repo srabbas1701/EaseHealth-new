@@ -5,6 +5,7 @@ import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
 import AuthModal from '../components/AuthModal';
+import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { createPreRegistration, PreRegistration } from '../utils/supabase';
 
 // Auth props interface
@@ -49,6 +50,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authError, setAuthError] = useState<string>('');
+  const [announcement, setAnnouncement] = useState('');
 
   const genderOptions = [
     { id: 'male', label: 'Male', value: 'male' },
@@ -143,6 +146,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const handleAuthSuccess = async () => {
     setShowAuthModal(false);
     setIsSubmitting(true);
+    setAuthError('');
     
     try {
       if (!user?.id) {
@@ -272,6 +276,12 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+      {/* Accessibility Announcer */}
+      <AccessibilityAnnouncer message={announcement} />
+      
+      {/* Accessibility Announcer */}
+      <AccessibilityAnnouncer message={announcement} />
+      
       <Navigation 
         user={user}
         session={session}
@@ -307,6 +317,16 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
             {/* Form */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
+              {/* Auth Error Display */}
+              {authError && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    {authError}
+                  </p>
+                </div>
+              )}
+              
               <form onSubmit={handleSubmit} className="space-y-8">
                 {/* Demographics Section */}
                 <div>
@@ -570,7 +590,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                         id="consent"
                         checked={formData.consent}
                         onChange={(e) => handleInputChange('consent', e.target.checked)}
-                        className="mt-1 w-4 h-4 text-[#0075A2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#0075A2] focus:ring-2"
+                        className={`mt-1 w-4 h-4 text-[#0075A2] border-gray-300 dark:border-gray-600 rounded focus:ring-[#0075A2] focus:ring-2 ${
+                          errors.consent ? 'border-red-500' : ''
+                        }`}
                       />
                       <label htmlFor="consent" className="ml-3 text-sm text-gray-700 dark:text-gray-300">
                         I have read, understood, and agree to the consent form *
@@ -579,7 +601,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                     {errors.consent && (
                       <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
-                        {errors.consent}
+                        {errors.consent as string}
                       </p>
                     )}
                   </div>
@@ -743,6 +765,15 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           </div>
         </div>
       </main>
+      
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={handleAuthSuccess}
+        mode="signup"
+        context={authContext}
+      />
     </div>
   );
 }
