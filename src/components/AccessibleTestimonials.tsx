@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote, MapPin } from 'lucide-react';
 
 interface Testimonial {
@@ -28,20 +28,37 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
 
   // Simple carousel state
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  const total = testimonials.length;
+  const goPrev = useCallback(() => setCurrentIndex((prev) => (prev === 0 ? total - 1 : prev - 1)), [total]);
+  const goNext = useCallback(() => setCurrentIndex((prev) => (prev + 1) % total), [total]);
 
   // Auto-advance carousel
   useEffect(() => {
-    if (autoPlay && preferredFormat === 'carousel') {
-      const interval = setInterval(() => {
-        setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-      }, 7000);
-      return () => clearInterval(interval);
-    }
-  }, [autoPlay, preferredFormat, testimonials.length]);
+    if (!(autoPlay && preferredFormat === 'carousel')) return;
+    setProgress(0);
+    const stepMs = 70; // ~7s cycle
+    const interval = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          goNext();
+          return 0;
+        }
+        return p + 1.5;
+      });
+    }, stepMs);
+    return () => clearInterval(interval);
+  }, [autoPlay, preferredFormat, goNext]);
+
+  // Reset progress when slide changes
+  useEffect(() => {
+    if (preferredFormat === 'carousel') setProgress(0);
+  }, [currentIndex, preferredFormat]);
 
   // List view for users who prefer reduced motion or static content
   const ListView = () => (
-    <div className="space-y-6" role="list" aria-label="Customer testimonials">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Customer testimonials">
       {testimonials.map((testimonial, index) => (
         <div key={testimonial.id} role="listitem" aria-posinset={index + 1} aria-setsize={testimonials.length}>
           <TestimonialCard testimonial={testimonial} showRatings={showRatings} />
@@ -52,15 +69,36 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
 
   // Simple carousel view
   const CarouselView = () => (
-    <div className="relative max-w-4xl mx-auto">
-      <div className="overflow-hidden rounded-lg">
+    <div
+      className="relative max-w-5xl mx-auto"
+      role="region"
+      aria-roledescription="carousel"
+      aria-label="Patient testimonials"
+      onKeyDown={(e) => {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev(); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      }}
+      tabIndex={0}
+    >
+      {/* Progress bar */}
+      <div className="h-1 w-full bg-gray-200 dark:bg-gray-700 rounded overflow-hidden mb-3">
+        <div
+          className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 transition-all duration-100 ease-linear"
+          style={{ width: `${Math.min(progress, 100)}%` }}
+          aria-hidden="true"
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl">
         <div 
-          className="flex transition-transform duration-300 ease-in-out"
+          className="flex transition-transform duration-500 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
           {testimonials.map((testimonial, index) => (
-            <div key={testimonial.id} className="w-full flex-shrink-0">
-              <TestimonialCard testimonial={testimonial} showRatings={showRatings} />
+            <div key={testimonial.id} className="w-full flex-shrink-0 px-1">
+              <div className={`transform transition-all duration-500 ${index === currentIndex ? 'scale-100 opacity-100' : 'scale-95 opacity-80'}`}>
+                <TestimonialCard testimonial={testimonial} showRatings={showRatings} />
+              </div>
             </div>
           ))}
         </div>
@@ -68,17 +106,33 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
       
       {/* Navigation buttons */}
       <button
-        onClick={() => setCurrentIndex((prev) => prev === 0 ? testimonials.length - 1 : prev - 1)}
-        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+        onClick={goPrev}
+        className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Previous testimonial"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
       <button
-        onClick={() => setCurrentIndex((prev) => (prev + 1) % testimonials.length)}
-        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow"
+        onClick={goNext}
+        className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg hover:shadow-xl transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500"
+        aria-label="Next testimonial"
       >
         <ChevronRight className="w-5 h-5" />
       </button>
+
+      {/* Pagination dots */}
+      <div className="mt-4 flex items-center justify-center space-x-2" role="tablist" aria-label="Select testimonial slide">
+        {testimonials.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentIndex(i)}
+            className={`w-2.5 h-2.5 rounded-full transition-all ${i === currentIndex ? 'bg-blue-600 w-6' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400'}`}
+            role="tab"
+            aria-selected={i === currentIndex}
+            aria-label={`Show testimonial ${i + 1}`}
+          />
+        ))}
+      </div>
     </div>
   );
 
@@ -86,12 +140,12 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
     <div className={className}>
       {/* Format toggle for accessibility */}
       <div className="mb-6 flex justify-center">
-        <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-1 flex" role="tablist" aria-label="Testimonial display format">
+        <div className="bg-gray-100 dark:bg-gray-800 rounded-full p-1 flex shadow-inner" role="tablist" aria-label="Testimonial display format">
           <button
             onClick={() => setPreferredFormat('carousel')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               preferredFormat === 'carousel'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
             role="tab"
@@ -102,9 +156,9 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
           </button>
           <button
             onClick={() => setPreferredFormat('list')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               preferredFormat === 'list'
-                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow'
                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
             }`}
             role="tab"

@@ -16,6 +16,9 @@ import {
   Brain,
   Zap,
   ArrowUp,
+  ArrowRight,
+  Linkedin,
+  Youtube,
   User
 } from 'lucide-react';
 import Navigation from './components/Navigation';
@@ -138,7 +141,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
       icon: User, // Placeholder icon
       title: "Patient Dashboard",
       description: "Your personalized health overview and quick access to services.",
-      image: "patient dashboard2.png",
+      image: "patient dashboard.png",
       to: "/patient-dashboard"
     },
     {
@@ -340,7 +343,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                       <img 
                         src={`/${benefit.image}`} 
                         alt={benefit.title}
-                        className={benefit.image === "Seamless Communication copy.png" ? "w-full h-48 object-contain rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+                        className="w-full h-64 object-contain rounded-lg bg-white"
                       />
                     </div>
                   ) : (
@@ -355,8 +358,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                       </div>
                     </div>
                   )}
-                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">{benefit.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">{benefit.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{benefit.description}</p>
                 </Link>
               ) : (
                 <div 
@@ -371,7 +374,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                       <img 
                         src={`/${benefit.image}`} 
                         alt={benefit.title}
-                        className={benefit.image === "Seamless Communication copy.png" ? "w-full h-48 object-contain rounded-lg" : "w-full h-48 object-cover rounded-lg"}
+                        className="w-full h-64 object-contain rounded-lg bg-white"
                       />
                     </div>
                   ) : (
@@ -386,8 +389,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                       </div>
                     </div>
                   )}
-                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">{benefit.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{benefit.description}</p>
+                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">{benefit.title}</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{benefit.description}</p>
                 </div>
               )
             ))}
@@ -422,11 +425,11 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 <img 
                   src="/dpdp compliance.png" 
                   alt="DPDP Compliance"
-                  className="w-full h-48 object-contain rounded-lg"
+                  className="w-full h-64 object-contain rounded-lg bg-white"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">DPDP Compliance</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Full compliance with India's Digital Personal Data Protection Act, ensuring your health data is handled with the highest security standards.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">DPDP Compliance</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Full compliance with India's Digital Personal Data Protection Act, ensuring your health data is handled with the highest security standards.</p>
             </div>
             
             <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
@@ -434,11 +437,11 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 <img 
                   src="/India Data Residency.png" 
                   alt="India Data Residency"
-                  className="w-full h-48 object-contain rounded-lg"
+                  className="w-full h-64 object-contain rounded-lg bg-white"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">India Data Residency</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Your data stays within India's borders, complying with local regulations and ensuring complete privacy and sovereignty.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">India Data Residency</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Your data stays within India's borders, complying with local regulations and ensuring complete privacy and sovereignty.</p>
             </div>
             
             <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
@@ -446,11 +449,11 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 <img 
                   src="/Immutable Audit Logs.png" 
                   alt="Immutable Audit Logs"
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-64 object-contain rounded-lg bg-white"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3">Immutable Audit Logs</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">Complete transparency with tamper-proof logging of all healthcare interactions, ensuring accountability and trust.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">Immutable Audit Logs</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Complete transparency with tamper-proof logging of all healthcare interactions, ensuring accountability and trust.</p>
             </div>
           </div>
         </div>
@@ -474,31 +477,87 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           </div>
 
           <div 
-            className="grid grid-cols-1 md:grid-cols-3 gap-8"
+            className="relative"
             role="list"
             aria-label="Three steps to use EaseHealth AI"
           >
-            {steps.map((step, index) => (
-              <div key={index} className="relative">
-                <div 
-                  className="bg-[#F6F6F6] dark:bg-gray-800 rounded-2xl p-8 text-center hover:bg-white dark:hover:bg-gray-700 hover:shadow-lg transition-all duration-300 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring"
-                  role="listitem"
-                  tabIndex={0}
-                  aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
-                >
-                  <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-6">
-                    {step.number}
+            {/* Desktop: Horizontal flow with arrows */}
+            <div className="hidden lg:flex items-center justify-center space-x-8">
+              {steps.map((step, index) => (
+                <div key={index} className="flex items-center">
+                  {/* Step Card */}
+                  <div 
+                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden min-w-[280px]"
+                    role="listitem"
+                    tabIndex={0}
+                    aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
+                  >
+                    {/* Background decoration */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]"></div>
+                    
+                    {/* Step number with enhanced design */}
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        {step.number}
+                      </div>
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300">{step.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg">{step.description}</p>
                   </div>
-                  <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{step.title}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{step.description}</p>
+                  
+                  {/* Arrow between steps */}
+                  {index < steps.length - 1 && (
+                    <div className="flex flex-col items-center mx-4">
+                      <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center shadow-lg">
+                        <ArrowRight className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="w-1 h-8 bg-gradient-to-b from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] mt-2 rounded-full"></div>
+                    </div>
+                  )}
                 </div>
-                {index < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2">
-                    <div className="w-8 h-0.5 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]"></div>
+              ))}
+            </div>
+
+            {/* Mobile: Vertical flow with enhanced design */}
+            <div className="lg:hidden space-y-8">
+              {steps.map((step, index) => (
+                <div key={index} className="relative">
+                  <div 
+                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden"
+                    role="listitem"
+                    tabIndex={0}
+                    aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
+                  >
+                    {/* Background decoration */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]"></div>
+                    
+                    {/* Step number with enhanced design */}
+                    <div className="relative mb-6">
+                      <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        {step.number}
+                      </div>
+                      {/* Glow effect */}
+                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                    </div>
+                    
+                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300">{step.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg">{step.description}</p>
                   </div>
-                )}
-              </div>
-            ))}
+                  
+                  {/* Arrow between steps for mobile */}
+                  {index < steps.length - 1 && (
+                    <div className="flex justify-center mt-6">
+                      <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center shadow-lg">
+                        <ChevronDown className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -574,7 +633,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                     role="region"
                     aria-labelledby={`faq-question-${index}`}
                   >
-                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{faq.answer}</p>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{faq.answer}</p>
                   </div>
                 )}
               </div>
@@ -590,13 +649,25 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
             {/* Logo and Description */}
             <div className="md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center relative overflow-hidden">
-                  <Brain className="w-7 h-7 text-white" />
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
-                    <Zap className="w-3 h-3 text-white" />
-                  </div>
-                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
-                </div>
+                <img 
+                  src="/Logo.png" 
+                  alt="EaseHealth AI Logo" 
+                  className="h-12 w-auto object-contain"
+                  style={{ backgroundColor: 'transparent' }}
+                  onError={(e) => {
+                    // Fallback to other formats if PNG doesn't exist
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.includes('Logo.png')) {
+                      target.src = '/logo.png';
+                    } else if (target.src.includes('logo.png')) {
+                      target.src = '/logo.jpg';
+                    } else if (target.src.includes('logo.jpg')) {
+                      target.src = '/logo.webp';
+                    } else if (target.src.includes('logo.webp')) {
+                      target.src = '/logo.svg';
+                    }
+                  }}
+                />
                 <div>
                   <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EaseHealth AI</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Your Health. Simplified.</p>
@@ -606,15 +677,15 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 Making healthcare accessible and convenient for every Indian patient with cutting-edge AI technology and compassionate care.
               </p>
               <div className="flex space-x-4">
-                <button className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Contact us on WhatsApp">
-                  <MessageSquare className="w-5 h-5" />
-                </button>
-                <button className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Follow us on LinkedIn">
-                  <div className="w-5 h-5 bg-white rounded-sm"></div>
-                </button>
-                <button className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Watch our videos on YouTube">
-                  <Play className="w-5 h-5 ml-0.5" />
-                </button>
+                <a href="#" className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Contact us on WhatsApp">
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Follow us on LinkedIn">
+                  <Linkedin className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Watch our videos on YouTube">
+                  <Youtube className="w-5 h-5" />
+                </a>
               </div>
             </div>
 

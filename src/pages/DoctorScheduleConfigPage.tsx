@@ -340,13 +340,25 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
         {/* Page Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center mb-6">
-            <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center relative overflow-hidden">
-              <Calendar className="w-8 h-8 text-white" />
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-[#00D4AA] dark:from-[#06D6A0] to-[#0075A2] dark:to-[#0EA5E9] rounded-full flex items-center justify-center">
-                <Clock className="w-3 h-3 text-white" />
-              </div>
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
-            </div>
+            <img 
+              src="/Logo.png" 
+              alt="EaseHealth AI Logo" 
+              className="h-12 w-auto object-contain"
+              style={{ backgroundColor: 'transparent' }}
+              onError={(e) => {
+                // Fallback to other formats if PNG doesn't exist
+                const target = e.target as HTMLImageElement;
+                if (target.src.includes('Logo.png')) {
+                  target.src = '/logo.png';
+                } else if (target.src.includes('logo.png')) {
+                  target.src = '/logo.jpg';
+                } else if (target.src.includes('logo.jpg')) {
+                  target.src = '/logo.webp';
+                } else if (target.src.includes('logo.webp')) {
+                  target.src = '/logo.svg';
+                }
+              }}
+            />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
             Schedule{' '}

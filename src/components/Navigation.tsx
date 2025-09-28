@@ -1,15 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Brain, 
-  Zap, 
   ChevronDown, 
   Menu, 
   X, 
   Calendar, 
   FileText, 
-  Clock, 
-  Bell, 
-  Shield,
   ArrowRight,
   Phone,
   Search,
@@ -106,7 +101,7 @@ const Navigation: React.FC<NavigationProps> = ({
       case 'Escape':
         event.preventDefault();
         setActiveDropdown(null);
-        document.querySelector('[aria-controls="features-dropdown"]')?.focus();
+        (document.querySelector('[aria-controls="features-dropdown"]') as HTMLElement)?.focus();
         break;
       case 'Home':
         event.preventDefault();
@@ -218,18 +213,6 @@ const Navigation: React.FC<NavigationProps> = ({
       to: "/admin-dashboard"
     },
     {
-      icon: Bell,
-      title: "Smart Reminders",
-      description: "Medication and follow-up notifications",
-      to: "/#features" // Changed to 'to' for Link
-    },
-    {
-      icon: Shield,
-      title: "Secure Data Management",
-      description: "DPDP-compliant health record protection",
-      to: "/#features" // Changed to 'to' for Link
-    },
-    {
       icon: User, // Placeholder icon
       title: "Patient Dashboard",
       description: "Your personalized health overview and quick access to services.",
@@ -248,7 +231,6 @@ const Navigation: React.FC<NavigationProps> = ({
     { label: "How It Works", href: "#how-it-works", description: "Learn our 3-step process" },
     { label: "Testimonials", href: "#testimonials", description: "Patient success stories" },
     { label: "Security", href: "#trust", description: "Data protection & compliance" },
-    { label: "FAQs", href: "#faqs", description: "Common questions answered" },
     { label: "Contact", href: "#contact", description: "Get in touch with us" }
   ];
 
@@ -263,35 +245,35 @@ const Navigation: React.FC<NavigationProps> = ({
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo - New Design */}
           <div className="logo-section space-x-3">
-            <Link // Changed to Link
-              to="/" // Changed to 'to'
-              className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center relative overflow-hidden group cursor-pointer focus-ring"
+            <Link 
+              to="/"
+              className="flex items-center space-x-3 cursor-pointer focus-ring group"
               tabIndex={0}
               role="button"
               aria-label="EaseHealth AI - Your Health Simplified"
-              // onKeyDown removed as Link handles navigation
             >
-              <Brain className="w-6 h-6 text-white" />
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-[#00D4AA] to-[#0075A2] rounded-full flex items-center justify-center">
-                <Zap className="w-2.5 h-2.5 text-white" />
-              </div>
-              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-transparent to-white/10 pointer-events-none"></div>
+              <img 
+                src="/Logo.png" 
+                alt="EaseHealth AI Logo" 
+                className="h-12 w-auto object-contain"
+                style={{ backgroundColor: 'transparent' }}
+                onError={(e) => {
+                  // Fallback to other formats if PNG doesn't exist
+                  const target = e.target as HTMLImageElement;
+                  if (target.src.includes('Logo.png')) {
+                    target.src = '/logo.png';
+                  } else if (target.src.includes('logo.png')) {
+                    target.src = '/logo.jpg';
+                  } else if (target.src.includes('logo.jpg')) {
+                    target.src = '/logo.webp';
+                  } else if (target.src.includes('logo.webp')) {
+                    target.src = '/logo.svg';
+                  }
+                }}
+              />
             </Link>
-            <div>
-              <Link // Changed to Link
-                to="/" // Changed to 'to'
-                className="text-xl font-bold text-[#0A2647] hover:text-[#0075A2] transition-colors cursor-pointer focus-ring"
-                tabIndex={0}
-                role="button"
-                aria-label="EasyHealth AI - Your Health Simplified"
-                // onKeyDown removed as Link handles navigation
-              >
-                EaseHealth AI
-              </Link>
-              <p className="text-xs text-gray-600">Your Health. Simplified.</p>
-            </div>
           </div>
 
           {/* Desktop Navigation */}
@@ -339,7 +321,7 @@ const Navigation: React.FC<NavigationProps> = ({
                     {featuresMenuItems.map((item, index) => (
                       <Link // Changed to Link
                         key={index}
-                        to={item.to} // Changed to 'to'
+                        to={item.to || '#'} // Changed to 'to'
                         className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring"
                         onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                         role="menuitem"
@@ -454,7 +436,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 ) : (
                   <Link
                     key={item.label}
-                    to={item.to}
+                    to={item.to || '#'}
                     className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
                     onClick={() => setIsMenuOpen(false)}
                   >

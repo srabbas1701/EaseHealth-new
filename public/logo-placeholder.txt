@@ -1,0 +1,25 @@
+# EaseHealth AI Logo Placeholder
+
+Please replace this file with your actual logo image.
+
+## Instructions:
+1. Save your logo image as one of these files:
+   - logo.png (recommended)
+   - logo.jpg
+   - logo.webp
+   - logo.svg
+
+2. The logo should be:
+   - High resolution (at least 200x60 pixels)
+   - Transparent background (PNG recommended)
+   - Clear and readable at small sizes
+
+3. The logo will be displayed at:
+   - Navigation: 40px height (h-10)
+   - Page headers: 64px height (h-16)
+
+## Current Logo Description:
+- Light beige human head silhouette on the left
+- Teal medical cross and circuit board lines embedded in the head
+- "Ease HealthAI" text on the right in dark teal
+- 3D rendered appearance with shadows

@@ -307,6 +307,27 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           <div className="lg:col-span-2">
             {/* Page Header */}
             <div className="text-center mb-8">
+              <div className="flex items-center justify-center mb-6">
+                <img 
+                  src="/Logo.png" 
+                  alt="EaseHealth AI Logo" 
+                  className="h-12 w-auto object-contain"
+                  style={{ backgroundColor: 'transparent' }}
+                  onError={(e) => {
+                    // Fallback to other formats if PNG doesn't exist
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.includes('Logo.png')) {
+                      target.src = '/logo.png';
+                    } else if (target.src.includes('logo.png')) {
+                      target.src = '/logo.jpg';
+                    } else if (target.src.includes('logo.jpg')) {
+                      target.src = '/logo.webp';
+                    } else if (target.src.includes('logo.webp')) {
+                      target.src = '/logo.svg';
+                    }
+                  }}
+                />
+              </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
                 Patient Pre-Registration Form
               </h1>
