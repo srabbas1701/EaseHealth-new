@@ -2,6 +2,8 @@ import React from 'react';
 import { Calendar, FileText, ArrowRight, Users, Clock, Shield, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 
 // Auth props interface
 interface AuthProps {
@@ -14,33 +16,35 @@ interface AuthProps {
 }
 
 function ChooseServicePage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
 
   const services = [
     {
       id: 'book-appointment',
-      title: 'Book a New Appointment',
-      description: 'Schedule a consultation with our verified healthcare professionals',
+      title: t('chooseService.bookAppointment.title'),
+      description: t('chooseService.bookAppointment.description'),
       icon: Calendar,
       to: '/smart-appointment-booking',
       features: [
-        'Real-time doctor availability',
-        'Instant confirmation',
-        'SMS & WhatsApp reminders',
-        'Easy rescheduling'
+        t('chooseService.bookAppointment.features.0'),
+        t('chooseService.bookAppointment.features.1'),
+        t('chooseService.bookAppointment.features.2'),
+        t('chooseService.bookAppointment.features.3')
       ],
       color: 'from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]'
     },
     {
       id: 'pre-register',
-      title: 'Pre-Register for a Visit',
-      description: 'Complete your registration digitally and skip the waiting lines',
+      title: t('chooseService.preRegister.title'),
+      description: t('chooseService.preRegister.description'),
       icon: FileText,
       to: '/patient-pre-registration',
       features: [
-        'Upload Aadhaar & documents',
-        'Digital consent signing',
-        'Get queue token',
-        'Skip registration desk'
+        t('chooseService.preRegister.features.0'),
+        t('chooseService.preRegister.features.1'),
+        t('chooseService.preRegister.features.2'),
+        t('chooseService.preRegister.features.3')
       ],
       color: 'from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]'
     }
@@ -49,18 +53,18 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
   const benefits = [
     {
       icon: Clock,
-      title: 'Save Time',
-      description: 'Reduce waiting time by up to 60% with digital pre-registration'
+      title: t('chooseService.benefits.fast'),
+      description: t('chooseService.benefits.fastDesc')
     },
     {
       icon: Shield,
-      title: 'Secure & Private',
-      description: 'DPDP compliant with end-to-end encryption for your data'
+      title: t('chooseService.benefits.secure'),
+      description: t('chooseService.benefits.secureDesc')
     },
     {
       icon: Users,
-      title: 'Verified Doctors',
-      description: 'All healthcare professionals are verified and licensed'
+      title: t('chooseService.benefits.smart'),
+      description: t('chooseService.benefits.smartDesc')
     }
   ];
 
@@ -82,7 +86,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowRight className="w-5 h-5 mr-2 rotate-180" />
-          Back to Home
+{t('nav.home')}
         </Link>
 
         {/* Page Header */}
@@ -109,13 +113,10 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
             />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
-            Choose Your{' '}
-            <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
-              Service
-            </span>
+            {t('chooseService.title')}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">
-            Select the service you need to get started with your healthcare journey
+            {t('chooseService.subtitle')}
           </p>
         </div>
 
@@ -163,7 +164,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
         {/* Benefits Section */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
           <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 text-center mb-8">
-            Why Choose EaseHealth AI?
+            {t('chooseService.benefits.title')}
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -187,15 +188,15 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
         <div className="mt-12 text-center">
           <p className="text-gray-600 dark:text-gray-300 mb-4">
             {userState === 'authenticated' 
-              ? 'Need help with your services?' 
-              : 'Need help choosing the right service?'
+              ? t('chooseService.help.authenticated')
+              : t('chooseService.help.guest')
             }
           </p>
           <Link 
             to="/#contact" 
             className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
           >
-            Contact our support team
+            {t('chooseService.help.contactSupport')}
             <ArrowRight className="w-4 h-4 ml-1" />
           </Link>
         </div>

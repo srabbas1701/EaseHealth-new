@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Clock, Save, Plus, Trash2, User, Shield, CheckCircle, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AuthModal from '../components/AuthModal';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 import DoctorRegistrationForm from '../components/DoctorRegistrationForm';
-import { getDoctorByUserId, getDoctorSchedules, upsertDoctorSchedule, DoctorSchedule, Doctor, supabase } from '../utils/supabase';
+import { getDoctorByUserId, getDoctorSchedules, upsertDoctorSchedule, DoctorSchedule, Doctor, supabase, isMockSupabase } from '../utils/supabase';
 
 // Auth props interface
 interface AuthProps {
@@ -29,7 +31,10 @@ interface ScheduleForm {
 }
 
 function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
+  const navigate = useNavigate();
   const { isDarkMode } = useDarkMode();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const [doctor, setDoctor] = useState<Doctor | null>(null);
@@ -118,10 +123,13 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
     setShowRegistrationForm(true);
   };
 
-  const handleRegistrationSuccess = () => {
+  const handleRegistrationSuccess = async () => {
     setShowRegistrationForm(false);
-    // Reload doctor data after successful registration
-    loadDoctorData();
+    // Reload doctor data after successful registration and redirect to config
+    setIsLoading(true);
+    await loadDoctorData();
+    setIsLoading(false);
+    navigate('/doctor-schedule-config');
   };
 
   const handleScheduleChange = (dayId: number, field: string, value: string | number | boolean) => {
@@ -194,9 +202,9 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
   };
 
   const authContext = {
-    title: 'Doctor Authentication Required',
-    description: 'Please sign in with your doctor account to access the schedule configuration system.',
-    actionText: 'Sign In as Doctor'
+    title: t('doctorAuth.unauthTitle'),
+    description: t('doctorAuth.unauthDescription'),
+    actionText: t('doctorAuth.signInDoctor')
   };
 
   if (!isAuthenticated) {
@@ -217,17 +225,15 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
               <div className="w-24 h-24 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-6">
                 <Shield className="w-12 h-12 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-                Authentication Required
-              </h1>
+              <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('doctorAuth.unauthTitle')}</h1>
               <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-                Please sign in with your doctor account to access the schedule configuration system.
+                {t('doctorAuth.unauthDescription')}
               </p>
               <button
                 onClick={() => setShowAuthModal(true)}
                 className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
               >
-                Sign In as Doctor
+                {t('doctorAuth.signInDoctor')}
               </button>
             </div>
           </main>
@@ -273,7 +279,7 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
     );
   }
 
-  if (error && !doctor) {
+  if (!isMockSupabase && error && !doctor) {
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
         <Navigation 
@@ -290,9 +296,7 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
             <div className="w-24 h-24 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertCircle className="w-12 h-12 text-red-600 dark:text-red-400" />
             </div>
-            <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Access Denied
-            </h1>
+            <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('doctorAuth.accessDenied')}</h1>
             <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
               {error}
             </p>
@@ -301,16 +305,23 @@ function DoctorScheduleConfigPage({ user, session, profile, userState, isAuthent
                 onClick={() => setShowRegistrationForm(true)}
                 className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring mr-4"
               >
-                Register as Doctor
+                {t('doctorAuth.registerAsDoctor')}
               </button>
             )}
             <Link 
               to="/" 
               className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring inline-block"
             >
-              Return to Home
+              {t('common.backToHome')}
             </Link>
           </div>
+          {/* Render registration form when requested */}
+          <DoctorRegistrationForm
+            isOpen={showRegistrationForm}
+            onClose={() => setShowRegistrationForm(false)}
+            onSuccess={handleRegistrationSuccess}
+            userId={user?.id}
+          />
         </main>
       </div>
     );

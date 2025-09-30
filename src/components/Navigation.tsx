@@ -12,8 +12,12 @@ import {
   LogOut
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
+import LanguageToggle from './LanguageToggle';
 import { useFocusManagement } from './KeyboardNavigation';
-import { Link } from 'react-router-dom'; // Import Link from react-router-dom
+import { Link, useNavigate } from 'react-router-dom'; // Import Link and useNavigate
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
+import { getDoctorByUserId, isMockSupabase } from '../utils/supabase';
 
 // Helper function to get first name from full name
 const getFirstName = (fullName: string): string => {
@@ -47,7 +51,15 @@ const Navigation: React.FC<NavigationProps> = ({
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const { trapFocus, getFocusableElements } = useFocusManagement();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
+  const navigate = useNavigate();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDoctor, setIsDoctor] = useState<boolean>(() => localStorage.getItem('isDoctor') === 'true');
+  const [doctorChecked, setDoctorChecked] = useState<boolean>(false);
 
   // Handle scroll effect
   useEffect(() => {
@@ -64,10 +76,52 @@ const Navigation: React.FC<NavigationProps> = ({
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setActiveDropdown(null);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Determine if the authenticated user is a doctor (has a doctor profile)
+  useEffect(() => {
+    let isMounted = true;
+    const checkDoctor = async () => {
+      if (!isAuthenticated || !user) {
+        if (isMounted) {
+          setIsDoctor(false);
+          setDoctorChecked(false);
+        }
+        return;
+      }
+      try {
+        // In mock mode we cannot query; default to patient view
+        if (isMockSupabase) {
+          if (isMounted) {
+            setIsDoctor(false);
+            setDoctorChecked(true);
+          }
+          return;
+        }
+        const doctor = await getDoctorByUserId(user.id);
+        if (isMounted) {
+          const value = !!doctor;
+          setIsDoctor(value);
+          try { localStorage.setItem('isDoctor', value ? 'true' : 'false'); } catch {}
+          setDoctorChecked(true);
+        }
+      } catch {
+        if (isMounted) {
+          setIsDoctor(false);
+          try { localStorage.setItem('isDoctor', 'false'); } catch {}
+          setDoctorChecked(true);
+        }
+      }
+    };
+    checkDoctor();
+    return () => { isMounted = false; };
+  }, [isAuthenticated, user]);
 
   // Trap focus in mobile menu when open
   useEffect(() => {
@@ -139,12 +193,92 @@ const Navigation: React.FC<NavigationProps> = ({
 
   const handleLogoutClick = async () => {
     try {
+      console.log('🔄 Starting logout process...');
+      
+      // Close any open dropdowns/menus first
+      setActiveDropdown(null);
+      setIsMenuOpen(false);
+      
+      // Call the logout function
       await handleLogout();
-      // The auth state change will be handled by the useAuth hook
+      console.log('✅ Logout completed successfully');
+      
+      // Navigate to home page after logout
+      navigate('/');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('❌ Error signing out:', error);
+      // You could add a toast notification here if you have one
+      alert('Failed to sign out. Please try again.');
     }
   };
+  const toggleSearch = () => {
+    setIsSearchOpen(prev => !prev);
+    setTimeout(() => {
+      const input = document.getElementById('global-search-input') as HTMLInputElement | null;
+      input?.focus();
+    }, 0);
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) {
+      setIsSearchOpen(false);
+      return;
+    }
+    // Section jumps
+    if (['feature', 'features'].some(k => q.includes(k))) {
+      window.location.hash = '#features';
+      setIsSearchOpen(false);
+      return;
+    }
+    if (['how', 'works', 'how it works'].some(k => q.includes(k))) {
+      window.location.hash = '#how-it-works';
+      setIsSearchOpen(false);
+      return;
+    }
+    if (['testimonial', 'reviews'].some(k => q.includes(k))) {
+      window.location.hash = '#testimonials';
+      setIsSearchOpen(false);
+      return;
+    }
+    if (['trust', 'security', 'privacy'].some(k => q.includes(k))) {
+      window.location.hash = '#trust';
+      setIsSearchOpen(false);
+      return;
+    }
+    if (['contact', 'support'].some(k => q.includes(k))) {
+      window.location.hash = '#contact';
+      setIsSearchOpen(false);
+      return;
+    }
+    // Route shortcuts
+    if (q.includes('appointment')) {
+      navigate('/smart-appointment-booking'); setIsSearchOpen(false); return;
+    }
+    if (q.includes('pre') || q.includes('registration')) {
+      navigate('/patient-pre-registration'); setIsSearchOpen(false); return;
+    }
+    if (q.includes('admin')) {
+      navigate('/admin-dashboard'); setIsSearchOpen(false); return;
+    }
+    if (q.includes('patient')) {
+      navigate('/patient-dashboard'); setIsSearchOpen(false); return;
+    }
+    if (q.includes('doctor') || q.includes('schedule')) {
+      navigate('/doctor-schedule-config'); setIsSearchOpen(false); return;
+    }
+    // Default: go to choose-service
+    navigate('/choose-service');
+    setIsSearchOpen(false);
+  };
+  const preventIfDoctor = (e: React.MouseEvent) => {
+    if (isDoctor) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
   const getDynamicCTA = () => {
     switch (userState) {
       case 'returning':
@@ -153,7 +287,7 @@ const Navigation: React.FC<NavigationProps> = ({
             className="bg-white text-[#0075A2] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-all duration-200 border border-[#E8E8E8] hover:border-[#0075A2] hover:shadow-md"
             aria-label="Log in to your account"
           >
-            Log In
+            {t('nav.logIn')}
           </button>
         );
       case 'authenticated':
@@ -161,15 +295,25 @@ const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center space-x-3">
             <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
               <User className="w-4 h-4" />
-              <span>Hi, {profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || 'User')}</span>
+              <span>{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-gray-100">{profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || t('common.user'))}</span></span>
             </div>
-            <Link
-              to="/patient-dashboard"
-              className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
-              aria-label="Go to your dashboard"
-            >
-              Dashboard
-            </Link>
+            {(!isAuthenticated || doctorChecked) ? (
+              <Link
+                to={isDoctor ? '/doctor-schedule-config' : '/patient-dashboard'}
+                className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
+                aria-label={isDoctor ? 'Go to Doctor Schedule Configuration' : 'Go to Patient Dashboard'}
+              >
+                {t('nav.dashboard')}
+              </Link>
+            ) : (
+              <button
+                className="px-4 py-2.5 rounded-lg font-medium text-sm bg-gray-300 text-gray-600 cursor-not-allowed"
+                aria-disabled="true"
+                title="Loading..."
+              >
+                Loading...
+              </button>
+            )}
             <button
               onClick={handleLogoutClick}
               className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -187,7 +331,7 @@ const Navigation: React.FC<NavigationProps> = ({
             className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 inline-block text-center"
             aria-label="Get started with EaseHealth AI"
           >
-            Get Started
+            {t('nav.getStarted')}
           </Link>
         );
     }
@@ -196,42 +340,42 @@ const Navigation: React.FC<NavigationProps> = ({
   const featuresMenuItems = [
     {
       icon: Calendar,
-      title: "Smart Appointment Booking",
-      description: "AI-optimized scheduling with instant confirmation",
-      to: "/smart-appointment-booking" // Changed to 'to' for Link
+      title: t('features.smartAppointmentBooking.title'),
+      description: t('features.smartAppointmentBooking.description'),
+      to: "/smart-appointment-booking"
     },
     {
       icon: FileText,
-     title: "Patient Pre-Registration", 
-     description: "Aadhaar-based check-in and document upload for a faster process",
-     to: "/patient-pre-registration"
+      title: t('features.patientPreRegistration.title'), 
+      description: t('features.patientPreRegistration.description'),
+      to: "/patient-pre-registration"
     },
     {
       icon: FileText,
-      title: "Admin Dashboard",
-      description: "Comprehensive analytics and patient management system",
+      title: t('features.adminDashboard.title'),
+      description: t('features.adminDashboard.description'),
       to: "/admin-dashboard"
     },
     {
-      icon: User, // Placeholder icon
-      title: "Patient Dashboard",
-      description: "Your personalized health overview and quick access to services.",
+      icon: User,
+      title: t('features.patientDashboard.title'),
+      description: t('features.patientDashboard.description'),
       to: "/patient-dashboard"
     },
     {
       icon: Calendar,
-      title: "Doctor Schedule Configuration",
-      description: "Manage your availability and appointment slots as a healthcare provider.",
+      title: t('features.doctorScheduleConfig.title'),
+      description: t('features.doctorScheduleConfig.description'),
       to: "/doctor-schedule-config"
     }
   ];
 
   const navigationItems = [
-    { label: "Home", to: "/", description: "Back to homepage" }, // Changed to 'to' for Link
-    { label: "How It Works", href: "#how-it-works", description: "Learn our 3-step process" },
-    { label: "Testimonials", href: "#testimonials", description: "Patient success stories" },
-    { label: "Security", href: "#trust", description: "Data protection & compliance" },
-    { label: "Contact", href: "#contact", description: "Get in touch with us" }
+    { label: t('nav.home'), to: "/", description: "Back to homepage" },
+    { label: t('nav.howItWorks'), href: "#how-it-works", description: "Learn our 3-step process" },
+    { label: t('nav.testimonials'), href: "#testimonials", description: "Patient success stories" },
+    { label: t('nav.security'), href: "#trust", description: "Data protection & compliance" },
+    { label: t('nav.contact'), href: "#contact", description: "Get in touch with us" }
   ];
 
   return (
@@ -282,7 +426,7 @@ const Navigation: React.FC<NavigationProps> = ({
               <Link // Changed to Link
                 key={item.label}
                 to={item.to} // Changed to 'to'
-                className="px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                className={`px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
                 aria-label={item.description}
                 // onFocus removed as Link handles navigation
               >
@@ -290,7 +434,8 @@ const Navigation: React.FC<NavigationProps> = ({
               </Link>
             ))}
 
-            {/* Features Dropdown */}
+            {/* Features Dropdown - hidden for doctors */}
+            {!isDoctor && (
             <div className="relative" ref={dropdownRef}>
               <button
                 className="flex items-center px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
@@ -302,7 +447,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 aria-controls="features-dropdown"
                 id="features-trigger"
               >
-                Features 
+                {t('nav.features')} 
                 <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${
                   activeDropdown === 'features' ? 'rotate-180' : ''
                 }`} />
@@ -350,18 +495,21 @@ const Navigation: React.FC<NavigationProps> = ({
                       role="menuitem"
                       tabIndex={0}
                     >
-                      View all features →
+                      {t('features.viewAllFeatures')}
                     </Link>
                   </div>
                 </div>
               )}
             </div>
+            )}
 
             {navigationItems.slice(1).map((item) => (
               <a
                 key={item.label}
-                href={item.href}
-                className="px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                href={isDoctor ? '#' : item.href}
+                onClick={isDoctor ? preventIfDoctor : undefined}
+                aria-disabled={isDoctor}
+                className={`px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
                 aria-label={item.description}
               >
                 {item.label}
@@ -371,12 +519,32 @@ const Navigation: React.FC<NavigationProps> = ({
 
           {/* Search and CTA */}
           <div className="cta-section hidden lg:flex items-center space-x-3">
-            <button 
-              className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+            <div className="relative" ref={searchRef}>
+              <button 
+                className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
+                aria-label={t('nav.search')}
+                aria-expanded={isSearchOpen}
+                onClick={toggleSearch}
+              >
+                <Search className="w-5 h-5" />
+              </button>
+              {isSearchOpen && (
+                <form onSubmit={handleSearchSubmit} className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex items-center space-x-2">
+                  <input
+                    id="global-search-input"
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={t('nav.searchPlaceholder')}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
+                    onKeyDown={(e) => { if (e.key === 'Escape') { setIsSearchOpen(false); } }}
+                    aria-label={t('nav.search')}
+                  />
+                  <button type="submit" className="px-3 py-2 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-md text-sm hover:opacity-90 transition-colors">Go</button>
+                </form>
+              )}
+            </div>
+            <LanguageToggle showDropdown={true} />
             <DarkModeToggle showDropdown={true} />
             {getDynamicCTA()}
           </div>
@@ -412,7 +580,7 @@ const Navigation: React.FC<NavigationProps> = ({
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search features, FAQs..."
+                    placeholder={t('nav.searchPlaceholder')}
                     className="w-full pl-10 pr-4 py-2 border border-[#E8E8E8] rounded-lg focus-ring transition-colors"
                   />
                 </div>
@@ -451,7 +619,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
               {/* Features Section */}
               <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Features</h3>
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('nav.features')}</h3>
                 <div className="space-y-1">
                   {featuresMenuItems.slice(0, 3).map((item, index) => (
                     <Link // Changed to Link
@@ -475,7 +643,7 @@ const Navigation: React.FC<NavigationProps> = ({
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-2">
                       <User className="w-4 h-4 mr-2" />
-                      <span>Hi, {profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || 'User')}</span>
+                      <span>{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-gray-100">{profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || t('common.user'))}</span></span>
                     </div>
                     <button
                       onClick={handleLogoutClick}
@@ -483,7 +651,7 @@ const Navigation: React.FC<NavigationProps> = ({
                       title="Log out"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      {t('nav.signOut')}
                     </button>
                   </div>
                 )}
@@ -495,7 +663,8 @@ const Navigation: React.FC<NavigationProps> = ({
 
               {/* CTA */}
               <div className="px-4 pt-4 border-t border-[#E8E8E8]">
-                <div className="mb-4">
+                <div className="mb-4 flex items-center space-x-3">
+                  <LanguageToggle />
                   <DarkModeToggle />
                 </div>
                 {getDynamicCTA()}

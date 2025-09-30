@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import AccessibleDropdown from '../components/AccessibleDropdown';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 
 // Auth props interface
 interface AuthProps {
@@ -33,14 +35,16 @@ interface PreRegisteredPatient {
 
 function AdminDashboardPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState('2024-01-15');
 
   const sidebarItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, active: true },
-    { id: 'patients', label: 'Patients', icon: Users },
-    { id: 'appointments', label: 'Appointments', icon: Calendar },
+    { id: 'dashboard', label: t('features.adminDashboard.title'), icon: BarChart3, active: true },
+    { id: 'patients', label: t('admin.sections.patients'), icon: Users },
+    { id: 'appointments', label: t('admin.statuses.appointments'), icon: Calendar },
     { id: 'billing', label: 'Billing', icon: FileText },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
   ];
@@ -211,14 +215,9 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                   />
                 </div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
-                  Admin{' '}
-                  <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
-                    Dashboard
-                  </span>
+                  {t('admin.title')}
                 </h1>
-                <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">
-                  Comprehensive patient management, appointment tracking, and real-time analytics
-                </p>
+                <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">{t('admin.heroSubtitle')}</p>
               </div>
             </div>
           </div>
@@ -227,9 +226,9 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
           <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Dashboard Overview</h2>
+                <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('admin.overviewTitle')}</h2>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Today's appointments and patient management for {new Date(selectedDate).toLocaleDateString('en-IN', { 
+                  {`Today's appointments and patient management for `}{new Date(selectedDate).toLocaleDateString('en-IN', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
@@ -239,9 +238,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
               </div>
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Date:
-                  </label>
+                  <label htmlFor="date-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('admin.date')}</label>
                   <input
                     type="date"
                     id="date-filter"
@@ -254,7 +251,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search Patients..."
+                    placeholder={t('admin.searchPatientsPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -262,7 +259,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 </div>
                 <button className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 flex items-center focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2">
                   <Plus className="w-4 h-4 mr-2" />
-                  New Appointment
+                  {t('admin.newAppointment')}
                 </button>
               </div>
             </div>
@@ -276,7 +273,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 {/* New Appointment Bookings */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">New Appointment Bookings</h2>
+                    <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">{t('admin.sections.newBookings')}</h2>
                     <div className="flex items-center space-x-2">
                       <button className="p-2 text-gray-500 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors">
                         <RefreshCw className="w-4 h-4" />
@@ -319,9 +316,9 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 {/* Pre-Registered Patients */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">Pre-Registered Patients</h2>
+                    <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">{t('admin.sections.preRegistered')}</h2>
                     <button className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors">
-                      View All
+                      {t('admin.sections.viewAll')}
                     </button>
                   </div>
                   

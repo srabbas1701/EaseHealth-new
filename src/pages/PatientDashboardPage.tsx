@@ -3,6 +3,8 @@ import Navigation from '../components/Navigation';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 
 // Auth props interface
 interface AuthProps {
@@ -16,6 +18,8 @@ interface AuthProps {
 
 function PatientDashboardPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
 
   // Placeholder data for demonstration
   const upcomingAppointments = [
@@ -55,7 +59,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Home
+          {t('common.backToHome')}
         </Link>
 
         {/* Page Header */}
@@ -82,14 +86,12 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
-            Welcome,{' '}
+            {t('patientDashboard.welcome')},{' '}
             <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
               Priya S.
             </span>
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">
-            Your personalized health overview and quick access to your services.
-          </p>
+          <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-2xl mx-auto">{t('patientDashboard.tagline')}</p>
         </div>
 
         {/* Dashboard Content */}
@@ -100,7 +102,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                 <Calendar className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Upcoming Appointments
+                {t('patientDashboard.upcomingAppointments')}
               </h2>
               {upcomingAppointments.length > 0 ? (
                 <div className="space-y-4">
@@ -123,14 +125,14 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-600 dark:text-gray-300">No upcoming appointments.</p>
+                <p className="text-gray-600 dark:text-gray-300">{t('patientDashboard.noUpcoming')}</p>
               )}
               <div className="mt-6 text-center">
                 <Link 
                   to="/smart-appointment-booking" 
                   className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
                 >
-                  Book a New Appointment
+                  {t('patientDashboard.bookNew')}
                   <ArrowLeft className="w-4 h-4 ml-1 rotate-180" />
                 </Link>
               </div>
@@ -140,45 +142,45 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                 <FileText className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                My Pre-Registration Details
+                {t('patientDashboard.preRegDetails')}
               </h2>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.fullName')}</p>
                     <p className="text-[#0A2647] dark:text-gray-100">{preRegistrationDetails.fullName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Age / Gender</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.ageGender')}</p>
                     <p className="text-[#0A2647] dark:text-gray-100">{preRegistrationDetails.age} / {preRegistrationDetails.gender}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone Number</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.phoneNumber')}</p>
                     <p className="text-[#0A2647] dark:text-gray-100">{preRegistrationDetails.phoneNumber}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Location</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.location')}</p>
                     <p className="text-[#0A2647] dark:text-gray-100">{preRegistrationDetails.city}, {preRegistrationDetails.state}</p>
                   </div>
                 </div>
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Symptoms</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.symptoms')}</p>
                   <p className="text-[#0A2647] dark:text-gray-100">{preRegistrationDetails.symptoms}</p>
                 </div>
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Documents</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('patientDashboard.fields.documents')}</p>
                   <ul className="list-disc list-inside text-[#0A2647] dark:text-gray-100">
                     <li>{preRegistrationDetails.labReports}</li>
                     <li>{preRegistrationDetails.aadhaar}</li>
                   </ul>
                 </div>
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center">
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mr-2">Consent Status:</p>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mr-2">{t('patientDashboard.fields.consentStatus')}</p>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                     preRegistrationDetails.consent ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
                     'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                   }`}>
-                    {preRegistrationDetails.consent ? 'Agreed' : 'Pending'}
+                    {preRegistrationDetails.consent ? t('patientDashboard.fields.agreed') : t('patientDashboard.fields.pending')}
                   </span>
                 </div>
               </div>
@@ -187,7 +189,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   to="/patient-pre-registration" 
                   className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
                 >
-                  Update Pre-Registration
+                  {t('patientDashboard.updatePreRegistration')}
                   <ArrowLeft className="w-4 h-4 ml-1 rotate-180" />
                 </Link>
               </div>
@@ -199,7 +201,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             {/* Quick Actions */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 sticky top-24">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 text-center">
-                Quick Actions
+                {t('patientDashboard.quickActions')}
               </h3>
               <div className="space-y-4">
                 <Link 
@@ -207,18 +209,18 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus-ring"
                 >
                   <Calendar className="w-5 h-5 mr-2" />
-                  Book New Appointment
+                  {t('patientDashboard.bookNew')}
                 </Link>
                 <Link 
                   to="/patient-pre-registration" 
                   className="w-full flex items-center justify-center px-4 py-3 border border-[#0075A2] dark:border-[#0EA5E9] text-[#0075A2] dark:text-[#0EA5E9] rounded-lg font-medium hover:bg-[#E8F4F8] dark:hover:bg-gray-700 transition-colors focus-ring"
                 >
                   <FileText className="w-5 h-5 mr-2" />
-                  Update Pre-Registration
+                  {t('patientDashboard.updatePreRegistration')}
                 </Link>
                 <button className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus-ring">
                   <Bell className="w-5 h-5 mr-2" />
-                  Manage Reminders
+                  {t('patientDashboard.manageReminders')}
                 </button>
               </div>
             </div>
@@ -226,20 +228,20 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             {/* Health Tips (Placeholder) */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 text-center">
-                Health Tips for You
+                {t('patientDashboard.healthTipsTitle')}
               </h3>
               <div className="space-y-4 text-gray-600 dark:text-gray-300">
                 <p className="flex items-start">
                   <CheckCircle className="w-5 h-5 mr-2 text-green-500 flex-shrink-0" />
-                  Stay hydrated by drinking at least 8 glasses of water daily.
+                  {t('patientDashboard.tips.tip1')}
                 </p>
                 <p className="flex items-start">
                   <CheckCircle className="w-5 h-5 mr-2 text-green-500 flex-shrink-0" />
-                  Aim for 30 minutes of moderate exercise most days of the week.
+                  {t('patientDashboard.tips.tip2')}
                 </p>
                 <p className="flex items-start">
                   <CheckCircle className="w-5 h-5 mr-2 text-green-500 flex-shrink-0" />
-                  Ensure you get 7-9 hours of quality sleep each night.
+                  {t('patientDashboard.tips.tip3')}
                 </p>
               </div>
             </div>

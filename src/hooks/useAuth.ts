@@ -118,9 +118,25 @@ export const useAuth = () => {
           console.error('❌ Error during logout:', error)
           throw error
         }
+        
+        // Clear local state immediately
+        setUser(null)
+        setSession(null)
+        setProfile(null)
+        
+        // Clear localStorage items
+        localStorage.removeItem('isDoctor')
+        localStorage.removeItem('userRole')
+        
         console.log('✅ User logged out successfully')
       } catch (error) {
         console.error('❌ Critical error signing out:', error)
+        // Even if logout fails, clear local state
+        setUser(null)
+        setSession(null)
+        setProfile(null)
+        localStorage.removeItem('isDoctor')
+        localStorage.removeItem('userRole')
         throw error
       }
     }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { 
   Calendar,
   FileText,
@@ -23,7 +23,10 @@ import {
 } from 'lucide-react';
 import Navigation from './components/Navigation';
 import { useDarkMode } from './hooks/useDarkMode';
-import AccessibleTestimonials from './components/AccessibleTestimonials';
+import { useLanguage } from './contexts/LanguageContext';
+import { useTranslations } from './translations';
+// Lazy-load heavy, below-the-fold components
+const AccessibleTestimonials = React.lazy(() => import('./components/AccessibleTestimonials'));
 import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProvider } from './components/KeyboardNavigation';
@@ -32,13 +35,13 @@ import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProv
 import { Routes, Route } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
-// Import your new page component
-import SmartAppointmentBookingPage from './pages/SmartAppointmentBookingPage';
-import PatientPreRegistrationPage from './pages/PatientPreRegistrationPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import PatientDashboardPage from './pages/PatientDashboardPage'; // Import the new page
-import ChooseServicePage from './pages/ChooseServicePage';
-import DoctorScheduleConfigPage from './pages/DoctorScheduleConfigPage';
+// Route-level code splitting (lazy loaded pages)
+const SmartAppointmentBookingPage = React.lazy(() => import('./pages/SmartAppointmentBookingPage'));
+const PatientPreRegistrationPage = React.lazy(() => import('./pages/PatientPreRegistrationPage'));
+const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage'));
+const PatientDashboardPage = React.lazy(() => import('./pages/PatientDashboardPage'));
+const ChooseServicePage = React.lazy(() => import('./pages/ChooseServicePage'));
+const DoctorScheduleConfigPage = React.lazy(() => import('./pages/DoctorScheduleConfigPage'));
 
 // Auth props interface
 interface AuthProps {
@@ -55,6 +58,8 @@ interface AuthProps {
 // Create a new component for your landing page content
 function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isProfileLoading, userState, isAuthenticated, handleLogout }: AuthProps) {
   const { isDarkMode } = useDarkMode();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [announcement, setAnnouncement] = useState('');
@@ -117,43 +122,42 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
   const benefits = [
     {
       icon: Calendar,
-      title: "Smart Appointment Booking",
-      description: "Optimized slots, instant confirmation, and SMS/WhatsApp reminders.",
+      title: t('features.smartAppointmentBooking.title'),
+      description: t('features.smartAppointmentBooking.description'),
       image: "smart appointment booking.png",
-      to: "/smart-appointment-booking" // Changed to 'to' for Link
+      to: "/smart-appointment-booking"
     },
     {
       icon: FileText,
-      title: "Patient Pre-Registration",
-      description: "Aadhaar-based check-in and secure document upload — skip waiting lines.",
+      title: t('features.patientPreRegistration.title'),
+      description: t('features.patientPreRegistration.description'),
       image: "digital pre-registration.png",
       to: "/patient-pre-registration"
     },
     {
       icon: FileText,
-      title: "Admin Dashboard",
-      description: "Comprehensive analytics, patient management, and real-time system monitoring for healthcare providers.",
+      title: t('features.adminDashboard.title'),
+      description: t('features.adminDashboard.description'),
       image: "admin dashboard.png",
       to: "/admin-dashboard"
     },
-    // Removed "Medication & Follow-up Reminders" as per requirements
     {
-      icon: User, // Placeholder icon
-      title: "Patient Dashboard",
-      description: "Your personalized health overview and quick access to services.",
+      icon: User,
+      title: t('features.patientDashboard.title'),
+      description: t('features.patientDashboard.description'),
       image: "patient dashboard.png",
       to: "/patient-dashboard"
     },
     {
       icon: MessageCircle,
-      title: "Seamless Communication",
-      description: "Stay connected with your healthcare providers through integrated messaging and 24/7 support.",
+      title: t('features.seamlessCommunication.title'),
+      description: t('features.seamlessCommunication.description'),
       image: "Seamless Communication copy.png"
     },
     {
       icon: Clock,
-      title: "Queue Dashboard",
-      description: "Real-time queue management and patient flow optimization for healthcare facilities.",
+      title: t('features.queueDashboard.title'),
+      description: t('features.queueDashboard.description'),
       image: "queqe dashboard.png"
     }
   ];
@@ -161,53 +165,56 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
   const steps = [
     {
       number: "01",
-      title: "Book Appointment",
-      description: "Choose doctor & slot with instant confirmation."
+      title: t('howItWorks.step1.title'),
+      description: t('howItWorks.step1.description'),
+      image: "smart appointment booking.png"
     },
     {
       number: "02", 
-      title: "Pre-Register",
-      description: "Upload Aadhaar & documents, get your digital queue token."
+      title: t('howItWorks.step2.title'),
+      description: t('howItWorks.step2.description'),
+      image: "digital pre-registration.png"
     },
     {
       number: "03",
-      title: "Visit & Care", 
-      description: "Walk in, consult, and receive reminders & digital prescriptions."
+      title: t('howItWorks.step3.title'), 
+      description: t('howItWorks.step3.description'),
+      image: "patient dashboard.png"
     }
   ];
 
   const testimonials = [
     {
       id: '1',
-      text: "Booking was quick and I got SMS reminders before my visit.",
+      text: t('testimonials.testimonial1'),
       author: "Priya S.",
       location: "Mumbai",
       rating: 5
     },
     {
       id: '2',
-      text: "Pre-registration saved me 30 minutes at the clinic.",
+      text: t('testimonials.testimonial2'),
       author: "Rajesh K.", 
       location: "Delhi",
       rating: 5
     },
     {
       id: '3',
-      text: "I could track my turn on the app — no more waiting blindly.",
+      text: t('testimonials.testimonial3'),
       author: "Anjali M.",
       location: "Bangalore",
       rating: 5
     },
     {
       id: '4',
-      text: "The digital pre-registration made my visit so smooth and efficient.",
+      text: t('testimonials.testimonial4'),
       author: "Vikram P.",
       location: "Chennai",
       rating: 4
     },
     {
       id: '5',
-      text: "Finally, a healthcare app that actually works! Love the reminders.",
+      text: t('testimonials.testimonial5'),
       author: "Meera K.",
       location: "Pune",
       rating: 5
@@ -216,20 +223,20 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
 
   const faqs = [
     {
-      question: "Is my data secure?",
-      answer: "Yes. EaseHealth complies with India's DPDP Act with encryption & audit logs."
+      question: t('faqs.q1.question'),
+      answer: t('faqs.q1.answer')
     },
     {
-      question: "Do I need Aadhaar?",
-      answer: "Aadhaar makes pre-registration seamless, but you can also sign up with mobile number."
+      question: t('faqs.q2.question'),
+      answer: t('faqs.q2.answer')
     },
     {
-      question: "Which doctors can I book with?",
-      answer: "Only partnered doctors & clinics listed on EaseHealth."
+      question: t('faqs.q3.question'),
+      answer: t('faqs.q3.answer')
     },
     {
-      question: "Does the app send reminders?",
-      answer: "Yes, you'll get SMS/WhatsApp alerts for appointments and follow-ups."
+      question: t('faqs.q4.question'),
+      answer: t('faqs.q4.answer')
     }
   ];
 
@@ -243,6 +250,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
       
       {/* Accessibility announcements */}
       <AccessibilityAnnouncer message={announcement} />
+      
 
       {/* Enhanced Navigation */}
       <div id="navigation">
@@ -268,13 +276,13 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-6">
-                Your Health.{' '}
+                {t('hero.title')}{' '}
                 <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
-                  Simplified.
+                  {t('hero.titleHighlight')}
                 </span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                From booking your appointment to reminders and real-time queue updates — EaseHealth AI makes doctor visits effortless with intelligent automation.
+                {t('hero.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
@@ -282,14 +290,14 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-lg font-medium text-lg hover:shadow-xl transform hover:-translate-y-1 transition-all focus-ring"
                   aria-describedby="cta-description"
                 >
-                  Get Started
+                  {t('hero.getStarted')}
                 </Link>
                 <button className="border-2 border-[#E8E8E8] dark:border-gray-600 text-[#0A2647] dark:text-gray-100 px-8 py-4 rounded-lg font-medium text-lg hover:border-[#0075A2] dark:hover:border-[#0EA5E9] hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">
-                  Learn More
+                  {t('hero.learnMore')}
                 </button>
               </div>
               <div id="cta-description" className="sr-only">
-                Start your healthcare journey with EaseHealth AI. Choose your service or learn more about our features.
+                {t('hero.ctaDescription')}
               </div>
             </div>
             <div className="relative">
@@ -317,10 +325,10 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Why Choose EaseHealth AI?
+              {t('benefits.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Experience healthcare the modern way with AI-powered features designed for Indian patients
+              {t('benefits.subtitle')}
             </p>
           </div>
           
@@ -344,6 +352,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                         src={`/${benefit.image}`} 
                         alt={benefit.title}
                         className="w-full h-64 object-contain rounded-lg bg-white"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ) : (
@@ -375,6 +385,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                         src={`/${benefit.image}`} 
                         alt={benefit.title}
                         className="w-full h-64 object-contain rounded-lg bg-white"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ) : (
@@ -408,10 +420,10 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Trust and Compliance
+              {t('trust.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Your data security and privacy are our top priorities, backed by industry-leading compliance standards
+              {t('trust.subtitle')}
             </p>
           </div>
           
@@ -426,10 +438,12 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                   src="/dpdp compliance.png" 
                   alt="DPDP Compliance"
                   className="w-full h-64 object-contain rounded-lg bg-white"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">DPDP Compliance</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Full compliance with India's Digital Personal Data Protection Act, ensuring your health data is handled with the highest security standards.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">{t('trust.dpdpCompliance.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{t('trust.dpdpCompliance.description')}</p>
             </div>
             
             <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
@@ -438,10 +452,12 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                   src="/India Data Residency.png" 
                   alt="India Data Residency"
                   className="w-full h-64 object-contain rounded-lg bg-white"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">India Data Residency</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Your data stays within India's borders, complying with local regulations and ensuring complete privacy and sovereignty.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">{t('trust.indiaDataResidency.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{t('trust.indiaDataResidency.description')}</p>
             </div>
             
             <div className="bg-[#F6F6F6] dark:bg-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-xl transform hover:-translate-y-2 transition-all duration-300 border border-[#E8E8E8] dark:border-gray-600 group text-center">
@@ -450,10 +466,12 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                   src="/Immutable Audit Logs.png" 
                   alt="Immutable Audit Logs"
                   className="w-full h-64 object-contain rounded-lg bg-white"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">Immutable Audit Logs</h3>
-              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">Complete transparency with tamper-proof logging of all healthcare interactions, ensuring accountability and trust.</p>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-3 text-center">{t('trust.immutableAuditLogs.title')}</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center">{t('trust.immutableAuditLogs.description')}</p>
             </div>
           </div>
         </div>
@@ -469,10 +487,10 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Healthcare in 3 Simple Steps
+              {t('howItWorks.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              From booking to care, we've simplified the entire process
+              {t('howItWorks.subtitle')}
             </p>
           </div>
 
@@ -487,25 +505,29 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 <div key={index} className="flex items-center">
                   {/* Step Card */}
                   <div 
-                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden min-w-[280px]"
+                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden w-[320px] h-[400px] flex flex-col"
                     role="listitem"
                     tabIndex={0}
                     aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
                   >
-                    {/* Background decoration */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]"></div>
                     
-                    {/* Step number with enhanced design */}
+                    {/* Step image with enhanced design */}
                     <div className="relative mb-6">
-                      <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        {step.number}
+                      <div className="w-32 h-32 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+                        <img 
+                          src={`/${step.image}`} 
+                          alt={step.title}
+                          className="w-full h-full object-contain p-2 rounded-lg"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                       {/* Glow effect */}
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                      <div className="absolute inset-0 w-32 h-32 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
                     </div>
                     
-                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300">{step.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg">{step.description}</p>
+                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300 h-[60px] flex items-center justify-center">{step.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg flex-grow flex items-center justify-center">{step.description}</p>
                   </div>
                   
                   {/* Arrow between steps */}
@@ -514,7 +536,6 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                       <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center shadow-lg">
                         <ArrowRight className="w-6 h-6 text-white" />
                       </div>
-                      <div className="w-1 h-8 bg-gradient-to-b from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] mt-2 rounded-full"></div>
                     </div>
                   )}
                 </div>
@@ -526,25 +547,29 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
               {steps.map((step, index) => (
                 <div key={index} className="relative">
                   <div 
-                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden"
+                    className="bg-white dark:bg-gray-800 rounded-3xl p-8 text-center hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-[#0075A2] dark:hover:border-[#0EA5E9] focus-ring group relative overflow-hidden w-full max-w-[400px] mx-auto h-[400px] flex flex-col"
                     role="listitem"
                     tabIndex={0}
                     aria-label={`Step ${step.number}: ${step.title}. ${step.description}`}
                   >
-                    {/* Background decoration */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]"></div>
                     
-                    {/* Step number with enhanced design */}
+                    {/* Step image with enhanced design */}
                     <div className="relative mb-6">
-                      <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-2xl mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300">
-                        {step.number}
+                      <div className="w-32 h-32 bg-white dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:scale-110 transition-transform duration-300 overflow-hidden">
+                        <img 
+                          src={`/${step.image}`} 
+                          alt={step.title}
+                          className="w-full h-full object-contain p-2 rounded-lg"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                       {/* Glow effect */}
-                      <div className="absolute inset-0 w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300"></div>
+                      <div className="absolute inset-0 w-32 h-32 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl mx-auto blur-lg opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
                     </div>
                     
-                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300">{step.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg">{step.description}</p>
+                    <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors duration-300 h-[60px] flex items-center justify-center">{step.title}</h3>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-center text-lg flex-grow flex items-center justify-center">{step.description}</p>
                   </div>
                   
                   {/* Arrow between steps for mobile */}
@@ -572,18 +597,27 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              What Patients Say
+              {t('testimonials.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-              Real experiences from patients across India
+              {t('testimonials.subtitle')}
             </p>
           </div>
 
-          <AccessibleTestimonials 
-            testimonials={testimonials}
-            autoPlay={true}
-            showRatings={true}
-          />
+          <Suspense fallback={
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-gray-600 dark:text-gray-300">Loading testimonials…</p>
+            </div>
+          }>
+            <AccessibleTestimonials 
+              testimonials={testimonials}
+              autoPlay={true}
+              showRatings={true}
+            />
+          </Suspense>
         </div>
       </section>
 
@@ -597,10 +631,10 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-              Got Questions?
+              {t('faqs.title')}
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Find answers to common questions about EaseHealth AI
+              {t('faqs.subtitle')}
             </p>
           </div>
 
@@ -654,6 +688,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                   alt="EaseHealth AI Logo" 
                   className="h-12 w-auto object-contain"
                   style={{ backgroundColor: 'transparent' }}
+                  loading="lazy"
+                  decoding="async"
                   onError={(e) => {
                     // Fallback to other formats if PNG doesn't exist
                     const target = e.target as HTMLImageElement;
@@ -670,20 +706,20 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                 />
                 <div>
                   <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">EaseHealth AI</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Your Health. Simplified.</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{t('footer.tagline')}</p>
                 </div>
               </div>
               <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                Making healthcare accessible and convenient for every Indian patient with cutting-edge AI technology and compassionate care.
+                {t('footer.description')}
               </p>
               <div className="flex space-x-4">
-                <a href="#" className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Contact us on WhatsApp">
+                <a href="#" className="w-10 h-10 bg-[#25D366] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label={t('footer.socialMedia.whatsapp')}>
                   <MessageCircle className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Follow us on LinkedIn">
+                <a href="#" className="w-10 h-10 bg-[#0077B5] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label={t('footer.socialMedia.linkedin')}>
                   <Linkedin className="w-5 h-5" />
                 </a>
-                <a href="#" className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label="Watch our videos on YouTube">
+                <a href="#" className="w-10 h-10 bg-[#FF0000] rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform focus-ring" aria-label={t('footer.socialMedia.youtube')}>
                   <Youtube className="w-5 h-5" />
                 </a>
               </div>
@@ -691,20 +727,20 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
 
             {/* Quick Links */}
             <div>
-              <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-4">Quick Links</h4>
+              <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('footer.quickLinks')}</h4>
               <div className="space-y-2">
-                <a href="#home" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Home</a>
-                <a href="#features" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Features</a>
-                <a href="#how-it-works" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">How It Works</a>
-                <a href="#testimonials" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Testimonials</a>
-                <a href="#" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Privacy Policy</a>
-                <a href="#contact" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">Contact</a>
+                <a href="#home" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('nav.home')}</a>
+                <a href="#features" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('nav.features')}</a>
+                <a href="#how-it-works" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('nav.howItWorks')}</a>
+                <a href="#testimonials" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('nav.testimonials')}</a>
+                <a href="#" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('footer.privacyPolicy')}</a>
+                <a href="#contact" className="block text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors focus-ring">{t('nav.contact')}</a>
               </div>
             </div>
 
             {/* Contact Info */}
             <div>
-              <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-4">Contact Us</h4>
+              <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('footer.contactUs')}</h4>
               <div className="space-y-3">
                 <div className="flex items-center text-gray-600 dark:text-gray-300">
                   <Phone className="w-4 h-4 mr-2" />
@@ -725,14 +761,14 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           {/* Bottom Bar */}
           <div className="border-t border-gray-300 dark:border-gray-700 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
             <p className="text-gray-600 dark:text-gray-300 text-sm mb-4 md:mb-0">
-              © 2025 EaseHealth AI. Built with AI-powered care for Indian patients.
+              {t('footer.copyright')}
             </p>
             <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
               <Check className="w-4 h-4 text-green-600" />
-              <span>DPDP Compliant</span>
+              <span>{t('footer.dpdpCompliant')}</span>
               <span className="mx-2">•</span>
               <Check className="w-4 h-4 text-green-600" />
-              <span>ISO 27001 Certified</span>
+              <span>{t('footer.isoCertified')}</span>
             </div>
           </div>
         </div>
@@ -744,7 +780,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
         <button
           onClick={scrollToTop}
           className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 z-40 focus-ring"
-          aria-label="Scroll to top"
+          aria-label={t('common.scrollToTop')}
         >
           <ArrowUp className="w-5 h-5 mx-auto" />
         </button>
@@ -756,22 +792,10 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
 // Main App component now handles routing
 function App() {
   const authData = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   
-  // Show loading screen while checking authentication
-  if (authData.isLoadingInitialAuth) {
-    console.log('🔄 App showing loading screen, initial auth loading:', authData.isLoadingInitialAuth)
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <Brain className="w-8 h-8 text-white" />
-          </div>
-          <p className="text-gray-600 dark:text-gray-300">Loading EaseHealth AI...</p>
-          <p className="text-xs text-gray-500 mt-2">Checking authentication status...</p>
-        </div>
-      </div>
-    );
-  }
+  // Do not block landing render on auth; protected pages can handle auth themselves
 
   console.log('✅ App loaded, auth state:', {
     isAuthenticated: authData.isAuthenticated,
@@ -784,16 +808,27 @@ function App() {
   return (
     <FocusVisibleProvider>
       <FeatureDetection>
-        <Routes>
-          <Route path="/" element={<LandingPageContent {...authData} />} />
-          <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage {...authData} />} />
-          <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage {...authData} />} />
-          <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
-          <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
-          <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
-          <Route path="/doctor-schedule-config" element={<DoctorScheduleConfigPage {...authData} />} />
-          {/* Add more routes here as you create new pages */}
-        </Routes>
+        <Suspense fallback={
+          <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse">
+                <Brain className="w-8 h-8 text-white" />
+              </div>
+              <p className="text-gray-600 dark:text-gray-300">{t('common.loading')}</p>
+            </div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<LandingPageContent {...authData} handleLogout={authData.handleLogout} />} />
+            <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage {...authData} />} />
+            <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage {...authData} />} />
+            <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
+            <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
+            <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
+            <Route path="/doctor-schedule-config" element={<DoctorScheduleConfigPage {...authData} />} />
+            {/* Add more routes here as you create new pages */}
+          </Routes>
+        </Suspense>
       </FeatureDetection>
     </FocusVisibleProvider>
   );

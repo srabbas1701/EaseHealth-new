@@ -158,9 +158,17 @@ const DoctorRegistrationForm: React.FC<DoctorRegistrationFormProps> = ({
     setSubmitError('');
 
     try {
-      // Create user account if userId is not provided
+      // Ensure we attach doctor profile to the CURRENT logged-in user
       let finalUserId = userId;
       
+      if (!finalUserId && supabase?.auth?.getUser) {
+        const { data } = await supabase.auth.getUser();
+        if (data?.user?.id) {
+          finalUserId = data.user.id;
+        }
+      }
+
+      // As a last resort (only if absolutely necessary), create an account
       if (!finalUserId) {
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,

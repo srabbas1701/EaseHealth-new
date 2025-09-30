@@ -7,6 +7,8 @@ import AccessibleDropdown from '../components/AccessibleDropdown';
 import AuthModal from '../components/AuthModal';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { createPreRegistration, PreRegistration } from '../utils/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 
 // Auth props interface
 interface AuthProps {
@@ -32,6 +34,8 @@ interface FormData {
 }
 
 function PatientPreRegistrationPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   const { isDarkMode } = useDarkMode();
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -54,10 +58,10 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const [announcement, setAnnouncement] = useState('');
 
   const genderOptions = [
-    { id: 'male', label: 'Male', value: 'male' },
-    { id: 'female', label: 'Female', value: 'female' },
-    { id: 'other', label: 'Other', value: 'other' },
-    { id: 'prefer-not-to-say', label: 'Prefer not to say', value: 'prefer-not-to-say' }
+    { id: 'male', label: language === 'hi' ? 'पुरुष' : 'Male', value: 'male' },
+    { id: 'female', label: language === 'hi' ? 'महिला' : 'Female', value: 'female' },
+    { id: 'other', label: language === 'hi' ? 'अन्य' : 'Other', value: 'other' },
+    { id: 'prefer-not-to-say', label: language === 'hi' ? 'कहना नहीं चाहते' : 'Prefer not to say', value: 'prefer-not-to-say' }
   ];
 
   const stateOptions = [
@@ -110,23 +114,23 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
 
-    if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-    if (!formData.age.trim()) newErrors.age = 'Age is required';
-    if (!formData.gender) newErrors.gender = 'Gender is required';
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state) newErrors.state = 'State is required';
-    if (!formData.symptoms.trim()) newErrors.symptoms = 'Symptoms description is required';
-    if (!formData.consent) newErrors.consent = 'Consent is required to proceed';
+    if (!formData.fullName.trim()) newErrors.fullName = t('preRegistration.validation.fullNameRequired');
+    if (!formData.age.trim()) newErrors.age = t('preRegistration.validation.ageRequired');
+    if (!formData.gender) newErrors.gender = t('preRegistration.validation.genderRequired');
+    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = t('preRegistration.validation.phoneRequired');
+    if (!formData.city.trim()) newErrors.city = t('preRegistration.validation.cityRequired');
+    if (!formData.state) newErrors.state = t('preRegistration.validation.stateRequired');
+    if (!formData.symptoms.trim()) newErrors.symptoms = t('preRegistration.validation.symptomsRequired');
+    if (!formData.consent) newErrors.consent = t('preRegistration.validation.consentRequired');
 
     // Validate phone number format
     if (formData.phoneNumber && !/^\d{10}$/.test(formData.phoneNumber.replace(/\D/g, ''))) {
-      newErrors.phoneNumber = 'Please enter a valid 10-digit phone number';
+      newErrors.phoneNumber = t('preRegistration.validation.phoneInvalid');
     }
 
     // Validate age
     if (formData.age && (isNaN(Number(formData.age)) || Number(formData.age) < 1 || Number(formData.age) > 120)) {
-      newErrors.age = 'Please enter a valid age between 1 and 120';
+      newErrors.age = t('preRegistration.validation.ageInvalid');
     }
 
     setErrors(newErrors);
@@ -180,9 +184,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   };
 
   const authContext = {
-    title: 'Complete Your Pre-Registration',
-    description: 'To securely store your pre-registration information and medical documents, please create an account or sign in to your existing account.',
-    actionText: 'Complete Pre-Registration'
+    title: t('preRegistration.auth.title'),
+    description: t('preRegistration.auth.description'),
+    actionText: t('preRegistration.auth.actionText')
   };
 
   const benefits = [
@@ -236,25 +240,23 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
               <div className="w-24 h-24 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle className="w-12 h-12 text-white" />
               </div>
-              <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-                Pre-Registration Successful!
-              </h1>
+              <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('preRegistration.successTitle')}</h1>
               <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md mx-auto">
-                Your pre-registration has been submitted successfully. You'll receive a confirmation SMS shortly with your queue token.
+                {t('preRegistration.successMessage')}
               </p>
               <div className="space-y-4">
                 <Link 
                   to="/smart-appointment-booking" 
                   className="inline-block bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
                 >
-                  Book Another Appointment
+                  {t('preRegistration.buttons.bookAnother')}
                 </Link>
                 <div>
                   <Link 
                     to="/" 
                     className="text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors focus-ring"
                   >
-                    Return to Home
+                    {t('preRegistration.buttons.returnHome')}
                   </Link>
                 </div>
               </div>
@@ -298,7 +300,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Home
+          {t('common.backToHome')}
         </Link>
 
         {/* Two Column Layout */}
@@ -328,12 +330,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   }}
                 />
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">
-                Patient Pre-Registration Form
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300">
-                Please fill out this form to streamline your visit
-              </p>
+              <h1 className="text-3xl sm:text-4xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('preRegistration.title')}</h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300">{t('preRegistration.subtitle')}</p>
             </div>
 
             {/* Form */}
@@ -353,15 +351,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <div>
                   <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                     <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Demographics
+                    {t('preRegistration.form.demographics')}
                   </h2>
                   
                   <div className="space-y-6">
                     {/* Full Name */}
                     <div>
-                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Full Name *
-                      </label>
+                      <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.fullNameLabel')}</label>
                       <input
                         type="text"
                         id="fullName"
@@ -370,7 +366,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                           errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
-                        placeholder="Enter your full name"
+                        placeholder={t('preRegistration.form.fullNamePlaceholder')}
                         aria-describedby={errors.fullName ? 'fullName-error' : undefined}
                       />
                       {errors.fullName && (
@@ -384,9 +380,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                     {/* Age and Gender */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Age *
-                        </label>
+                        <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.ageLabel')}</label>
                         <input
                           type="number"
                           id="age"
@@ -395,7 +389,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                           className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                             errors.age ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                           }`}
-                          placeholder="Your age"
+                          placeholder={t('preRegistration.form.agePlaceholder')}
                           min="1"
                           max="120"
                           aria-describedby={errors.age ? 'age-error' : undefined}
@@ -410,11 +404,11 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
                       <div>
                         <AccessibleDropdown
-                          label="Gender *"
+                          label={t('preRegistration.form.genderLabel')}
                           options={genderOptions}
                           value={formData.gender}
                           onChange={(value) => handleInputChange('gender', value as string)}
-                          placeholder="Select gender"
+                          placeholder={t('preRegistration.form.genderPlaceholder')}
                           error={errors.gender}
                         />
                       </div>
@@ -422,9 +416,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
                     {/* Phone Number */}
                     <div>
-                      <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Phone Number *
-                      </label>
+                      <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.phoneLabel')}</label>
                       <input
                         type="tel"
                         id="phoneNumber"
@@ -433,7 +425,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                         className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                           errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                         }`}
-                        placeholder="Enter your phone number"
+                        placeholder={t('preRegistration.form.phonePlaceholder')}
                         aria-describedby={errors.phoneNumber ? 'phoneNumber-error' : undefined}
                       />
                       {errors.phoneNumber && (
@@ -447,9 +439,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                     {/* City and State */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          City *
-                        </label>
+                        <label htmlFor="city" className="block text स्म font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.cityLabel')}</label>
                         <input
                           type="text"
                           id="city"
@@ -458,7 +448,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                           className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                             errors.city ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                           }`}
-                          placeholder="Enter your city"
+                          placeholder={t('preRegistration.form.cityPlaceholder')}
                           aria-describedby={errors.city ? 'city-error' : undefined}
                         />
                         {errors.city && (
@@ -471,11 +461,11 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
                       <div>
                         <AccessibleDropdown
-                          label="State *"
+                          label={t('preRegistration.form.stateLabel')}
                           options={stateOptions}
                           value={formData.state}
                           onChange={(value) => handleInputChange('state', value as string)}
-                          placeholder="Select state"
+                          placeholder={t('preRegistration.form.statePlaceholder')}
                           searchable={true}
                           error={errors.state}
                         />
@@ -488,13 +478,11 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <div>
                   <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                     <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Symptoms
+                    {t('preRegistration.form.symptomsSectionTitle')}
                   </h2>
                   
                   <div>
-                    <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Brief description of your symptoms *
-                    </label>
+                    <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.symptomsLabel')}</label>
                     <textarea
                       id="symptoms"
                       value={formData.symptoms}
@@ -503,7 +491,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                       className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-vertical ${
                         errors.symptoms ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                       }`}
-                      placeholder="e.g. Fever, cough, and headache for the last 3 days"
+                      placeholder={t('preRegistration.form.symptomsPlaceholder')}
                       aria-describedby={errors.symptoms ? 'symptoms-error' : undefined}
                     />
                     {errors.symptoms && (
@@ -519,24 +507,20 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <div>
                   <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                     <Upload className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Upload Documents
+                    {t('preRegistration.form.uploadSectionTitle')}
                   </h2>
                   
                   <div className="space-y-6">
                     {/* Lab Reports */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Lab Reports (PDF/JPG)
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.labReportsLabel')}</label>
                       <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
                         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
-                            Upload a file
-                          </span>
-                          {' '}or drag and drop
+                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">{t('preRegistration.form.uploadFile')}</span>{' '}
+                          {t('preRegistration.form.orDrag')}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('preRegistration.form.pdfJpgUpTo')}</p>
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg"
@@ -548,25 +532,21 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                       {formData.labReports && (
                         <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
                           <CheckCircle className="w-4 h-4 mr-1" />
-                          {formData.labReports.name} uploaded
+                          {formData.labReports.name} {t('preRegistration.form.uploaded')}
                         </p>
                       )}
                     </div>
 
                     {/* Aadhaar */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Aadhaar / ID (PDF/JPG)
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('preRegistration.form.aadhaarLabel')}</label>
                       <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-[#0075A2] dark:hover:border-[#0EA5E9] transition-colors">
                         <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">
-                            Upload a file
-                          </span>
-                          {' '}or drag and drop
+                          <span className="text-[#0075A2] dark:text-[#0EA5E9] font-medium cursor-pointer hover:underline">{t('preRegistration.form.uploadFile')}</span>{' '}
+                          {t('preRegistration.form.orDrag')}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG up to 10MB</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('preRegistration.form.pdfJpgUpTo')}</p>
                         <input
                           type="file"
                           accept=".pdf,.jpg,.jpeg"
@@ -578,7 +558,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                       {formData.aadhaar && (
                         <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
                           <CheckCircle className="w-4 h-4 mr-1" />
-                          {formData.aadhaar.name} uploaded
+                          {formData.aadhaar.name} {t('preRegistration.form.uploaded')}
                         </p>
                       )}
                     </div>
@@ -589,7 +569,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <div>
                   <h2 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                     <CheckCircle className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Digital Consent
+                    {t('preRegistration.form.digitalConsentTitle')}
                   </h2>
                   
                   <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
@@ -615,9 +595,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                           errors.consent ? 'border-red-500' : ''
                         }`}
                       />
-                      <label htmlFor="consent" className="ml-3 text-sm text-gray-700 dark:text-gray-300">
-                        I have read, understood, and agree to the consent form *
-                      </label>
+                      <label htmlFor="consent" className="ml-3 text-sm text-gray-700 dark:text-gray-300">{t('preRegistration.form.consentCheckbox')}</label>
                     </div>
                     {errors.consent && (
                       <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -638,10 +616,10 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                     {isSubmitting ? (
                       <div className="flex items-center justify-center">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                        Submitting Pre-Registration...
+                        {t('preRegistration.form.submitting')}
                       </div>
                     ) : (
-                      'Submit Pre-Registration'
+                      t('preRegistration.form.submit')
                     )}
                   </button>
                 </div>

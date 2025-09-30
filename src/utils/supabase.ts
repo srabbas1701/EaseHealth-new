@@ -4,8 +4,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.su
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder_key'
 
 // Create a mock Supabase client for development when env vars are missing
+export const isMockSupabase = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY
 let supabase: any
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+if (isMockSupabase) {
   console.warn('⚠️ Supabase environment variables not found. Using mock client for development.')
   
   // Create a mock Supabase client that doesn't make real API calls
@@ -189,6 +190,18 @@ export const getPreRegistration = async (userId: string) => {
   return data
 }
 
+// Specialty types and functions
+export interface Specialty {
+  id: string
+  name: string
+  description?: string
+  icon?: string
+  is_active: boolean
+  sort_order: number
+  created_at?: string
+  updated_at?: string
+}
+
 // Doctor types and functions
 export interface Doctor {
   id: string
@@ -197,6 +210,7 @@ export interface Doctor {
   email: string
   phone_number: string
   specialty: string
+  specialty_id?: string
   license_number: string
   experience_years: number
   qualification: string
@@ -238,16 +252,155 @@ export interface TimeSlot {
   updated_at?: string
 }
 
-export const getDoctors = async () => {
-  const { data, error } = await supabase
-    .from('doctors')
-    .select('*')
-    .eq('is_active', true)
-    .eq('is_verified', true)
-    .order('full_name')
+// Add caching at the top of the file
+const cache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-  if (error) throw error
-  return data
+// Helper function for caching
+const getCachedData = (key: string) => {
+  const cached = cache.get(key)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data
+  }
+  return null
+}
+
+const setCachedData = (key: string, data: any) => {
+  cache.set(key, { data, timestamp: Date.now() })
+}
+
+// Cache for specialties to avoid repeated API calls
+let specialtiesCache: Specialty[] | null = null
+let specialtiesCacheTime: number = 0
+
+// Get all active specialties - optimized for speed with caching
+export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]> => {
+  const now = Date.now()
+  
+  // Return cached data if it's still fresh and not forcing refresh
+  if (!forceRefresh && specialtiesCache && (now - specialtiesCacheTime) < CACHE_DURATION) {
+    console.log('📦 Returning cached specialties')
+    return specialtiesCache
+  }
+
+  try {
+    console.log('🔄 Fetching specialties from database...')
+    const { data, error } = await supabase
+      .from('specialties')
+      .select('id, name, description, sort_order')
+      .eq('is_active', true)
+      .order('sort_order, name')
+      .limit(20) // Limit to prevent large data transfers
+
+    if (error) {
+      console.error('Supabase error:', error)
+      // Return fallback specialties if database fails
+      const fallbackSpecialties = [
+        { id: 'fallback-1', name: 'General Medicine', description: 'General health and primary care', is_active: true, sort_order: 1 },
+        { id: 'fallback-2', name: 'Cardiology', description: 'Heart specialist', is_active: true, sort_order: 2 },
+        { id: 'fallback-3', name: 'Neurology', description: 'Brain specialist', is_active: true, sort_order: 3 },
+        { id: 'fallback-4', name: 'Dermatology', description: 'Skin specialist', is_active: true, sort_order: 4 },
+        { id: 'fallback-5', name: 'Pediatrics', description: 'Children specialist', is_active: true, sort_order: 5 },
+        { id: 'fallback-6', name: 'Gynecology', description: 'Women health specialist', is_active: true, sort_order: 6 }
+      ]
+      
+      // Cache fallback data
+      specialtiesCache = fallbackSpecialties
+      specialtiesCacheTime = now
+      return fallbackSpecialties
+    }
+
+    const specialties = data || []
+    
+    // Cache the successful result
+    specialtiesCache = specialties
+    specialtiesCacheTime = now
+    console.log('✅ Specialties cached successfully')
+    
+    return specialties
+  } catch (error) {
+    console.error('Network error:', error)
+    return []
+  }
+}
+
+// Simplified getDoctors function - no complex relationships
+export const getDoctors = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('doctors')
+      .select(`
+        id, 
+        full_name, 
+        specialty,
+        is_active, 
+        is_verified,
+        consultation_fee
+      `)
+      .eq('is_active', true)
+      .limit(20)
+      .order('full_name')
+
+    if (error) {
+      console.error('Supabase error:', error)
+      // Return mock data with simple specialty names
+      return [
+        {
+          id: 'mock-1',
+          full_name: 'Dr. Anjali Sharma',
+          specialty: 'Cardiology',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 500
+        },
+        {
+          id: 'mock-2',
+          full_name: 'Dr. Rajesh Kumar',
+          specialty: 'Neurology',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 600
+        },
+        {
+          id: 'mock-3',
+          full_name: 'Dr. Priya Singh',
+          specialty: 'Dermatology',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 400
+        },
+        {
+          id: 'mock-4',
+          full_name: 'Dr. Amit Patel',
+          specialty: 'Cardiology',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 550
+        },
+        {
+          id: 'mock-5',
+          full_name: 'Dr. Sunita Reddy',
+          specialty: 'Pediatrics',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 450
+        },
+        {
+          id: 'mock-6',
+          full_name: 'Dr. Vikram Malhotra',
+          specialty: 'Orthopedic Surgery',
+          is_active: true,
+          is_verified: true,
+          consultation_fee: 700
+        }
+      ]
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Network error:', error)
+    return []
+  }
 }
 
 export const getDoctorByUserId = async (userId: string) => {
@@ -261,15 +414,28 @@ export const getDoctorByUserId = async (userId: string) => {
   return data
 }
 
-export const getDoctorSchedules = async (doctorId: string) => {
-  const { data, error } = await supabase
-    .from('doctor_schedules')
-    .select('*')
-    .eq('doctor_id', doctorId)
-    .order('day_of_week')
 
-  if (error) throw error
-  return data
+// Optimized getDoctorSchedules function
+export const getDoctorSchedules = async (doctorId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('doctor_schedules')
+      .select('*')
+      .eq('doctor_id', doctorId)
+      .eq('is_available', true)
+      .order('day_of_week')
+      .limit(7) // Limit to one week
+
+    if (error) {
+      console.error('Schedule fetch error:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Network error:', error)
+    return []
+  }
 }
 
 export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' | 'created_at' | 'updated_at'>) => {
@@ -286,14 +452,115 @@ export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' |
   return data
 }
 
+// Optimized getAvailableTimeSlots function
 export const getAvailableTimeSlots = async (doctorId: string, date: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('time_slots')
+      .select('*')
+      .eq('doctor_id', doctorId)
+      .eq('schedule_date', date)
+      .eq('status', 'available')
+      .order('start_time')
+      .limit(50) // Limit to prevent large data transfers
+
+    if (error) {
+      console.error('Time slots fetch error:', error)
+      return []
+    }
+
+    return data || []
+  } catch (error) {
+    console.error('Network error:', error)
+    return []
+  }
+}
+
+// Fetch time slots for a day regardless of status (available/booked/blocked/break)
+export const getTimeSlotsByDate = async (doctorId: string, date: string) => {
   const { data, error } = await supabase
     .from('time_slots')
     .select('*')
     .eq('doctor_id', doctorId)
     .eq('schedule_date', date)
-    .eq('status', 'available')
     .order('start_time')
+
+  if (error) throw error
+  return data
+}
+
+export const bookTimeSlot = async (
+  doctorId: string,
+  date: string,
+  startTime: string,
+  durationMinutes: number
+) => {
+  const payload = {
+    doctor_id: doctorId,
+    schedule_date: date,
+    start_time: startTime,
+    end_time: (() => {
+      const start = new Date(`2000-01-01T${startTime}`)
+      const end = new Date(start.getTime() + durationMinutes * 60000)
+      return end.toTimeString().slice(0, 8)
+    })(),
+    duration_minutes: durationMinutes,
+    status: 'booked' as const
+  }
+
+  const { data, error } = await supabase
+    .from('time_slots')
+    .upsert(payload, { onConflict: 'doctor_id,schedule_date,start_time', ignoreDuplicates: false })
+    .select()
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
+
+// Appointments API (preferred for confirmed bookings)
+export const getAppointmentsByDate = async (doctorId: string, date: string) => {
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .eq('schedule_date', date)
+    .order('start_time')
+
+  if (error) throw error
+  return data
+}
+
+export const createAppointment = async (
+  doctorId: string,
+  patientId: string,
+  date: string,
+  startTime: string,
+  durationMinutes: number,
+  notes?: string
+) => {
+  const endTime = (() => {
+    const start = new Date(`2000-01-01T${startTime}`)
+    const end = new Date(start.getTime() + durationMinutes * 60000)
+    return end.toTimeString().slice(0, 8)
+  })()
+
+  const payload = {
+    doctor_id: doctorId,
+    patient_id: patientId,
+    schedule_date: date,
+    start_time: startTime,
+    end_time: endTime,
+    duration_minutes: durationMinutes,
+    status: 'booked' as const,
+    notes
+  }
+
+  const { data, error } = await supabase
+    .from('appointments')
+    .upsert(payload, { onConflict: 'doctor_id,schedule_date,start_time', ignoreDuplicates: false })
+    .select()
+    .maybeSingle()
 
   if (error) throw error
   return data
