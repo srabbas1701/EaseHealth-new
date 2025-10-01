@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
@@ -151,9 +151,19 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         const dayOfWeek = date.getDay();
         
         // Check if doctor is available on this day of week
+        // JavaScript getDay(): Sunday=0, Monday=1, Tuesday=2, etc.
+        // Database day_of_week should match this convention
         const isAvailable = schedules?.some(schedule => 
           schedule.day_of_week === dayOfWeek && schedule.is_available
         );
+        
+        // Debug logging to identify the alignment issue
+        if (i < 7) { // Log first week for debugging
+          console.log(`Date: ${date.toDateString()}, Day of Week: ${dayOfWeek}, Available: ${isAvailable}`);
+          if (schedules?.length > 0) {
+            console.log('Schedule days:', schedules.map(s => s.day_of_week));
+          }
+        }
         
         if (isAvailable) {
           dates.add(date.toISOString().split('T')[0]);
@@ -260,8 +270,15 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       const currentDate = new Date(year, month, day);
       const dateString = currentDate.toISOString().split('T')[0];
       const isPast = currentDate < today.setHours(0, 0, 0, 0);
+      
+      // Use the current availableDates state
       const isAvailable = availableDates.has(dateString);
       const isSelected = selectedDate && selectedDate.toDateString() === currentDate.toDateString();
+      
+      // Debug: Log calendar generation for first week
+      if (day <= 7) {
+        console.log(`Calendar Day ${day}: ${currentDate.toDateString()}, Day of Week: ${currentDate.getDay()}, Available: ${isAvailable}, Disabled: ${isPast || !isAvailable}, In Set: ${availableDates.has(dateString)}`);
+      }
       
       days.push({
         day,
@@ -276,9 +293,18 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     return days;
   };
 
-  const calendarDays = generateCalendarDays();
+  // Generate calendar days with proper dependency tracking
+  const calendarDays = useMemo(() => {
+    // Debug: Log available dates set before calendar generation
+    console.log('Available dates set:', Array.from(availableDates).sort());
+    
+    return generateCalendarDays();
+  }, [currentMonth, availableDates, selectedDate]);
 
   const weekDays = t('appointmentBooking.weekDaysShort') as unknown as string[];
+  
+  // Debug: Log weekDays to verify alignment
+  console.log('Week days array:', weekDays);
 
   const steps = [
     {

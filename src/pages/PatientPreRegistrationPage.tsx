@@ -7,6 +7,7 @@ import AccessibleDropdown from '../components/AccessibleDropdown';
 import AuthModal from '../components/AuthModal';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { createPreRegistration, PreRegistration } from '../utils/supabase';
+import { uploadDocument, validateFile, formatFileSize, DocumentType } from '../utils/fileUploadUtils';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 
@@ -56,6 +57,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authError, setAuthError] = useState<string>('');
   const [announcement, setAnnouncement] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<{ labReports: number; aadhaar: number }>({ labReports: 0, aadhaar: 0 });
 
   const genderOptions = [
     { id: 'male', label: language === 'hi' ? 'पुरुष' : 'Male', value: 'male' },
@@ -105,6 +107,15 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   };
 
   const handleFileUpload = (field: 'labReports' | 'aadhaar', file: File | null) => {
+    if (file) {
+      // Validate file before setting it
+      const validation = validateFile(file);
+      if (!validation.isValid) {
+        setErrors(prev => ({ ...prev, [field]: validation.error }));
+        return;
+      }
+    }
+    
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -151,12 +162,43 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
     setShowAuthModal(false);
     setIsSubmitting(true);
     setAuthError('');
+    setUploadProgress({ labReports: 0, aadhaar: 0 });
     
     try {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
 
+      let labReportsUrl: string | undefined;
+      let aadhaarUrl: string | undefined;
+
+      // Upload lab reports if provided
+      if (formData.labReports) {
+        try {
+          setUploadProgress(prev => ({ ...prev, labReports: 50 }));
+          const uploadResult = await uploadDocument(formData.labReports, user.id, 'lab_reports');
+          labReportsUrl = uploadResult.path;
+          setUploadProgress(prev => ({ ...prev, labReports: 100 }));
+        } catch (error) {
+          console.error('Lab reports upload error:', error);
+          throw new Error('Failed to upload lab reports. Please try again.');
+        }
+      }
+
+      // Upload Aadhaar document if provided
+      if (formData.aadhaar) {
+        try {
+          setUploadProgress(prev => ({ ...prev, aadhaar: 50 }));
+          const uploadResult = await uploadDocument(formData.aadhaar, user.id, 'aadhaar');
+          aadhaarUrl = uploadResult.path;
+          setUploadProgress(prev => ({ ...prev, aadhaar: 100 }));
+        } catch (error) {
+          console.error('Aadhaar upload error:', error);
+          throw new Error('Failed to upload Aadhaar document. Please try again.');
+        }
+      }
+
+      // Create pre-registration record with actual file URLs
       const preRegistrationData: Omit<PreRegistration, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
         full_name: formData.fullName,
         age: parseInt(formData.age),
@@ -166,10 +208,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
         state: formData.state,
         symptoms: formData.symptoms,
         consent_agreed: formData.consent,
-        // TODO: Handle file uploads for lab_reports_url and aadhaar_url
-        // For now, we'll store placeholder URLs if files are present
-        lab_reports_url: formData.labReports ? `placeholder-lab-reports-${user.id}` : undefined,
-        aadhaar_url: formData.aadhaar ? `placeholder-aadhaar-${user.id}` : undefined
+        lab_reports_url: labReportsUrl,
+        aadhaar_url: aadhaarUrl
       };
 
       await createPreRegistration(user.id, preRegistrationData);
@@ -177,7 +217,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
       setAnnouncement('Pre-registration submitted successfully! You will receive a confirmation SMS shortly.');
     } catch (error) {
       console.error('Pre-registration submission error:', error);
-      setAuthError('Failed to submit pre-registration. Please try again.');
+      setAuthError(error instanceof Error ? error.message : 'Failed to submit pre-registration. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -530,10 +570,26 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                         />
                       </div>
                       {formData.labReports && (
-                        <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          {formData.labReports.name} {t('preRegistration.form.uploaded')}
-                        </p>
+                        <div className="mt-2">
+                          <p className="text-sm text-green-600 dark:text-green-400 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            {formData.labReports.name} ({formatFileSize(formData.labReports.size)})
+                          </p>
+                          {isSubmitting && uploadProgress.labReports > 0 && (
+                            <div className="mt-2">
+                              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                <span>Uploading...</span>
+                                <span>{uploadProgress.labReports}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="bg-[#0075A2] dark:bg-[#0EA5E9] h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${uploadProgress.labReports}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
 
@@ -556,10 +612,26 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                         />
                       </div>
                       {formData.aadhaar && (
-                        <p className="mt-2 text-sm text-green-600 dark:text-green-400 flex items-center">
-                          <CheckCircle className="w-4 h-4 mr-1" />
-                          {formData.aadhaar.name} {t('preRegistration.form.uploaded')}
-                        </p>
+                        <div className="mt-2">
+                          <p className="text-sm text-green-600 dark:text-green-400 flex items-center">
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            {formData.aadhaar.name} ({formatFileSize(formData.aadhaar.size)})
+                          </p>
+                          {isSubmitting && uploadProgress.aadhaar > 0 && (
+                            <div className="mt-2">
+                              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
+                                <span>Uploading...</span>
+                                <span>{uploadProgress.aadhaar}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div 
+                                  className="bg-[#0075A2] dark:bg-[#0EA5E9] h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${uploadProgress.aadhaar}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
