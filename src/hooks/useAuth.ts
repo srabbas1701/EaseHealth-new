@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase, Profile, getProfile } from '../utils/supabase'
+import { supabase, Profile, getProfile, validateSession, refreshSession } from '../utils/supabase'
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null)
@@ -8,9 +8,73 @@ export const useAuth = () => {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoadingInitialAuth, setIsLoadingInitialAuth] = useState(true)
   const [isProfileLoading, setIsProfileLoading] = useState(false)
+  const [sessionRecoveryAttempts, setSessionRecoveryAttempts] = useState(0)
+
+  // Session recovery function with retry logic
+  const recoverSession = useCallback(async (maxRetries = 3) => {
+    console.log(`🔄 Attempting session recovery (attempt ${sessionRecoveryAttempts + 1}/${maxRetries})...`)
+    
+    try {
+      // First try to validate current session
+      const isValid = await validateSession(1)
+      if (isValid) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          console.log('✅ Session recovered successfully')
+          setSession(session)
+          setUser(session.user)
+          setSessionRecoveryAttempts(0)
+          return true
+        }
+      }
+      
+      // If validation failed, try to refresh the session
+      const refreshed = await refreshSession()
+      if (refreshed) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          console.log('✅ Session refreshed and recovered successfully')
+          setSession(session)
+          setUser(session.user)
+          setSessionRecoveryAttempts(0)
+          return true
+        }
+      }
+      
+      console.log('❌ No valid session found during recovery')
+      return false
+    } catch (error) {
+      console.error('❌ Session recovery failed:', error)
+      if (sessionRecoveryAttempts < maxRetries - 1) {
+        setSessionRecoveryAttempts(prev => prev + 1)
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (sessionRecoveryAttempts + 1)))
+        return recoverSession(maxRetries)
+      }
+      return false
+    }
+  }, [sessionRecoveryAttempts])
+
+  // Handle tab visibility changes - only for authenticated users
+  const handleVisibilityChange = useCallback(async () => {
+    if (document.visibilityState === 'visible' && session && user && !isLoadingInitialAuth) {
+      console.log('🔄 Tab became visible, validating session...')
+      const isValid = await validateSession(1)
+      if (!isValid) {
+        console.log('❌ Session invalid, attempting recovery...')
+        const recovered = await recoverSession()
+        if (!recovered) {
+          console.log('❌ Could not recover session, user may need to re-authenticate')
+          setUser(null)
+          setSession(null)
+          setProfile(null)
+        }
+      }
+    }
+  }, [session, user, isLoadingInitialAuth, recoverSession])
 
   useEffect(() => {
-    // Get initial session
+    // Simple, direct approach
     const getInitialSession = async () => {
       console.log('🔄 Starting initial session check...')
       setIsLoadingInitialAuth(true)
@@ -20,28 +84,27 @@ export const useAuth = () => {
         
         if (sessionError) {
           console.error('❌ Error getting session:', sessionError)
-          throw sessionError
-        }
-        
-        console.log('✅ Session fetched:', session ? 'User logged in' : 'No active session')
-        setSession(session)
-        setUser(session?.user ?? null)
-        
-        // Set initial auth loading to false as soon as we know the session status
-        setIsLoadingInitialAuth(false)
-        
-        if (session?.user) {
-          console.log('👤 Fetching profile for user:', session.user.id)
-          setIsProfileLoading(true)
-          try {
-            const userProfile = await getProfile(session.user.id)
-            console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
-            setProfile(userProfile)
-          } catch (error) {
-            console.error('❌ Unexpected error fetching profile:', error)
-            setProfile(null)
-          } finally {
-            setIsProfileLoading(false)
+          setSession(null)
+          setUser(null)
+          setProfile(null)
+        } else {
+          console.log('✅ Session fetched:', session ? 'User logged in' : 'No active session')
+          setSession(session)
+          setUser(session?.user ?? null)
+          
+          if (session?.user) {
+            console.log('👤 Fetching profile for user:', session.user.id)
+            setIsProfileLoading(true)
+            try {
+              const userProfile = await getProfile(session.user.id)
+              console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
+              setProfile(userProfile)
+            } catch (error) {
+              console.error('❌ Error fetching profile:', error)
+              setProfile(null)
+            } finally {
+              setIsProfileLoading(false)
+            }
           }
         }
       } catch (error) {
@@ -49,50 +112,45 @@ export const useAuth = () => {
         setSession(null)
         setUser(null)
         setProfile(null)
-        setIsLoadingInitialAuth(false)
       } finally {
+        setIsLoadingInitialAuth(false)
         console.log('✅ Initial session check complete')
       }
     }
 
     getInitialSession()
 
-    // Listen for auth changes
+    // Simple auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User session active' : 'No session')
         
-        try {
-          setSession(session)
-          setUser(session?.user ?? null)
-          
-          if (session?.user) {
-            console.log('👤 Fetching profile for user after auth change:', session.user.id)
-            setIsProfileLoading(true)
-            try {
-              const userProfile = await getProfile(session.user.id)
-              console.log('✅ Profile fetched after auth change:', userProfile ? 'Profile found' : 'No profile')
-              setProfile(userProfile)
-            } catch (error) {
-              console.error('❌ Error fetching profile after auth change:', error)
-              setProfile(null)
-            } finally {
-              setIsProfileLoading(false)
-            }
-          } else {
-            console.log('🚪 User logged out, clearing profile')
+        setSession(session)
+        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          console.log('👤 Fetching profile for user after auth change:', session.user.id)
+          setIsProfileLoading(true)
+          try {
+            const userProfile = await getProfile(session.user.id)
+            console.log('✅ Profile fetched after auth change:', userProfile ? 'Profile found' : 'No profile')
+            setProfile(userProfile)
+          } catch (error) {
+            console.error('❌ Error fetching profile after auth change:', error)
             setProfile(null)
+          } finally {
+            setIsProfileLoading(false)
           }
-        } catch (error) {
-          console.error('❌ Error in auth state change handler:', error)
+        } else {
+          console.log('🚪 User logged out, clearing profile')
           setProfile(null)
-        } finally {
-          console.log('✅ Auth state change complete')
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const getUserState = (): 'new' | 'returning' | 'authenticated' => {

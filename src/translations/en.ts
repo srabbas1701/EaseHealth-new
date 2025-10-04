@@ -41,9 +41,9 @@ export const en = {
       title: "Queue Dashboard",
       description: "Real-time queue management and patient flow optimization for healthcare facilities."
     },
-    doctorScheduleConfig: {
-      title: "Doctor Schedule Configuration",
-      description: "Manage your availability and appointment slots as a healthcare provider."
+    doctorDashboard: {
+      title: "Doctor Dashboard",
+      description: "Manage your practice, schedule, and patient appointments as a healthcare provider."
     },
     viewAllFeatures: "View all features →"
   },
@@ -217,7 +217,6 @@ export const en = {
     subtitle: "Book your appointment with verified healthcare professionals",
     selectDoctor: "Select Doctor",
     selectDate: "Select Date",
-    selectTime: "Select Time",
     bookAppointment: "Book Appointment",
     backToHome: "Back to Home",
     loading: "Loading doctors...",

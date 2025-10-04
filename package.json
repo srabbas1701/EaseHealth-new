@@ -1,7 +1,11 @@
 {
-  "name": "vite-react-typescript-starter",
+  "name": "easehealth",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Modern Healthcare Management Platform - Smart appointment booking, patient management, and healthcare administration",
+  "keywords": ["healthcare", "appointment-booking", "patient-management", "react", "typescript", "supabase"],
+  "author": "Your Name",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

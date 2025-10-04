@@ -30,6 +30,7 @@ const AccessibleTestimonials = React.lazy(() => import('./components/AccessibleT
 import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProvider } from './components/KeyboardNavigation';
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Import routing components
 import { Routes, Route } from 'react-router-dom';
@@ -41,7 +42,7 @@ const PatientPreRegistrationPage = React.lazy(() => import('./pages/PatientPreRe
 const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage'));
 const PatientDashboardPage = React.lazy(() => import('./pages/PatientDashboardPage'));
 const ChooseServicePage = React.lazy(() => import('./pages/ChooseServicePage'));
-const DoctorScheduleConfigPage = React.lazy(() => import('./pages/DoctorScheduleConfigPage'));
+const DoctorDashboardPage = React.lazy(() => import('./pages/DoctorDashboardPage'));
 
 // Auth props interface
 interface AuthProps {
@@ -823,9 +824,20 @@ function App() {
             <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage {...authData} />} />
             <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage {...authData} />} />
             <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
-            <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
+            <Route 
+              path="/patient-dashboard" 
+              element={
+                <ProtectedRoute 
+                  isAuthenticated={authData.isAuthenticated}
+                  isLoading={authData.isLoadingInitialAuth}
+                  user={authData.user}
+                >
+                  <PatientDashboardPage {...authData} />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
-            <Route path="/doctor-schedule-config" element={<DoctorScheduleConfigPage {...authData} />} />
+            <Route path="/doctor-dashboard" element={<DoctorDashboardPage {...authData} />} />
             {/* Add more routes here as you create new pages */}
           </Routes>
         </Suspense>

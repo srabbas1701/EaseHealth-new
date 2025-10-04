@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { X, User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase, createProfile } from '../utils/supabase';
 import { AuthError } from '@supabase/supabase-js';
@@ -6,7 +6,7 @@ import { AuthError } from '@supabase/supabase-js';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (authData?: { name?: string; email?: string; phone?: string }) => void;
   mode: 'login' | 'signup';
   context: {
     title: string;
@@ -34,6 +34,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     confirmPassword: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
@@ -47,11 +48,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
       });
       setErrors({});
       setShowPassword(false);
+      setIsSubmitting(false);
+      setAuthError('');
     }
   }, [isOpen, mode]);
 
   // Handle form input changes
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = useCallback((field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -61,10 +64,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
     if (authError) {
       setAuthError('');
     }
-  };
+  }, [errors, authError]);
 
   // Validate form
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const newErrors: Record<string, string> = {};
 
     if (mode === 'signup') {
@@ -92,15 +95,18 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [mode, formData]);
 
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isSubmitting) return; // Prevent double submission
     
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setIsSubmitting(true);
     setAuthError('');
     
     try {
@@ -129,19 +135,30 @@ const AuthModal: React.FC<AuthModalProps> = ({
           }
         }
 
-        onSuccess();
+        onSuccess({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone
+        });
       } else {
         // Sign in the user
+        console.log('🔄 Attempting to sign in user:', formData.email);
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: formData.email,
           password: formData.password,
         });
 
         if (authError) {
+          console.error('❌ Login error:', authError);
           throw authError;
         }
 
-        onSuccess();
+        console.log('✅ Login successful, calling onSuccess with:', {
+          email: formData.email
+        });
+        onSuccess({
+          email: formData.email
+        });
       }
     } catch (error) {
       console.error('Authentication error:', error);
@@ -183,8 +200,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
       }
     } finally {
       setIsLoading(false);
+      setIsSubmitting(false);
     }
-  };
+  }, [validateForm, mode, formData, onSuccess, isSubmitting]);
 
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -400,10 +418,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
             {/* Submit button */}
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               className="w-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] disabled:from-gray-400 disabled:to-gray-500 disabled:opacity-50 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed disabled:hover:scale-100 mt-6"
             >
-              {isLoading ? (
+              {isLoading || isSubmitting ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   {mode === 'signup' ? 'Creating Account...' : 'Signing In...'}

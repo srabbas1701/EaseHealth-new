@@ -17,7 +17,7 @@ import { useFocusManagement } from './KeyboardNavigation';
 import { Link, useNavigate } from 'react-router-dom'; // Import Link and useNavigate
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
-import { getDoctorByUserId, isMockSupabase } from '../utils/supabase';
+import { getDoctorByUserId, isMockSupabase, supabase } from '../utils/supabase';
 
 // Helper function to get first name from full name
 const getFirstName = (fullName: string): string => {
@@ -207,8 +207,33 @@ const Navigation: React.FC<NavigationProps> = ({
       navigate('/');
     } catch (error) {
       console.error('❌ Error signing out:', error);
-      // You could add a toast notification here if you have one
-      alert('Failed to sign out. Please try again.');
+      
+      // Try to force logout by clearing local state and redirecting
+      try {
+        console.log('🔄 Attempting force logout...');
+        
+        // Try direct Supabase logout as fallback
+        try {
+          await supabase.auth.signOut();
+          console.log('✅ Direct Supabase logout successful');
+        } catch (supabaseError) {
+          console.warn('⚠️ Direct Supabase logout failed:', supabaseError);
+        }
+        
+        // Clear localStorage
+        localStorage.removeItem('isDoctor');
+        localStorage.removeItem('userRole');
+        localStorage.clear();
+        
+        // Clear session storage
+        sessionStorage.clear();
+        
+        // Force redirect to home page
+        window.location.href = '/';
+      } catch (forceLogoutError) {
+        console.error('❌ Force logout also failed:', forceLogoutError);
+        alert('Logout failed. Please refresh the page and try again.');
+      }
     }
   };
   const toggleSearch = () => {
@@ -237,11 +262,6 @@ const Navigation: React.FC<NavigationProps> = ({
       setIsSearchOpen(false);
       return;
     }
-    if (['testimonial', 'reviews'].some(k => q.includes(k))) {
-      window.location.hash = '#testimonials';
-      setIsSearchOpen(false);
-      return;
-    }
     if (['trust', 'security', 'privacy'].some(k => q.includes(k))) {
       window.location.hash = '#trust';
       setIsSearchOpen(false);
@@ -266,7 +286,7 @@ const Navigation: React.FC<NavigationProps> = ({
       navigate('/patient-dashboard'); setIsSearchOpen(false); return;
     }
     if (q.includes('doctor') || q.includes('schedule')) {
-      navigate('/doctor-schedule-config'); setIsSearchOpen(false); return;
+      navigate('/doctor-dashboard'); setIsSearchOpen(false); return;
     }
     // Default: go to choose-service
     navigate('/choose-service');
@@ -293,15 +313,15 @@ const Navigation: React.FC<NavigationProps> = ({
       case 'authenticated':
         return (
           <div className="flex items-center space-x-3">
-            <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+            <div className="hidden md:flex items-center space-x-2 text-sm text-[#0A2647] dark:text-gray-100">
               <User className="w-4 h-4" />
-              <span>{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-gray-100">{profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || t('common.user'))}</span></span>
+              <span>{t('common.hi')}, <span className="font-bold">{profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user'))}</span></span>
             </div>
             {(!isAuthenticated || doctorChecked) ? (
               <Link
-                to={isDoctor ? '/doctor-schedule-config' : '/patient-dashboard'}
+                to={isDoctor ? '/doctor-dashboard' : '/patient-dashboard'}
                 className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
-                aria-label={isDoctor ? 'Go to Doctor Schedule Configuration' : 'Go to Patient Dashboard'}
+                aria-label={isDoctor ? 'Go to Doctor Dashboard' : 'Go to Patient Dashboard'}
               >
                 {t('nav.dashboard')}
               </Link>
@@ -316,11 +336,12 @@ const Navigation: React.FC<NavigationProps> = ({
             )}
             <button
               onClick={handleLogoutClick}
-              className="p-2.5 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+              className="px-4 py-2.5 text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium"
               aria-label="Sign out"
               title="Sign out"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 mr-2" />
+              Logout
             </button>
           </div>
         );
@@ -364,16 +385,15 @@ const Navigation: React.FC<NavigationProps> = ({
     },
     {
       icon: Calendar,
-      title: t('features.doctorScheduleConfig.title'),
-      description: t('features.doctorScheduleConfig.description'),
-      to: "/doctor-schedule-config"
+      title: t('features.doctorDashboard.title'),
+      description: t('features.doctorDashboard.description'),
+      to: "/doctor-dashboard"
     }
   ];
 
   const navigationItems = [
     { label: t('nav.home'), to: "/", description: "Back to homepage" },
     { label: t('nav.howItWorks'), href: "#how-it-works", description: "Learn our 3-step process" },
-    { label: t('nav.testimonials'), href: "#testimonials", description: "Patient success stories" },
     { label: t('nav.security'), href: "#trust", description: "Data protection & compliance" },
     { label: t('nav.contact'), href: "#contact", description: "Get in touch with us" }
   ];
@@ -641,13 +661,13 @@ const Navigation: React.FC<NavigationProps> = ({
               <div className="px-4 py-2 border-t border-[#E8E8E8] mt-4">
                 {userState === 'authenticated' && (
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300 mb-2">
+                    <div className="flex items-center text-sm text-[#0A2647] dark:text-gray-100 mb-2">
                       <User className="w-4 h-4 mr-2" />
-                      <span>{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-gray-100">{profile?.full_name ? getFirstName(profile.full_name) : (user?.email?.split('@')[0] || t('common.user'))}</span></span>
+                      <span>{t('common.hi')}, <span className="font-bold">{profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user'))}</span></span>
                     </div>
                     <button
                       onClick={handleLogoutClick}
-                      className="flex items-center text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                      className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium"
                       title="Log out"
                     >
                       <LogOut className="w-4 h-4 mr-2" />

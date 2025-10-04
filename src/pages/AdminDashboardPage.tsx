@@ -192,28 +192,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
           {/* Page Header */}
           <div className="bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-8 lg:py-12 border-b border-gray-200 dark:border-gray-700">
             <div className="max-w-7xl mx-auto px-6">
-              <div className="text-center mb-8">
-                <div className="flex items-center justify-center mb-6">
-                  <img 
-                    src="/Logo.png" 
-                    alt="EaseHealth AI Logo" 
-                    className="h-12 w-auto object-contain"
-                    style={{ backgroundColor: 'transparent' }}
-                    onError={(e) => {
-                      // Fallback to other formats if PNG doesn't exist
-                      const target = e.target as HTMLImageElement;
-                      if (target.src.includes('Logo.png')) {
-                        target.src = '/logo.png';
-                      } else if (target.src.includes('logo.png')) {
-                        target.src = '/logo.jpg';
-                      } else if (target.src.includes('logo.jpg')) {
-                        target.src = '/logo.webp';
-                      } else if (target.src.includes('logo.webp')) {
-                        target.src = '/logo.svg';
-                      }
-                    }}
-                  />
-                </div>
+              <div className="text-center mb-6">
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-4">
                   {t('admin.title')}
                 </h1>

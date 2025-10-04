@@ -675,7 +675,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
         {/* Header Section */}
         <div className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Pre-Registration
+            Complete Your Patient Profile
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             Help us provide you with the best possible care by completing your medical profile. This information will help our doctors serve you better.
@@ -785,7 +785,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 disabled={isSubmitting}
                 className={`flex items-center px-8 py-3 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 ${
                   isSubmitting
-                    ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg cursor-not-allowed'
+                    ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-[#0075A2] to-[#0A2647] hover:from-[#005a7a] hover:to-[#081f3a] text-white shadow-lg hover:shadow-xl'
                 }`}
               >
