@@ -3,7 +3,7 @@ import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks } from '../components/KeyboardNavigation';
 import AuthModal from '../components/AuthModal';
-import { getDoctors, getAvailableTimeSlots, generateTimeSlots, Doctor, createPreRegistration, getDoctorSchedules, getSpecialties, getDoctorsBySpecialty, Specialty, createAppointment, getPatientProfile, createPatientProfile } from '../utils/supabase';
+import { getDoctors, getAvailableTimeSlots, generateTimeSlots, Doctor, createPreRegistration, getDoctorSchedules, getSpecialties, getDoctorsBySpecialty, Specialty, createAppointment, getPatientProfile, createPatientProfile, supabase } from '../utils/supabase';
 import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
@@ -62,6 +62,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [specialtiesLoaded, setSpecialtiesLoaded] = useState(false);
   const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false);
+
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
@@ -337,26 +338,26 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const steps = [
     {
       number: "01",
-      title: "Choose Medical Specialty",
-      description: "Select the type of medical care you need from our comprehensive list of specialties.",
+      title: t('appointmentBooking.steps.step1.title'),
+      description: t('appointmentBooking.steps.step1.description'),
       icon: Stethoscope
     },
     {
       number: "02",
-      title: "Select Your Doctor",
-      description: "Choose from our network of verified healthcare professionals in your selected specialty.",
+      title: t('appointmentBooking.steps.step2.title'),
+      description: t('appointmentBooking.steps.step2.description'),
       icon: User
     },
     {
       number: "03", 
-      title: "Pick Your Preferred Date & Time",
-      description: "View real-time availability and select a slot that works best for your schedule.",
+      title: t('appointmentBooking.steps.step3.title'),
+      description: t('appointmentBooking.steps.step3.description'),
       icon: Calendar
     },
     {
       number: "04",
-      title: "Instant Confirmation & Reminders", 
-      description: "Get immediate booking confirmation with SMS/WhatsApp reminders before your visit.",
+      title: t('appointmentBooking.steps.step4.title'), 
+      description: t('appointmentBooking.steps.step4.description'),
       icon: CheckCircle
     }
   ];
@@ -401,39 +402,45 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   };
 
   const handleConfirmBooking = () => {
+    console.log('🔍 handleConfirmBooking called:', { 
+      isAuthenticated, 
+      user: !!user, 
+      selectedDoctor: !!selectedDoctor,
+      selectedDate: !!selectedDate,
+      selectedTime: !!selectedTime
+    });
+    
     if (isAuthenticated && user) {
       // User is already logged in, proceed with booking
+      console.log('✅ User authenticated, calling handleAuthSuccess');
       handleAuthSuccess();
     } else {
       // User needs to authenticate first
+      console.log('❌ User not authenticated, showing auth modal');
       setShowAuthModal(true);
     }
   };
 
   const handleAuthSuccess = async () => {
+    console.log('🔍 handleAuthSuccess called');
     try {
       setShowAuthModal(false);
       
+      console.log('🔍 Checking booking requirements:', {
+        selectedDoctor: !!selectedDoctor,
+        selectedDate: !!selectedDate,
+        selectedTime: !!selectedTime,
+        user: !!user
+      });
+      
       if (!selectedDoctor || !selectedDate || !selectedTime || !user) {
+        console.log('❌ Missing booking information');
         setAnnouncement('Missing booking information. Please try again.');
         return;
       }
-
-      // Check if user has a patient profile
-      const patientProfile = await getPatientProfile(user.id);
       
-      if (!patientProfile) {
-        // User doesn't have a patient profile, redirect to pre-registration
-        setAnnouncement('Please complete your patient profile first.');
-        // You can redirect to pre-registration page here
-        // For now, we'll create a basic patient profile
-        await createPatientProfile(user.id, {
-          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Patient',
-          email: user.email || '',
-          phone_number: user.user_metadata?.phone || '',
-          is_active: true
-        });
-      }
+      console.log('✅ All booking requirements met, proceeding...');
+
 
       // Convert time to proper format (e.g., "9:30 AM" to "09:30:00")
       const timeParts = selectedTime.split(':');
@@ -457,13 +464,105 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         patientId: user.id,
         date: dateString,
         startTime: timeString,
-        durationMinutes: durationMinutes
+        durationMinutes: durationMinutes,
+        selectedSlot: selectedSlot,
+        availableSlots: availableSlots
       });
 
-      // Create the appointment in the database
+      // First, ensure user has a patient profile (for both mock and real slots)
+      console.log('🔍 Getting patient profile for user:', user.id);
+      let patientProfile = await getPatientProfile(user.id);
+      console.log('🔍 Patient profile result:', patientProfile);
+      
+      if (!patientProfile) {
+        console.log('🔍 Creating patient profile for user');
+        try {
+          patientProfile = await createPatientProfile(user.id, {
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Patient',
+            email: user.email || '',
+            phone_number: user.user_metadata?.phone || '000-000-0000', // Provide default phone number
+            is_active: true
+          });
+          console.log('✅ Patient profile created:', patientProfile);
+        } catch (error) {
+          console.error('❌ Error creating patient profile:', error);
+          setAnnouncement('Failed to create patient profile. Please try again.');
+          return;
+        }
+      }
+      
+      if (!patientProfile) {
+        console.error('❌ Failed to create or get patient profile');
+        setAnnouncement('Failed to create patient profile. Please try again.');
+        return;
+      }
+      
+      console.log('✅ Patient profile ready:', patientProfile.id);
+
+      // Check if this is a mock slot
+      const isMockSlot = selectedSlot?.id?.startsWith('mock-');
+      
+      if (isMockSlot) {
+        // For mock slots, create a simple appointment record in the database
+        console.log('🔍 Creating appointment with mock slot - creating appointment record');
+        console.log('🔍 Mock slot details:', { selectedSlot, timeString, dateString, durationMinutes });
+        
+        try {
+          
+          // Create appointment record directly
+          const endTime = new Date(`2000-01-01T${timeString}`);
+          endTime.setMinutes(endTime.getMinutes() + durationMinutes);
+          const endTimeString = endTime.toTimeString().split(' ')[0];
+          
+          const { data: appointment, error } = await supabase
+            .from('appointments')
+            .insert({
+              doctor_id: selectedDoctor.id,
+              patient_id: patientProfile.id, // Use patient profile ID, not user ID
+              appointment_date: dateString,
+              start_time: timeString,
+              end_time: endTimeString,
+              duration_minutes: durationMinutes,
+              status: 'scheduled',
+              notes: 'Appointment booked through EaseHealth platform'
+            })
+            .select()
+            .single();
+
+          if (error) {
+            console.error('Error creating appointment:', error);
+            setAnnouncement('Failed to create appointment. Please try again.');
+            return;
+          }
+
+          console.log('Appointment created successfully:', appointment);
+          setBookingConfirmed(true);
+          setAnnouncement(`Appointment confirmed with ${selectedDoctor.full_name} on ${selectedDate.toLocaleDateString()} at ${selectedTime}. Your appointment has been saved.`);
+          
+          // Redirect to patient dashboard after a short delay
+          setTimeout(() => {
+            navigate('/patient-dashboard');
+          }, 2000);
+          return;
+        } catch (error) {
+          console.error('Error creating appointment:', error);
+          setAnnouncement('Failed to create appointment. Please try again.');
+          return;
+        }
+      }
+
+      // Create the appointment in the database for real slots
+      console.log('🔍 Creating appointment for real slot:', {
+        doctorId: selectedDoctor.id,
+        patientId: patientProfile.id,
+        date: dateString,
+        time: timeString,
+        duration: durationMinutes
+      });
+      
       const appointment = await createAppointment(
         selectedDoctor.id,
-        user.id,
+        patientProfile.id, // Use patient profile ID, not user ID
         dateString,
         timeString,
         durationMinutes, // Use actual slot duration
@@ -486,9 +585,14 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       }
       
     } catch (error) {
-      console.error('Error creating appointment:', error);
+      console.error('❌ Error in handleAuthSuccess:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       setAnnouncement('Failed to create appointment. Please try again.');
-      setShowAuthModal(true); // Reopen modal to retry
+      // Don't reopen modal - user is already authenticated, just show error
     }
   };
 
@@ -1010,11 +1114,11 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                             <CheckCircle className="w-4 h-4 text-white" />
                           </div>
                           <div className="flex-1">
-                            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">Ready to Book!</h4>
+                            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">{t('appointmentBooking.readyToBook.title')}</h4>
                             <p className="text-xs text-blue-700 dark:text-blue-300">
                               {!isAuthenticated 
-                                ? "You'll need to sign in to complete your booking. Don't have an account? We'll help you create one quickly."
-                                : "Click the button above to confirm your appointment. You'll receive instant confirmation via SMS."
+                                ? t('appointmentBooking.readyToBook.signInRequired')
+                                : t('appointmentBooking.readyToBook.confirmBooking')
                               }
                             </p>
                           </div>

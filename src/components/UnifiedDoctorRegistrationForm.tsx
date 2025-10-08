@@ -96,6 +96,7 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
+  const [uploadedFiles, setUploadedFiles] = useState<Set<string>>(new Set());
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -315,49 +316,72 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       const uploadPromises: Promise<void>[] = [];
       
       // Upload medical registration certificate
-      if (formData.medicalRegistrationCertificate) {
+      if (formData.medicalRegistrationCertificate && !uploadedFiles.has('medicalRegistrationCertificate')) {
         uploadPromises.push(
           uploadFile(formData.medicalRegistrationCertificate, 'medical_certificate', 'medicalRegistrationCertificate', finalUserId)
-            .then(url => updateFormData({ medicalRegistrationCertificateUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('medicalRegistrationCertificate'));
+              updateFormData({ medicalRegistrationCertificateUrl: url });
+            })
         );
       }
 
       // Upload Aadhaar documents
-      if (formData.aadhaarFront) {
+      if (formData.aadhaarFront && !uploadedFiles.has('aadhaarFront')) {
         uploadPromises.push(
           uploadFile(formData.aadhaarFront, 'aadhaar_front', 'aadhaarFront', finalUserId)
-            .then(url => updateFormData({ aadhaarFrontUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('aadhaarFront'));
+              updateFormData({ aadhaarFrontUrl: url });
+            })
         );
       }
 
-      if (formData.aadhaarBack) {
+      if (formData.aadhaarBack && !uploadedFiles.has('aadhaarBack')) {
         uploadPromises.push(
           uploadFile(formData.aadhaarBack, 'aadhaar_back', 'aadhaarBack', finalUserId)
-            .then(url => updateFormData({ aadhaarBackUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('aadhaarBack'));
+              updateFormData({ aadhaarBackUrl: url });
+            })
         );
       }
 
       // Upload PAN card
-      if (formData.panCard) {
+      if (formData.panCard && !uploadedFiles.has('panCard')) {
         uploadPromises.push(
           uploadFile(formData.panCard, 'pan_card', 'panCard', finalUserId)
-            .then(url => updateFormData({ panCardUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('panCard'));
+              updateFormData({ panCardUrl: url });
+            })
         );
       }
 
       // Upload profile picture
-      if (formData.profilePicture) {
+      if (formData.profilePicture && !uploadedFiles.has('profilePicture')) {
         uploadPromises.push(
           uploadFile(formData.profilePicture, 'profile_image', 'profilePicture', finalUserId)
-            .then(url => updateFormData({ profilePictureUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('profilePicture'));
+              updateFormData({ profilePictureUrl: url });
+            })
         );
       }
 
       // Upload degree certificates
       if (formData.degreeCertificates.length > 0) {
-        const degreeUploadPromises = formData.degreeCertificates.map((file, index) =>
-          uploadFile(file, 'degree_certificate', `degreeCertificate_${index}`, finalUserId)
-        );
+        const degreeUploadPromises = formData.degreeCertificates.map((file, index) => {
+          const fileKey = `degreeCertificate_${index}`;
+          if (!uploadedFiles.has(fileKey)) {
+            return uploadFile(file, 'degree_certificate', fileKey, finalUserId)
+              .then(url => {
+                setUploadedFiles(prev => new Set(prev).add(fileKey));
+                return url;
+              });
+          }
+          return Promise.resolve(formData.degreeCertificateUrls?.[index] || '');
+        });
         uploadPromises.push(
           Promise.all(degreeUploadPromises)
             .then(urls => updateFormData({ degreeCertificateUrls: urls }))
@@ -365,10 +389,13 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       }
 
       // Upload cancelled cheque
-      if (formData.cancelledCheque) {
+      if (formData.cancelledCheque && !uploadedFiles.has('cancelledCheque')) {
         uploadPromises.push(
           uploadFile(formData.cancelledCheque, 'cancelled_cheque', 'cancelledCheque', finalUserId)
-            .then(url => updateFormData({ cancelledChequeUrl: url }))
+            .then(url => {
+              setUploadedFiles(prev => new Set(prev).add('cancelledCheque'));
+              updateFormData({ cancelledChequeUrl: url });
+            })
         );
       }
 

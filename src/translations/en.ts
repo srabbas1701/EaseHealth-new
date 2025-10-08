@@ -246,6 +246,29 @@ export const en = {
       tip1: "Book 24/7 with instant confirmation",
       tip2: "Get SMS & WhatsApp reminders",
       tip3: "Reschedule anytime before visit"
+    },
+    steps: {
+      step1: {
+        title: "Choose Medical Specialty",
+        description: "Select the type of medical care you need from our comprehensive list of specialties."
+      },
+      step2: {
+        title: "Select Your Doctor",
+        description: "Choose from our network of verified healthcare professionals in your selected specialty."
+      },
+      step3: {
+        title: "Pick Your Preferred Date & Time",
+        description: "View real-time availability and select a slot that works best for your schedule."
+      },
+      step4: {
+        title: "Instant Confirmation & Reminders",
+        description: "Get immediate booking confirmation with SMS/WhatsApp reminders before your visit."
+      }
+    },
+    readyToBook: {
+      title: "Ready to Book!",
+      signInRequired: "You'll need to sign in to complete your booking. Don't have an account? We'll help you create one quickly.",
+      confirmBooking: "Click the button above to confirm your appointment. You'll receive instant confirmation via SMS."
     }
   },
 
@@ -336,6 +359,12 @@ export const en = {
       title: "Complete Your Pre-Registration",
       description: "To securely store your pre-registration information and medical documents, please create an account or sign in to your existing account.",
       actionText: "Complete Pre-Registration"
+    },
+    placeholders: {
+      fullName: "Enter your full name",
+      email: "Enter your email",
+      phone: "Enter your phone number",
+      address: "Enter your full address"
     }
   }
   ,

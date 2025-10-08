@@ -195,7 +195,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Home
+          {t('common.backToHome')}
         </Link>
 
         {/* Header Section */}

@@ -19,10 +19,12 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { getDoctorByUserId, isMockSupabase, supabase } from '../utils/supabase';
 
-// Helper function to get first name from full name
+// Helper function to get first name from full name (skip "Dr" prefix)
 const getFirstName = (fullName: string): string => {
   if (!fullName) return '';
-  return fullName.split(' ')[0];
+  const words = fullName.trim().split(/\s+/);
+  // Skip "Dr" if it's the first word, otherwise return first word
+  return words[0].toLowerCase() === 'dr' ? (words[1] || words[0]) : words[0];
 };
 
 interface AuthProps {
@@ -32,6 +34,7 @@ interface AuthProps {
   userState: 'new' | 'returning' | 'authenticated';
   isAuthenticated: boolean;
   handleLogout: () => Promise<void>;
+  doctor?: any;
 }
 
 interface NavigationProps extends AuthProps {
@@ -45,7 +48,8 @@ const Navigation: React.FC<NavigationProps> = ({
   userState, 
   isAuthenticated, 
   handleLogout, 
-  onMenuToggle 
+  onMenuToggle,
+  doctor 
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -96,11 +100,31 @@ const Navigation: React.FC<NavigationProps> = ({
         return;
       }
       try {
-        // In mock mode we cannot query; default to patient view
+        // In mock mode, check localStorage first, then check user data for role indicators
         if (isMockSupabase) {
+          const storedRole = localStorage.getItem('userRole');
+          console.log('🔍 Mock mode - stored role:', storedRole);
+          if (storedRole === 'doctor') {
+            if (isMounted) {
+              setIsDoctor(true);
+              setDoctorChecked(true);
+            }
+            return;
+          }
+          
+          // Check if user email or name suggests they are a doctor
+          const userEmail = user.email?.toLowerCase() || '';
+          const userName = (profile?.full_name || user?.user_metadata?.full_name || '').toLowerCase();
+          const isDoctorByPattern = userEmail.includes('doctor') || userEmail.includes('dr.') || userEmail.includes('drnishit') || 
+                                   userName.includes('doctor') || userName.includes('dr.') ||
+                                   userEmail.includes('admin') || userName.includes('admin');
+          
+          console.log('🔍 Mock mode - user check:', { userEmail, userName, isDoctorByPattern });
+          
           if (isMounted) {
-            setIsDoctor(false);
+            setIsDoctor(isDoctorByPattern);
             setDoctorChecked(true);
+            console.log('🔍 Set isDoctor to:', isDoctorByPattern);
           }
           return;
         }
@@ -285,7 +309,7 @@ const Navigation: React.FC<NavigationProps> = ({
     if (q.includes('patient')) {
       navigate('/patient-dashboard'); setIsSearchOpen(false); return;
     }
-    if (q.includes('doctor') || q.includes('schedule')) {
+    if ((q.includes('doctor') || q.includes('schedule')) && isDoctor) {
       navigate('/doctor-dashboard'); setIsSearchOpen(false); return;
     }
     // Default: go to choose-service
@@ -313,9 +337,9 @@ const Navigation: React.FC<NavigationProps> = ({
       case 'authenticated':
         return (
           <div className="flex items-center space-x-3">
-            <div className="hidden md:flex items-center space-x-2 text-sm text-[#0A2647] dark:text-gray-100">
-              <User className="w-4 h-4" />
-              <span>{t('common.hi')}, <span className="font-bold">{profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user'))}</span></span>
+            <div className="hidden md:flex items-center space-x-2 text-sm text-[#0A2647] dark:text-white">
+              <User className="w-4 h-4 text-[#0A2647] dark:text-white" />
+              <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(doctor?.full_name || profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
             </div>
             {(!isAuthenticated || doctorChecked) ? (
               <Link
@@ -336,7 +360,7 @@ const Navigation: React.FC<NavigationProps> = ({
             )}
             <button
               onClick={handleLogoutClick}
-              className="px-4 py-2.5 text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium"
+              className="flex items-center px-4 py-2.5 text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium whitespace-nowrap"
               aria-label="Sign out"
               title="Sign out"
             >
@@ -358,52 +382,61 @@ const Navigation: React.FC<NavigationProps> = ({
     }
   };
 
-  const featuresMenuItems = [
+  const allFeaturesMenuItems = [
     {
       icon: Calendar,
       title: t('features.smartAppointmentBooking.title'),
       description: t('features.smartAppointmentBooking.description'),
-      to: "/smart-appointment-booking"
+      to: "/smart-appointment-booking",
+      forPatients: true
     },
     {
       icon: FileText,
       title: t('features.patientPreRegistration.title'), 
       description: t('features.patientPreRegistration.description'),
-      to: "/patient-pre-registration"
+      to: "/patient-pre-registration",
+      forPatients: true
     },
     {
       icon: FileText,
       title: t('features.adminDashboard.title'),
       description: t('features.adminDashboard.description'),
-      to: "/admin-dashboard"
+      to: "/admin-dashboard",
+      forPatients: false
     },
     {
       icon: User,
       title: t('features.patientDashboard.title'),
       description: t('features.patientDashboard.description'),
-      to: "/patient-dashboard"
+      to: "/patient-dashboard",
+      forPatients: true
     },
     {
       icon: Calendar,
       title: t('features.doctorDashboard.title'),
       description: t('features.doctorDashboard.description'),
-      to: "/doctor-dashboard"
+      to: "/doctor-dashboard",
+      forPatients: false
     }
   ];
+
+  // Filter features based on user type
+  const featuresMenuItems = isDoctor 
+    ? allFeaturesMenuItems.filter(item => !item.forPatients)
+    : allFeaturesMenuItems;
 
   const navigationItems = [
     { label: t('nav.home'), to: "/", description: "Back to homepage" },
     { label: t('nav.howItWorks'), href: "#how-it-works", description: "Learn our 3-step process" },
-    { label: t('nav.security'), href: "#trust", description: "Data protection & compliance" },
-    { label: t('nav.contact'), href: "#contact", description: "Get in touch with us" }
+    { label: t('nav.security'), href: "#trust", description: "Data protection & compliance" }
   ];
 
   return (
     <header 
       className={`sticky top-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-[#E8E8E8]/50' 
-          : 'bg-white shadow-sm'
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-[#E8E8E8]/50 dark:border-gray-700/50' 
+          : 'bg-white dark:bg-gray-900 shadow-sm'
       }`}
       role="banner"
     >
@@ -446,7 +479,7 @@ const Navigation: React.FC<NavigationProps> = ({
               <Link // Changed to Link
                 key={item.label}
                 to={item.to} // Changed to 'to'
-                className={`px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
+                className={`px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
                 aria-label={item.description}
                 // onFocus removed as Link handles navigation
               >
@@ -454,11 +487,11 @@ const Navigation: React.FC<NavigationProps> = ({
               </Link>
             ))}
 
-            {/* Features Dropdown - hidden for doctors */}
-            {!isDoctor && (
+            {/* Features Dropdown */}
+            {featuresMenuItems.length > 0 && (
             <div className="relative" ref={dropdownRef}>
               <button
-                className="flex items-center px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                className="flex items-center px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
                 onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
                 onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
                 aria-expanded={activeDropdown === 'features'}
@@ -529,7 +562,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 href={isDoctor ? '#' : item.href}
                 onClick={isDoctor ? preventIfDoctor : undefined}
                 aria-disabled={isDoctor}
-                className={`px-3 py-2 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
+                className={`px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
                 aria-label={item.description}
               >
                 {item.label}
@@ -661,13 +694,13 @@ const Navigation: React.FC<NavigationProps> = ({
               <div className="px-4 py-2 border-t border-[#E8E8E8] mt-4">
                 {userState === 'authenticated' && (
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center text-sm text-[#0A2647] dark:text-gray-100 mb-2">
-                      <User className="w-4 h-4 mr-2" />
-                      <span>{t('common.hi')}, <span className="font-bold">{profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user'))}</span></span>
+                    <div className="flex items-center text-sm text-[#0A2647] dark:text-white mb-2">
+                      <User className="w-4 h-4 mr-2 text-[#0A2647] dark:text-white" />
+                      <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
                     </div>
                     <button
                       onClick={handleLogoutClick}
-                      className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium"
+                      className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium whitespace-nowrap"
                       title="Log out"
                     >
                       <LogOut className="w-4 h-4 mr-2" />

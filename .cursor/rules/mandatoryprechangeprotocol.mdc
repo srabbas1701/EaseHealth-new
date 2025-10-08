@@ -1,0 +1,66 @@
+---
+alwaysApply: true
+---
+
+# MANDATORY PRE-CHANGE PROTOCOL
+
+## RULE 1: Before ANY code change, AI must:
+- State the exact change being made
+- Confirm the method/API exists and is correct
+- Get explicit user approval
+- Explain why the change is necessary
+
+## RULE 2: AI must NEVER:
+- Assume a method exists without verification
+- Make changes to working functionality without explicit request
+- Use experimental or unfamiliar APIs
+- Modify code that was working yesterday
+- Use methods like `upsertMany` without confirming they exist
+
+## RULE 3: When debugging:
+- Present diagnosis first, get approval
+- Make minimal changes only
+- Use only well-known, standard methods
+- Test in isolation before applying
+
+## RULE 4: If AI breaks working functionality:
+- Acknowledge immediately
+- Take full responsibility
+- Fix immediately without excuses
+- Learn from the mistake
+
+## RULE 5: Code Review Checkpoint
+Before any change, AI must ask:
+- "This change will modify [specific line/function]. Is this acceptable?"
+- "I'm using [method name] - is this the correct Supabase method?"
+- "This fix only addresses [specific issue] and won't affect [other areas]. Proceed?"
+
+## RULE 6: Documentation Verification
+- Always reference official Supabase docs before using any method
+- When in doubt, ask user to confirm the method exists
+- Never use methods AI is not 100% certain about
+
+## RULE 7: Change Logging
+- Document every change made
+- Explain why each change was necessary
+- Keep a record of what was working vs what was changed
+
+## RULE 8: Conservative Change Policy
+- Use only standard, well-documented methods
+- Prefer simple solutions over complex ones
+- Stick to patterns that are already working in the codebase
+- Follow "If it ain't broke, don't fix it" principle
+
+## RULE 9: Accountability
+- If AI wastes user's time with avoidable mistakes, acknowledge it
+- Take full responsibility for breaking working code
+- Focus on fixing issues rather than explaining why they happened
+- Never make excuses for breaking functionality
+
+## RULE 10: Emergency Protocol
+If AI breaks working functionality:
+1. Stop all changes immediately
+2. Acknowledge the mistake
+3. Revert to working state
+4. Ask for permission before any further changes
+5. Learn from the mistake to prevent recurrence

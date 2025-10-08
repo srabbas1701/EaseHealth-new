@@ -220,7 +220,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your full name"
+                  placeholder={t('preRegistration.placeholders.fullName')}
                 />
                 {errors.fullName && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -242,7 +242,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your email"
+                  placeholder={t('preRegistration.placeholders.email')}
                 />
                 {errors.email && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -264,7 +264,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your phone number"
+                  placeholder={t('preRegistration.placeholders.phone')}
                 />
                 {errors.phoneNumber && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -340,7 +340,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                 }`}
-                placeholder="Enter your full address"
+                placeholder={t('preRegistration.placeholders.address')}
               />
               {errors.address && (
                 <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
