@@ -19,9 +19,13 @@ const ResetPasswordPage: React.FC = () => {
     // Check if we have a valid reset token in the URL
     const checkResetToken = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (data.session && data.session.user) {
-          // If we have a session, it means the token is valid
+        // Check if we have a recovery token in the URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const tokenType = hashParams.get('type');
+        const accessToken = hashParams.get('access_token');
+        
+        if (tokenType === 'recovery' && accessToken) {
+          // This is a password reset token, not a login token
           setIsValidToken(true);
         } else {
           setError('Invalid or expired reset link. Please request a new password reset.');
@@ -57,6 +61,28 @@ const ResetPasswordPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Get the recovery token from URL
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      
+      if (!accessToken || !refreshToken) {
+        setError('Invalid reset token. Please request a new password reset.');
+        return;
+      }
+
+      // Set the session with the recovery tokens
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      });
+
+      if (sessionError) {
+        setError(sessionError.message);
+        return;
+      }
+
+      // Now update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -65,6 +91,8 @@ const ResetPasswordPage: React.FC = () => {
         setError(error.message);
       } else {
         setSuccess(true);
+        // Sign out after successful password reset
+        await supabase.auth.signOut();
         // Redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/doctor-dashboard');
