@@ -43,6 +43,7 @@ const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage')
 const PatientDashboardPage = React.lazy(() => import('./pages/PatientDashboardPage'));
 const ChooseServicePage = React.lazy(() => import('./pages/ChooseServicePage'));
 const DoctorDashboardPage = React.lazy(() => import('./pages/DoctorDashboardPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 
 // Auth props interface
 interface AuthProps {
@@ -838,6 +839,7 @@ function App() {
             />
             <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
             <Route path="/doctor-dashboard" element={<DoctorDashboardPage {...authData} />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             {/* Add more routes here as you create new pages */}
           </Routes>
         </Suspense>

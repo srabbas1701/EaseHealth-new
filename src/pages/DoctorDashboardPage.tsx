@@ -644,8 +644,13 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     setForgotPasswordSuccess('');
 
     try {
+      // Dynamic URL detection - works for any hosting provider
+      const baseUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5173' 
+        : `${window.location.protocol}//${window.location.host}`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${baseUrl}/reset-password`,
       });
 
       if (error) {
