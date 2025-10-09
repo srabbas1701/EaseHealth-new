@@ -649,9 +649,14 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         ? 'http://localhost:5173' 
         : `${window.location.protocol}//${window.location.host}`;
       
+      console.log('🔄 Sending password reset email to:', forgotPasswordEmail);
+      console.log('🔄 Redirect URL:', `${baseUrl}/reset-password`);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
         redirectTo: `${baseUrl}/reset-password`,
       });
+
+      console.log('🔄 Password reset email result:', { error });
 
       if (error) {
         setForgotPasswordError(error.message);

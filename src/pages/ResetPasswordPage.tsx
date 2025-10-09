@@ -19,18 +19,45 @@ const ResetPasswordPage: React.FC = () => {
     // Check if we have a valid reset token in the URL
     const checkResetToken = async () => {
       try {
-        // Check if we have a recovery token in the URL hash
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const tokenType = hashParams.get('type');
-        const accessToken = hashParams.get('access_token');
+        console.log('🔍 Checking reset token from URL...');
+        console.log('🔍 Full URL:', window.location.href);
+        console.log('🔍 URL hash:', window.location.hash);
+        console.log('🔍 URL search:', window.location.search);
         
-        if (tokenType === 'recovery' && accessToken) {
-          // This is a password reset token, not a login token
+        // Parse URL fragment parameters (Supabase puts tokens in hash)
+        const fragmentParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        // Try to get tokens from hash first, then search params
+        const tokenType = fragmentParams.get('type') || searchParams.get('type');
+        const accessToken = fragmentParams.get('access_token') || searchParams.get('access_token');
+        const refreshToken = fragmentParams.get('refresh_token') || searchParams.get('refresh_token');
+        
+        console.log('🔍 Token type:', tokenType);
+        console.log('🔍 Access token exists:', !!accessToken);
+        console.log('🔍 Refresh token exists:', !!refreshToken);
+        
+        // Check if we have valid recovery tokens in URL
+        if (tokenType === 'recovery' && accessToken && refreshToken) {
+          console.log('✅ Valid recovery tokens found in URL');
           setIsValidToken(true);
         } else {
-          setError('Invalid or expired reset link. Please request a new password reset.');
+          // If no tokens in URL, check if we have a valid session from password recovery
+          console.log('🔍 No tokens in URL, checking for password recovery session...');
+          
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          console.log('🔍 Current session:', { session: !!session, error: sessionError });
+          
+          if (session?.user) {
+            console.log('✅ User has session from password recovery, allowing password reset');
+            setIsValidToken(true);
+          } else {
+            console.log('❌ No valid recovery tokens or session found');
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          }
         }
       } catch (err) {
+        console.error('❌ Error checking reset token:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
     };
@@ -61,44 +88,83 @@ const ResetPasswordPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Get the recovery token from URL
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
+      console.log('🔄 Starting password reset process...');
       
-      if (!accessToken || !refreshToken) {
-        setError('Invalid reset token. Please request a new password reset.');
-        return;
+      // Get the recovery token from URL (check both hash and search params)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const searchParams = new URLSearchParams(window.location.search);
+      
+      const accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || searchParams.get('refresh_token');
+      
+      console.log('🔍 Recovery tokens:', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+      
+      // Try to set session with recovery tokens if we have them
+      if (accessToken && refreshToken) {
+        console.log('🔐 Setting session with recovery tokens...');
+        console.log('🔍 Access token length:', accessToken?.length);
+        console.log('🔍 Refresh token length:', refreshToken?.length);
+        
+        try {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (sessionError) {
+            console.error('❌ Session error:', sessionError);
+            setError('Reset link has expired or is invalid. Please request a new password reset.');
+            return;
+          }
+
+          console.log('✅ Session set successfully with recovery tokens');
+          
+        } catch (error) {
+          console.error('❌ Failed to set session:', error);
+          setError('Reset link has expired or is invalid. Please request a new password reset.');
+          return;
+        }
+      } else {
+        // If no tokens, check if we already have a valid session
+        console.log('🔍 No tokens found, checking existing session...');
+        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError || !session?.user) {
+          console.error('❌ No valid session found:', sessionError);
+          setError('Reset link has expired or is invalid. Please request a new password reset.');
+          return;
+        }
+        
+        console.log('✅ Using existing session for password reset');
       }
 
-      // Set the session with the recovery tokens
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
-
-      if (sessionError) {
-        setError(sessionError.message);
-        return;
-      }
+      console.log('🔄 Updating password...');
 
       // Now update the password
-      const { error } = await supabase.auth.updateUser({
+      const { error, data } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (error) {
+        console.error('❌ Password update error:', error);
         setError(error.message);
       } else {
+        console.log('✅ Password updated successfully:', data);
         setSuccess(true);
-        // Sign out after successful password reset
+        
+        // Sign out the user to clear any session
         await supabase.auth.signOut();
-        // Redirect to login after 3 seconds
+        console.log('✅ User signed out after password reset');
+        
+        // Redirect to login page after 3 seconds
+        // User will need to login with their new password
         setTimeout(() => {
-          navigate('/doctor-dashboard');
+          navigate('/');
         }, 3000);
       }
     } catch (err) {
+      console.error('❌ Unexpected error during password reset:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);
@@ -115,7 +181,7 @@ const ResetPasswordPage: React.FC = () => {
               Password Reset Successful!
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Your password has been updated successfully. You will be redirected to the login page shortly.
+              Your password has been updated successfully! You will be redirected to the login page where you can sign in with your new password.
             </p>
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#0075A2] border-t-transparent mx-auto"></div>
           </div>
@@ -137,7 +203,7 @@ const ResetPasswordPage: React.FC = () => {
               {error || 'This password reset link is invalid or has expired.'}
             </p>
             <button
-              onClick={() => navigate('/doctor-dashboard')}
+              onClick={() => navigate('/')}
               className="w-full bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200"
             >
               Back to Login
@@ -239,7 +305,7 @@ const ResetPasswordPage: React.FC = () => {
 
         <div className="mt-6 text-center">
           <button
-            onClick={() => navigate('/doctor-dashboard')}
+            onClick={() => navigate('/')}
             className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline transition-colors"
           >
             Back to Login

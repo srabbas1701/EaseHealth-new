@@ -125,6 +125,41 @@ export const useAuth = () => {
       async (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User session active' : 'No session')
         
+        // Handle PASSWORD_RECOVERY events - these are for password reset
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('🔄 Handling PASSWORD_RECOVERY event - preventing auto-login during password reset')
+          // For password recovery, we don't want ANY auto-login to happen
+          // User should stay logged out during the entire password reset process
+          // The ResetPasswordPage component will handle password update without logging in
+          return;
+        }
+
+        // Prevent ALL SIGNED_IN events during password recovery process
+        if (event === 'SIGNED_IN' && (
+          window.location.pathname === '/reset-password' || 
+          window.location.hash.includes('type=recovery') ||
+          window.location.hash.includes('access_token') ||
+          window.location.hash.includes('refresh_token')
+        )) {
+          console.log('🔄 Preventing auto-login during password recovery process')
+          // Don't auto-login during password recovery
+          // User should stay logged out during password reset
+          return;
+        }
+
+        // Also prevent USER_UPDATED events during password recovery process
+        if (event === 'USER_UPDATED' && (
+          window.location.pathname === '/reset-password' || 
+          window.location.hash.includes('type=recovery') ||
+          window.location.hash.includes('access_token') ||
+          window.location.hash.includes('refresh_token')
+        )) {
+          console.log('🔄 Preventing USER_UPDATED auto-login during password reset')
+          // Don't auto-login when user password is updated during reset
+          // This prevents auto-login on other windows/tabs
+          return;
+        }
+        
         setSession(session)
         setUser(session?.user ?? null)
         

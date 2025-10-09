@@ -94,7 +94,9 @@ const triggerAuthStateChange = (event: string, session: any) => {
   });
 };
 
+// Create a singleton instance to avoid multiple GoTrueClient instances
 let supabase: any
+
 if (isMockSupabase) {
   console.warn('⚠️ Supabase environment variables not found. Using enhanced mock client for development.')
   
@@ -218,6 +220,49 @@ if (isMockSupabase) {
             } 
           } 
         };
+      },
+      setSession: (_sessionData: { access_token: string; refresh_token: string }) => {
+        console.log('🔐 Mock setSession called with recovery tokens');
+        
+        // For password reset, we don't actually set a session, just validate the tokens
+        // This simulates the password reset flow
+        return Promise.resolve({ data: { session: null }, error: null });
+      },
+      updateUser: (_passwordData: { password: string }) => {
+        console.log('🔐 Mock updateUser called for password reset');
+        
+        // Simulate successful password update and maintain session
+        if (mockUser) {
+          // Update the user object to reflect password change
+          mockUser.updated_at = new Date().toISOString();
+          
+          // Keep the session active after password reset
+          console.log('✅ Password updated successfully, maintaining session for auto-login');
+          
+          return Promise.resolve({ 
+            data: { 
+              user: mockUser, 
+              session: mockSession 
+            }, 
+            error: null 
+          });
+        } else {
+          // If no user, create a mock user for the password reset
+          const resetUser = {
+            id: 'reset-user-id',
+            email: 'user@example.com',
+            user_metadata: { full_name: 'Reset User' },
+            updated_at: new Date().toISOString()
+          };
+          
+          return Promise.resolve({ 
+            data: { 
+              user: resetUser, 
+              session: null 
+            }, 
+            error: null 
+          });
+        }
       }
     },
     from: (table: string) => {
@@ -397,7 +442,13 @@ if (isMockSupabase) {
     }
   }
 } else {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
+  // Create singleton instance to prevent multiple GoTrueClient instances
+  if (!supabase) {
+    console.log('🔧 Creating new Supabase client instance')
+    supabase = createClient(supabaseUrl, supabaseAnonKey)
+  } else {
+    console.log('🔧 Using existing Supabase client instance')
+  }
 }
 
 export { supabase }
@@ -738,13 +789,14 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
 
     if (!doctorsError && doctorsData && doctorsData.length > 0) {
       // Get unique specialties from doctors
-      const uniqueSpecialties = [...new Set(doctorsData.map(d => d.specialty))]
-        .filter(specialty => specialty && specialty.trim())
-        .map((specialty, index) => ({
+      const uniqueSpecialties = [...new Set(doctorsData.map((d: any) => d.specialty))]
+        .filter((specialty: any) => specialty && typeof specialty === 'string' && specialty.trim())
+        .map((specialty: string, index: number) => ({
           id: `doctor-specialty-${index}`,
           name: specialty,
           description: `${specialty} specialist`,
-          sort_order: index + 1
+          sort_order: index + 1,
+          is_active: true
         }))
         .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -758,26 +810,26 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
     
     // Return fallback specialties if both fail
     const fallbackSpecialties = [
-      { id: 'fallback-1', name: 'Cardiology', description: 'Heart and cardiovascular system specialist', sort_order: 1 },
-      { id: 'fallback-2', name: 'Neurology', description: 'Brain and nervous system specialist', sort_order: 2 },
-      { id: 'fallback-3', name: 'Dermatology', description: 'Skin, hair, and nail specialist', sort_order: 3 },
-      { id: 'fallback-4', name: 'Orthopedic Surgery', description: 'Bones, joints, and musculoskeletal specialist', sort_order: 4 },
-      { id: 'fallback-5', name: 'Pediatrics', description: 'Children health specialist', sort_order: 5 },
-      { id: 'fallback-6', name: 'Gynecology', description: 'Women health and reproductive system specialist', sort_order: 6 },
-      { id: 'fallback-7', name: 'Internal Medicine', description: 'Adult general medicine specialist', sort_order: 7 },
-      { id: 'fallback-8', name: 'Psychiatry', description: 'Mental health and psychiatric specialist', sort_order: 8 },
-      { id: 'fallback-9', name: 'Ophthalmology', description: 'Eye and vision specialist', sort_order: 9 },
-      { id: 'fallback-10', name: 'ENT Specialist', description: 'Ear, nose, and throat specialist', sort_order: 10 },
-      { id: 'fallback-11', name: 'Urology', description: 'Urinary system and male reproductive health specialist', sort_order: 11 },
-      { id: 'fallback-12', name: 'Gastroenterology', description: 'Digestive system specialist', sort_order: 12 },
-      { id: 'fallback-13', name: 'Pulmonology', description: 'Lung and respiratory system specialist', sort_order: 13 },
-      { id: 'fallback-14', name: 'Endocrinology', description: 'Hormones and endocrine system specialist', sort_order: 14 },
-      { id: 'fallback-15', name: 'Oncology', description: 'Cancer treatment specialist', sort_order: 15 },
-      { id: 'fallback-16', name: 'Radiology', description: 'Medical imaging and diagnostic specialist', sort_order: 16 },
-      { id: 'fallback-17', name: 'Anesthesiology', description: 'Pain management and anesthesia specialist', sort_order: 17 },
-      { id: 'fallback-18', name: 'Emergency Medicine', description: 'Emergency and urgent care specialist', sort_order: 18 },
-      { id: 'fallback-19', name: 'Family Medicine', description: 'Comprehensive family healthcare specialist', sort_order: 19 },
-      { id: 'fallback-20', name: 'General Surgery', description: 'General surgical procedures specialist', sort_order: 20 }
+      { id: 'fallback-1', name: 'Cardiology', description: 'Heart and cardiovascular system specialist', sort_order: 1, is_active: true },
+      { id: 'fallback-2', name: 'Neurology', description: 'Brain and nervous system specialist', sort_order: 2, is_active: true },
+      { id: 'fallback-3', name: 'Dermatology', description: 'Skin, hair, and nail specialist', sort_order: 3, is_active: true },
+      { id: 'fallback-4', name: 'Orthopedic Surgery', description: 'Bones, joints, and musculoskeletal specialist', sort_order: 4, is_active: true },
+      { id: 'fallback-5', name: 'Pediatrics', description: 'Children health specialist', sort_order: 5, is_active: true },
+      { id: 'fallback-6', name: 'Gynecology', description: 'Women health and reproductive system specialist', sort_order: 6, is_active: true },
+      { id: 'fallback-7', name: 'Internal Medicine', description: 'Adult general medicine specialist', sort_order: 7, is_active: true },
+      { id: 'fallback-8', name: 'Psychiatry', description: 'Mental health and psychiatric specialist', sort_order: 8, is_active: true },
+      { id: 'fallback-9', name: 'Ophthalmology', description: 'Eye and vision specialist', sort_order: 9, is_active: true },
+      { id: 'fallback-10', name: 'ENT Specialist', description: 'Ear, nose, and throat specialist', sort_order: 10, is_active: true },
+      { id: 'fallback-11', name: 'Urology', description: 'Urinary system and male reproductive health specialist', sort_order: 11, is_active: true },
+      { id: 'fallback-12', name: 'Gastroenterology', description: 'Digestive system specialist', sort_order: 12, is_active: true },
+      { id: 'fallback-13', name: 'Pulmonology', description: 'Lung and respiratory system specialist', sort_order: 13, is_active: true },
+      { id: 'fallback-14', name: 'Endocrinology', description: 'Hormones and endocrine system specialist', sort_order: 14, is_active: true },
+      { id: 'fallback-15', name: 'Oncology', description: 'Cancer treatment specialist', sort_order: 15, is_active: true },
+      { id: 'fallback-16', name: 'Radiology', description: 'Medical imaging and diagnostic specialist', sort_order: 16, is_active: true },
+      { id: 'fallback-17', name: 'Anesthesiology', description: 'Pain management and anesthesia specialist', sort_order: 17, is_active: true },
+      { id: 'fallback-18', name: 'Emergency Medicine', description: 'Emergency and urgent care specialist', sort_order: 18, is_active: true },
+      { id: 'fallback-19', name: 'Family Medicine', description: 'Comprehensive family healthcare specialist', sort_order: 19, is_active: true },
+      { id: 'fallback-20', name: 'General Surgery', description: 'General surgical procedures specialist', sort_order: 20, is_active: true }
     ]
     
     // Cache fallback data
@@ -1448,7 +1500,7 @@ export const createDoctorSchedulesForNext4Weeks = async (
       throw fetchError;
     }
     
-    const existingDates = new Set(existingSchedules?.map(s => s.schedule_date) || []);
+    const existingDates = new Set(existingSchedules?.map((s: any) => s.schedule_date) || []);
     console.log(`📊 Found ${existingDates.size} existing schedules for day ${dayOfWeek} in 4-week period`);
     
     // Generate all dates for the 4-week period that match the day of week
