@@ -43,7 +43,6 @@ const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage')
 const PatientDashboardPage = React.lazy(() => import('./pages/PatientDashboardPage'));
 const ChooseServicePage = React.lazy(() => import('./pages/ChooseServicePage'));
 const DoctorDashboardPage = React.lazy(() => import('./pages/DoctorDashboardPage'));
-const DoctorDashboardPagePreview = React.lazy(() => import('./pages/DoctorDashboardPage_Preview'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const DoctorRegistrationPage = React.lazy(() => import('./pages/DoctorRegistrationPage'));
@@ -842,7 +841,6 @@ function App() {
             />
             <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
             <Route path="/doctor-dashboard" element={<DoctorDashboardPage {...authData} />} />
-            <Route path="/doctor-dashboard-preview" element={<DoctorDashboardPagePreview {...authData} />} />
             <Route path="/login-page" element={<LoginPage />} />
             <Route path="/doctor-registration" element={<DoctorRegistrationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
