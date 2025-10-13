@@ -88,7 +88,27 @@ export const hi = {
     },
     patientDashboard: {
       title: "मरीज डैशबोर्ड",
-      description: "आपका व्यक्तिगत स्वास्थ्य अवलोकन और सेवाओं तक त्वरित पहुंच।"
+      description: "आपका व्यक्तिगत स्वास्थ्य अवलोकन और सेवाओं तक त्वरित पहुंच।",
+      welcome: "स्वागत है",
+      tagline: "अपने स्वास्थ्य की यात्रा को सरल और सुरक्षित बनाएं",
+      upcomingAppointments: "आगामी अपॉइंटमेंट",
+      preRegDetails: "पूर्व-पंजीकरण विवरण",
+      fields: {
+        fullName: "पूरा नाम",
+        ageGender: "आयु और लिंग",
+        phoneNumber: "फोन नंबर",
+        location: "स्थान"
+      },
+      healthTipsTitle: "स्वास्थ्य सुझाव",
+      tips: {
+        tip1: "दिन में कम से कम 8 गिलास पानी पीएं",
+        tip2: "नियमित व्यायाम स्वास्थ्य के लिए महत्वपूर्ण है",
+        tip3: "संतुलित आहार स्वस्थ जीवन का आधार है"
+      },
+      quickActions: "त्वरित कार्य",
+      bookNew: "नई अपॉइंटमेंट बुक करें",
+      updatePreRegistration: "पूर्व-पंजीकरण अपडेट करें",
+      manageReminders: "रिमाइंडर प्रबंधित करें"
     },
     doctorDashboard: {
       title: "डॉक्टर डैशबोर्ड",
@@ -426,7 +446,8 @@ export const hi = {
       male: "पुरुष",
       female: "महिला",
       other: "अन्य",
-      preferNotToSay: "बताना नहीं चाहते"
+      preferNotToSay: "बताना नहीं चाहते",
+      selectGender: "अपना लिंग चुनें"
     },
     stats: {
       secure: {

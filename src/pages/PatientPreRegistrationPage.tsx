@@ -1,45 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Upload, 
-  FileText, 
-  User, 
-  Phone, 
-  MapPin, 
-  Calendar, 
-  CheckCircle, 
-  AlertCircle, 
-  Clock, 
-  Shield, 
-  MessageCircle, 
-  Star, 
+import {
+  ArrowLeft,
+  Upload,
+  FileText,
+  User,
+  Phone,
+  MapPin,
+  Calendar,
+  CheckCircle,
+  AlertCircle,
+  Clock,
+  Shield,
+  MessageCircle,
+  Star,
   Heart,
   Mail,
   Home,
   ChevronRight,
   X,
-  Camera
+  Camera,
+  Eye,
+  EyeOff,
+  Lock
 } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { useTheme } from '../contexts/ThemeContext';
-import { supabase } from '../utils/supabase';
+import { supabase, generateQueueToken } from '../utils/supabase';
+import { uploadPatientDocument } from '../utils/patientFileUploadUtils';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
+import QueueTokenModal from '../components/QueueTokenModal';
 
 interface FormData {
   // Personal Information
   fullName: string;
   email: string;
+  password: string;
+  confirmPassword: string;
   phoneNumber: string;
   dateOfBirth: string;
   gender: string;
   address: string;
   city: string;
   state: string;
-  
+
   // Medical Information
   medicalHistory: string;
   allergies: string;
@@ -47,16 +54,16 @@ interface FormData {
   bloodType: string;
   insuranceProvider: string;
   insuranceNumber: string;
-  
+
   // Emergency Contacts
   emergencyContactName: string;
   emergencyContactPhone: string;
-  
+
   // Documents
   idProofFiles: File[];
   labReportFiles: File[];
   profileImageFile: File | null;
-  
+
   // Consent
   consent: boolean;
 }
@@ -71,17 +78,19 @@ const PatientPreRegistrationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, session, profile, userState, isAuthenticated, handleLogout } = useAuth();
-  
+
   // Get booking details and user data from location state
   const bookingDetails = location.state?.bookingDetails || null;
   const userData = location.state?.userData || null;
   const { language } = useLanguage();
   const { t } = useTranslations(language);
   const { isDarkMode } = useTheme();
-  
+
   const [formData, setFormData] = useState<FormData>({
     fullName: userData?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '',
     email: userData?.email || user?.email || '',
+    password: '',
+    confirmPassword: '',
     phoneNumber: userData?.phone || user?.user_metadata?.phone || '',
     dateOfBirth: '',
     gender: '',
@@ -111,6 +120,11 @@ const PatientPreRegistrationPage: React.FC = () => {
     labReportUrls: [],
     profileImageUrl: null
   });
+  const [queueToken, setQueueToken] = useState<string>('');
+  const [showQueueTokenModal, setShowQueueTokenModal] = useState(false);
+  const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Simple translation function
   const getText = (key: string) => {
@@ -164,17 +178,17 @@ const PatientPreRegistrationPage: React.FC = () => {
   const validateFile = (file: File): boolean => {
     const maxSize = 10 * 1024 * 1024; // 10MB
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg'];
-    
+
     if (file.size > maxSize) {
       alert(`File ${file.name} is too large. Maximum size is 10MB.`);
       return false;
     }
-    
+
     if (!allowedTypes.includes(file.type)) {
       alert(`File ${file.name} is not supported. Only PDF and JPEG files are allowed.`);
       return false;
     }
-    
+
     return true;
   };
 
@@ -196,75 +210,168 @@ const PatientPreRegistrationPage: React.FC = () => {
       profileImageUrl: null
     };
 
+    // If no files to upload, return empty result
+    if (formData.idProofFiles.length === 0 &&
+      formData.labReportFiles.length === 0 &&
+      !formData.profileImageFile) {
+      console.log('📁 No files to upload, skipping file upload step');
+      return result;
+    }
+
     try {
-      // Upload ID Proof files
+      console.log('📁 Starting file upload...');
+
+      // Get patient ID for file organization
+      const patientId = patientResult?.id;
+      if (!patientId) {
+        throw new Error('No patient ID available for file upload. Please ensure patient record is created first.');
+      }
+
+      // Upload ID Proof files (Aadhaar documents)
       for (const file of formData.idProofFiles) {
-        const fileName = `${Date.now()}-${file.name}`;
-        const { data, error } = await supabase.storage
-          .from('adhaar-document')
-          .upload(fileName, file);
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('adhaar-document')
-          .getPublicUrl(fileName);
-        
-        result.idProofUrls.push(publicUrl);
+        try {
+          const uploadResult = await uploadPatientDocument(file, patientId, 'aadhaar_documents');
+          const url = uploadResult.publicUrl || uploadResult.signedUrl;
+          if (url) {
+            result.idProofUrls.push(url);
+            console.log('✅ Uploaded ID proof file:', uploadResult.path);
+          }
+        } catch (err) {
+          console.warn('⚠️ Error uploading ID proof file:', err);
+          setAnnouncement(`Failed to upload ID proof file: ${file.name}`);
+          // Continue with other files
+        }
       }
 
       // Upload Lab Report files
       for (const file of formData.labReportFiles) {
-        const fileName = `${Date.now()}-${file.name}`;
-        const { data, error } = await supabase.storage
-          .from('lab-reports')
-          .upload(fileName, file);
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('lab-reports')
-          .getPublicUrl(fileName);
-        
-        result.labReportUrls.push(publicUrl);
+        try {
+          const uploadResult = await uploadPatientDocument(file, patientId, 'lab_reports');
+          const url = uploadResult.publicUrl || uploadResult.signedUrl;
+          if (url) {
+            result.labReportUrls.push(url);
+            console.log('✅ Uploaded lab report file:', uploadResult.path);
+          }
+        } catch (err) {
+          console.warn('⚠️ Error uploading lab report file:', err);
+          setAnnouncement(`Failed to upload lab report file: ${file.name}`);
+        }
       }
 
       // Upload Profile Image
       if (formData.profileImageFile) {
-        const fileName = `${Date.now()}-${formData.profileImageFile.name}`;
-        const { data, error } = await supabase.storage
-          .from('profile_image')
-          .upload(fileName, formData.profileImageFile);
-        
-        if (error) throw error;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('profile_image')
-          .getPublicUrl(fileName);
-        
-        result.profileImageUrl = publicUrl;
+        try {
+          const uploadResult = await uploadPatientDocument(formData.profileImageFile, patientId, 'profile_image');
+          if (uploadResult.publicUrl) {
+            result.profileImageUrl = uploadResult.publicUrl;
+            console.log('✅ Uploaded profile image:', uploadResult.path);
+          }
+        } catch (err) {
+          console.warn('⚠️ Error uploading profile image:', err);
+          setAnnouncement('Failed to upload profile image');
+        }
       }
+
+      console.log('📁 File upload completed. Uploaded:', {
+        idProofs: result.idProofUrls.length,
+        labReports: result.labReportUrls.length,
+        profileImage: result.profileImageUrl ? 'Yes' : 'No'
+      });
 
       return result;
     } catch (error) {
-      console.error('Error uploading files:', error);
-      throw error;
+      console.error('❌ Error in file upload process:', error);
+      setAnnouncement('Some files failed to upload. You can try uploading them later from your profile.');
+      return result;
     }
   };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
 
-    // Required fields
-    if (!formData.fullName.trim()) newErrors.fullName = getText('preRegistration.validation.fullNameRequired');
-    if (!formData.email.trim()) newErrors.email = getText('preRegistration.validation.emailRequired');
-    if (!formData.phoneNumber.trim()) newErrors.phoneNumber = getText('preRegistration.validation.phoneRequired');
-    if (!formData.dateOfBirth) newErrors.dateOfBirth = getText('preRegistration.validation.dateOfBirthRequired');
-    if (!formData.gender) newErrors.gender = getText('preRegistration.validation.genderRequired');
-    if (!formData.address.trim()) newErrors.address = getText('preRegistration.validation.addressRequired');
-    if (!formData.emergencyContactName.trim()) newErrors.emergencyContactName = getText('preRegistration.validation.emergencyContactNameRequired');
-    if (!formData.emergencyContactPhone.trim()) newErrors.emergencyContactPhone = getText('preRegistration.validation.emergencyContactPhoneRequired');
-    if (!formData.consent) newErrors.consent = getText('preRegistration.validation.consentRequired');
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = getText('preRegistration.validation.emailRequired');
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = getText('preRegistration.validation.emailInvalid');
+    }
+
+    // Full Name validation
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = getText('preRegistration.validation.fullNameRequired');
+    } else if (formData.fullName.trim().length < 3) {
+      newErrors.fullName = getText('preRegistration.validation.fullNameMinLength');
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = getText('preRegistration.validation.passwordRequired');
+    } else if (formData.password.length < 8) {
+      newErrors.password = getText('preRegistration.validation.passwordMinLength');
+    } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(formData.password)) {
+      newErrors.password = getText('preRegistration.validation.passwordComplexity');
+    }
+
+    // Confirm Password
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = getText('preRegistration.validation.confirmPasswordRequired');
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = getText('preRegistration.validation.passwordsDoNotMatch');
+    }
+
+    // Phone Number validation
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = getText('preRegistration.validation.phoneRequired');
+    } else if (!phoneRegex.test(formData.phoneNumber.trim())) {
+      newErrors.phoneNumber = getText('preRegistration.validation.phoneInvalid');
+    }
+
+    // Date of Birth validation
+    if (!formData.dateOfBirth) {
+      newErrors.dateOfBirth = getText('preRegistration.validation.dateOfBirthRequired');
+    } else {
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      if (age < 0 || age > 120) {
+        newErrors.dateOfBirth = getText('preRegistration.validation.dateOfBirthInvalid');
+      }
+    }
+
+    // Gender validation
+    if (!formData.gender) {
+      newErrors.gender = getText('preRegistration.validation.genderRequired');
+    } else if (!['Male', 'Female', 'Other', 'Prefer not to say'].includes(formData.gender)) {
+      newErrors.gender = getText('preRegistration.validation.genderInvalid');
+    }
+
+    // Address validation
+    if (!formData.address.trim()) {
+      newErrors.address = getText('preRegistration.validation.addressRequired');
+    } else if (formData.address.trim().length < 10) {
+      newErrors.address = getText('preRegistration.validation.addressMinLength');
+    }
+
+    // Emergency Contact Name
+    if (!formData.emergencyContactName.trim()) {
+      newErrors.emergencyContactName = getText('preRegistration.validation.emergencyContactNameRequired');
+    } else if (formData.emergencyContactName.trim().length < 3) {
+      newErrors.emergencyContactName = getText('preRegistration.validation.emergencyContactNameMinLength');
+    }
+
+    // Emergency Contact Phone
+    if (!formData.emergencyContactPhone.trim()) {
+      newErrors.emergencyContactPhone = getText('preRegistration.validation.emergencyContactPhoneRequired');
+    } else if (!phoneRegex.test(formData.emergencyContactPhone.trim())) {
+      newErrors.emergencyContactPhone = getText('preRegistration.validation.emergencyContactPhoneInvalid');
+    }
+
+    // Consent validation
+    if (!formData.consent) {
+      newErrors.consent = getText('preRegistration.validation.consentRequired');
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -272,25 +379,77 @@ const PatientPreRegistrationPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    console.log('🔄 Starting form submission...');
+
     if (!validateForm()) {
+      console.log('❌ Form validation failed');
       return;
     }
 
     setIsSubmitting(true);
     setAnnouncement('Creating your profile...');
 
+    // Log current auth state
+    console.log('🔑 Auth state:', { user, session, profile, userState, isAuthenticated });
+    console.log('📝 Form data:', formData);
+
     try {
-      // Upload files first
+      // Step 1: Create auth account first (if user is not already logged in)
+      let authUserId = user?.id;
+
+      if (!authUserId) {
+        console.log('🔐 Creating new auth account for:', formData.email);
+
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              phone: formData.phoneNumber
+            }
+          }
+        });
+
+        if (signUpError) {
+          console.error('❌ Error creating auth account:', signUpError);
+          throw new Error(`Failed to create account: ${signUpError.message}`);
+        }
+
+        if (!signUpData.user) {
+          throw new Error('Failed to create user account');
+        }
+
+        authUserId = signUpData.user.id;
+        console.log('✅ Successfully created auth account with ID:', authUserId);
+      }
+
+      // Step 2: Upload files
       const uploadedFiles = await uploadFiles();
 
-      // Prepare patient data
+      // Step 3: Calculate age from date of birth
+      const calculateAge = (dob: string): number => {
+        const birthDate = new Date(dob);
+        const today = new Date();
+        let age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        return age;
+      };
+
+      const age = formData.dateOfBirth ? calculateAge(formData.dateOfBirth) : null;
+      console.log('📊 Calculated age from DOB:', age);
+
+      // Step 4: Prepare patient data
       const patientData = {
-        user_id: user?.id || null,
+        user_id: authUserId,
         full_name: formData.fullName,
         email: formData.email,
         phone_number: formData.phoneNumber,
         date_of_birth: formData.dateOfBirth,
+        age: age, // Add calculated age
         gender: formData.gender,
         address: formData.address,
         city: formData.city,
@@ -306,28 +465,223 @@ const PatientPreRegistrationPage: React.FC = () => {
         profile_image_url: uploadedFiles.profileImageUrl,
         id_proof_urls: uploadedFiles.idProofUrls,
         lab_report_urls: uploadedFiles.labReportUrls,
-        is_active: true
+        is_active: true,
+        consent_agreed: formData.consent // Add consent for patient_pre_registrations
       };
+
+      console.log('📊 Attempting to insert into patients table:', patientData);
+
+      // Step 5: Prepare data for patients table (without age and consent_agreed - it doesn't have those columns)
+      const { age: _age, consent_agreed: _consent, ...patientsTableData } = patientData;
 
       // Insert into patients table
       const { data: patientResult, error: patientError } = await supabase
         .from('patients')
-        .insert([patientData])
+        .insert([patientsTableData])
         .select()
         .single();
 
-      if (patientError) throw patientError;
+      if (patientError) {
+        console.error('❌ Error inserting into patients table:', patientError);
+        throw patientError;
+      }
+
+      console.log('✅ Successfully inserted into patients table:', patientResult);
 
       // Insert into patient_pre_registrations table
+      // Only send fields that exist in patient_pre_registrations schema
+      const preRegData = {
+        user_id: patientData.user_id,
+        full_name: patientData.full_name,
+        age: patientData.age,
+        gender: patientData.gender,
+        phone_number: patientData.phone_number,
+        city: patientData.city,
+        state: patientData.state,
+        symptoms: patientData.medical_history || '', // Map medical_history to symptoms
+        lab_reports_url: patientData.lab_report_urls,
+        aadhaar_url: patientData.id_proof_urls,
+        consent_agreed: patientData.consent_agreed,
+        email: patientData.email,
+        address: patientData.address,
+        date_of_birth: patientData.date_of_birth,
+        emergency_contact_name: patientData.emergency_contact_name,
+        emergency_contact_phone: patientData.emergency_contact_phone
+      };
+
+      console.log('📊 Attempting to insert into patient_pre_registrations table:', preRegData);
+      console.log('📊 Gender value being sent:', preRegData.gender);
+
       const { error: preRegError } = await supabase
         .from('patient_pre_registrations')
-        .insert([patientData]);
+        .insert([preRegData]);
 
-      if (preRegError) throw preRegError;
+      if (preRegError) {
+        console.error('❌ Error inserting into patient_pre_registrations table:', preRegError);
+        throw preRegError;
+      }
+
+      console.log('✅ Successfully inserted into patient_pre_registrations table');
+
+      // If we have booking details, create the appointment
+      if (bookingDetails) {
+        console.log('📅 Attempting to create appointment with booking details:', bookingDetails);
+
+        try {
+          // Find the time slot by doctor, date, and time if timeSlotId is not available
+          let timeSlotId = bookingDetails.timeSlotId;
+
+          if (!timeSlotId) {
+            console.log('🔍 timeSlotId not found in booking details, searching by doctor/date/time');
+
+            // Convert time to proper format (e.g., "9:00 AM" to "09:00:00")
+            const timeToUse = bookingDetails.selectedTime || bookingDetails.time;
+            const dateToUse = bookingDetails.selectedDate || bookingDetails.date;
+            const doctorToUse = bookingDetails.selectedDoctor || bookingDetails;
+
+            console.log('🔍 Debug booking details:', {
+              selectedDate: bookingDetails.selectedDate,
+              selectedTime: bookingDetails.selectedTime,
+              date: bookingDetails.date,
+              time: bookingDetails.time,
+              dateToUse: dateToUse,
+              timeToUse: timeToUse
+            });
+
+            const timeParts = timeToUse.split(':');
+            const hour = parseInt(timeParts[0]);
+            const minute = parseInt(timeParts[1].split(' ')[0]);
+            const isPM = timeToUse.includes('PM');
+
+            let hour24 = hour;
+            if (isPM && hour !== 12) hour24 += 12;
+            if (!isPM && hour === 12) hour24 = 0;
+
+            const timeString = `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+
+            // Fix date conversion to avoid timezone issues
+            const year = dateToUse.getFullYear();
+            const month = (dateToUse.getMonth() + 1).toString().padStart(2, '0');
+            const day = dateToUse.getDate().toString().padStart(2, '0');
+            const dateString = `${year}-${month}-${day}`;
+
+            console.log('🔍 Searching for time slot:', {
+              doctorId: doctorToUse.id,
+              date: dateString,
+              time: timeString,
+              originalDate: dateToUse,
+              originalDateISO: dateToUse.toISOString()
+            });
+
+            const { data: timeSlot, error: searchError } = await supabase
+              .from('time_slots')
+              .select('id')
+              .eq('doctor_id', doctorToUse.id)
+              .eq('schedule_date', dateString)
+              .eq('start_time', timeString)
+              .eq('status', 'available')
+              .single();
+
+            if (searchError || !timeSlot) {
+              console.error('❌ Error finding time slot:', searchError);
+              throw new Error('Time slot not found or no longer available');
+            }
+
+            timeSlotId = timeSlot.id;
+            console.log('✅ Found time slot ID:', timeSlotId);
+          }
+
+          // Update time slot status
+          const { error: slotError } = await supabase
+            .from('time_slots')
+            .update({ status: 'booked' })
+            .eq('id', timeSlotId);
+
+          if (slotError) {
+            console.error('❌ Error updating time slot:', slotError);
+            throw slotError;
+          }
+
+          console.log('✅ Successfully updated time slot status');
+
+          // Generate queue token
+          const queueToken = await generateQueueToken();
+          console.log('🎫 Generated queue token:', queueToken);
+
+          // Convert time to proper format for appointment creation
+          const timeToUse = bookingDetails.selectedTime || bookingDetails.time;
+          const dateToUse = bookingDetails.selectedDate || bookingDetails.date;
+          const doctorToUse = bookingDetails.selectedDoctor || bookingDetails;
+
+          const timeParts = timeToUse.split(':');
+          const hour = parseInt(timeParts[0]);
+          const minute = parseInt(timeParts[1].split(' ')[0]);
+          const isPM = timeToUse.includes('PM');
+
+          let hour24 = hour;
+          if (isPM && hour !== 12) hour24 += 12;
+          if (!isPM && hour === 12) hour24 = 0;
+
+          const timeString = `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+
+          // Fix date conversion to avoid timezone issues
+          const year = dateToUse.getFullYear();
+          const month = (dateToUse.getMonth() + 1).toString().padStart(2, '0');
+          const day = dateToUse.getDate().toString().padStart(2, '0');
+          const dateString = `${year}-${month}-${day}`;
+
+          // Create appointment with correct field names and values
+          const appointmentData = {
+            doctor_id: doctorToUse.id,
+            patient_id: authUserId, // Use auth.users ID for foreign key constraint
+            schedule_date: dateString,
+            start_time: timeString,
+            end_time: (() => {
+              const start = new Date(`2000-01-01T${timeString}`);
+              const end = new Date(start.getTime() + 30 * 60000); // 30 minutes duration
+              return end.toTimeString().slice(0, 8);
+            })(),
+            duration_minutes: 30,
+            status: 'booked', // Changed to 'booked' to match the time_slots status values
+            notes: `Appointment booked during patient registration`,
+            queue_token: queueToken
+          };
+
+          console.log('📅 Creating appointment with data:', appointmentData);
+
+          const { data: appointmentResult, error: appointmentError } = await supabase
+            .from('appointments')
+            .insert([appointmentData])
+            .select()
+            .single();
+
+          if (appointmentError) {
+            console.error('❌ Error creating appointment:', appointmentError);
+            throw appointmentError;
+          }
+
+          console.log('✅ Successfully created appointment:', appointmentResult);
+
+          // Set appointment details for modal
+          setAppointmentDetails({
+            doctorName: bookingDetails.selectedDoctor?.full_name || bookingDetails.doctorName || 'Doctor',
+            date: bookingDetails.selectedDate || bookingDetails.date,
+            time: bookingDetails.selectedTime || bookingDetails.time,
+            specialty: bookingDetails.selectedSpecialty?.name || bookingDetails.specialty
+          });
+
+          // Show queue token modal
+          setQueueToken(queueToken);
+          setShowQueueTokenModal(true);
+        } catch (error) {
+          console.error('❌ Error in appointment creation flow:', error);
+          throw error;
+        }
+      }
 
       setSubmitSuccess(true);
       setAnnouncement('Profile created successfully!');
-      
+
       // Redirect after 2 seconds - if booking details exist, redirect to appointment booking with auth success
       setTimeout(() => {
         if (bookingDetails) {
@@ -354,7 +708,7 @@ const PatientPreRegistrationPage: React.FC = () => {
     return (
       <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
         <AccessibilityAnnouncer message={announcement} />
-        <Navigation 
+        <Navigation
           user={user}
           session={session}
           profile={profile}
@@ -362,21 +716,21 @@ const PatientPreRegistrationPage: React.FC = () => {
           isAuthenticated={isAuthenticated}
           handleLogout={handleLogout}
         />
-        
+
         <div className="flex items-center justify-center min-h-screen px-4">
           <div className="text-center">
             <div className="w-24 h-24 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-8">
               <CheckCircle className="w-12 h-12 text-green-600 dark:text-green-400" />
             </div>
-            
+
             <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
               {getText('preRegistration.success.title')}
             </h1>
-            
+
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
               {getText('preRegistration.success.subtitle')}
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 to="/smart-appointment-booking"
@@ -394,7 +748,7 @@ const PatientPreRegistrationPage: React.FC = () => {
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
       <AccessibilityAnnouncer message={announcement} />
-      <Navigation 
+      <Navigation
         user={user}
         session={session}
         profile={profile}
@@ -402,12 +756,12 @@ const PatientPreRegistrationPage: React.FC = () => {
         isAuthenticated={isAuthenticated}
         handleLogout={handleLogout}
       />
-      
+
       <div className="px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
-          <Link 
-            to="/" 
+          <Link
+            to="/"
             className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-8"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -422,7 +776,7 @@ const PatientPreRegistrationPage: React.FC = () => {
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
               {getText('preRegistration.subtitle')}
             </p>
-            
+
             {/* Booking Summary */}
             {bookingDetails && (
               <div className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-xl p-6 text-white mb-8 max-w-2xl mx-auto">
@@ -446,7 +800,7 @@ const PatientPreRegistrationPage: React.FC = () => {
                 </p>
               </div>
             )}
-            
+
             {/* Quick Stats */}
             <div className="flex flex-wrap justify-center gap-8 mb-8">
               <div className="flex items-center text-center">
@@ -482,7 +836,7 @@ const PatientPreRegistrationPage: React.FC = () => {
           {/* Main Form */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
             <form onSubmit={handleSubmit} className="space-y-12">
-              
+
               {/* Personal Information Section */}
               <div className="space-y-6">
                 <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
@@ -510,9 +864,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="fullName"
                       value={formData.fullName}
                       onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                       placeholder={getText('preRegistration.placeholders.fullName')}
                     />
                     {errors.fullName && (
@@ -527,20 +880,84 @@ const PatientPreRegistrationPage: React.FC = () => {
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {getText('preRegistration.formLabels.email')}
                     </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
-                      placeholder={getText('preRegistration.placeholders.email')}
-                    />
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="email"
+                        id="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={`w-full pl-11 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        placeholder={getText('preRegistration.placeholders.email')}
+                      />
+                    </div>
                     {errors.email && (
                       <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
                         <AlertCircle className="w-4 h-4 mr-1" />
                         {errors.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        id="password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.password ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        placeholder="Enter your password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {errors.password && (
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        id="confirmPassword"
+                        value={formData.confirmPassword}
+                        onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        className={`w-full pl-11 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                          }`}
+                        placeholder="Confirm your password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                      >
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {errors.confirmPassword && (
+                      <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.confirmPassword}
                       </p>
                     )}
                   </div>
@@ -554,9 +971,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="phoneNumber"
                       value={formData.phoneNumber}
                       onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                       placeholder={getText('preRegistration.placeholders.phone')}
                     />
                     {errors.phoneNumber && (
@@ -576,9 +992,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="dateOfBirth"
                       value={formData.dateOfBirth}
                       onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.dateOfBirth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                     />
                     {errors.dateOfBirth && (
                       <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -596,11 +1011,10 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="gender"
                       value={formData.gender}
                       onChange={(e) => handleInputChange('gender', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                     >
-                      <option value="">{getText('preRegistration.placeholders.gender')}</option>
+                      <option value="">{getText('preRegistration.gender.selectGender')}</option>
                       {genderOptions.map(option => (
                         <option key={option.value} value={option.value}>
                           {option.label}
@@ -624,9 +1038,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       value={formData.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
                       rows={3}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                       placeholder={getText('preRegistration.placeholders.address')}
                     />
                     {errors.address && (
@@ -911,9 +1324,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="emergencyContactName"
                       value={formData.emergencyContactName}
                       onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.emergencyContactName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                       placeholder={getText('preRegistration.placeholders.emergencyContactName')}
                     />
                     {errors.emergencyContactName && (
@@ -933,9 +1345,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       id="emergencyContactPhone"
                       value={formData.emergencyContactPhone}
                       onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
-                        errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                        }`}
                       placeholder={getText('preRegistration.placeholders.emergencyContactPhone')}
                     />
                     {errors.emergencyContactPhone && (
@@ -1001,9 +1412,8 @@ const PatientPreRegistrationPage: React.FC = () => {
                       type="checkbox"
                       checked={formData.consent}
                       onChange={(e) => handleInputChange('consent', e.target.checked)}
-                      className={`mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 ${
-                        errors.consent ? 'border-red-500' : ''
-                      }`}
+                      className={`mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 ${errors.consent ? 'border-red-500' : ''
+                        }`}
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300">
                       {getText('preRegistration.consent.agreementText')}
@@ -1023,11 +1433,10 @@ const PatientPreRegistrationPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`flex items-center px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 ${
-                    isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
-                  }`}
+                  className={`flex items-center px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 ${isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
+                    }`}
                 >
                   {isSubmitting ? (
                     <>
@@ -1046,6 +1455,19 @@ const PatientPreRegistrationPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Queue Token Modal */}
+      {showQueueTokenModal && queueToken && appointmentDetails && (
+        <QueueTokenModal
+          isOpen={showQueueTokenModal}
+          onClose={() => {
+            setShowQueueTokenModal(false);
+            navigate('/patient-dashboard');
+          }}
+          queueToken={queueToken}
+          appointmentDetails={appointmentDetails}
+        />
+      )}
     </div>
   );
 };

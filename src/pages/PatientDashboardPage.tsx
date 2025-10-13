@@ -6,7 +6,7 @@ import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, 
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
-import { getPatientProfile, getPatientAppointments } from '../utils/supabase';
+import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHistory } from '../utils/patientProfileUtils';
 // Temporarily commented out recharts imports to fix loading issue
 // import { 
 //   LineChart, 
@@ -81,45 +81,20 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   useEffect(() => {
     const loadPatientData = async () => {
       if (!user) return;
-      
+
       try {
         setIsLoading(true);
-        
-        // Load patient profile
-        const profile = await getPatientProfile(user.id);
-        setPatientProfile(profile);
-        
-        // Load appointments (you'll need to implement this function)
-        // const appointments = await getPatientAppointments(user.id);
-        // setUpcomingAppointments(appointments);
-        
-        // For now, use sample data
-        setUpcomingAppointments([
-          { 
-            id: '1', 
-            doctor: 'Dr. Anjali Sharma', 
-            specialty: 'Cardiologist', 
-            date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString(), 
-            time: '10:00 AM', 
-            status: 'Confirmed' 
-          },
-          { 
-            id: '2', 
-            doctor: 'Dr. Rajesh Kumar', 
-            specialty: 'Neurologist', 
-            date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString(), 
-            time: '02:30 PM', 
-            status: 'Scheduled' 
-          },
-        ]);
 
-        // Calculate stats
-        setStats({
-          totalAppointments: 12,
-          completedAppointments: 10,
-          upcomingAppointments: 2,
-          profileCompletion: profile ? 100 : 0
-        });
+        // Load patient profile and stats
+        const { profile, stats } = await getPatientProfileWithStats(user.id);
+        setPatientProfile(profile);
+        setStats(stats);
+
+        // Load upcoming appointments
+        if (profile?.id) {
+          const appointments = await getUpcomingAppointments(profile.id);
+          setUpcomingAppointments(appointments);
+        }
 
       } catch (error) {
         console.error('Error loading patient data:', error);
@@ -150,7 +125,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-        <Navigation 
+        <Navigation
           user={user}
           session={session}
           profile={profile}
@@ -158,7 +133,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           isAuthenticated={isAuthenticated}
           handleLogout={handleLogout}
         />
-        
+
         <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-16">
             <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
@@ -179,7 +154,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
       <AccessibilityAnnouncer message={announcement} />
-      <Navigation 
+      <Navigation
         user={user}
         session={session}
         profile={profile}
@@ -187,11 +162,11 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
         isAuthenticated={isAuthenticated}
         handleLogout={handleLogout}
       />
-      
+
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
@@ -199,17 +174,47 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
         </Link>
 
         {/* Header Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            {t('patientDashboard.welcome')},{' '}
-            <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
-              {getUserDisplayName()}
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-            {t('patientDashboard.tagline')}
-          </p>
-          
+        <div className="mb-8">
+          {/* Profile Image and Last Login */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative">
+              {patientProfile?.profile_image_url ? (
+                <img
+                  src={patientProfile.profile_image_url}
+                  alt={patientProfile.full_name}
+                  className="w-24 h-24 rounded-full object-cover border-4 border-[#0075A2] dark:border-[#0EA5E9]"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] flex items-center justify-center">
+                  <User className="w-12 h-12 text-white" />
+                </div>
+              )}
+              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900">
+                <CheckCircle className="w-4 h-4 text-white" />
+              </div>
+            </div>
+          </div>
+
+          {/* Last Login Info */}
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Last login: {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'}
+            </p>
+          </div>
+
+          {/* Welcome Message */}
+          <div className="text-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
+              {t('patientDashboard.welcome')},{' '}
+              <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
+                {getUserDisplayName()}
+              </span>
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
+              {t('patientDashboard.tagline')}
+            </p>
+          </div>
+
           {/* Quick Stats */}
           <div className="flex flex-wrap justify-center gap-8 mb-12">
             <div className="flex items-center text-center">
@@ -317,14 +322,14 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                <Calendar className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                {t('patientDashboard.upcomingAppointments')}
-              </h2>
+                  <Calendar className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  {t('patientDashboard.upcomingAppointments')}
+                </h2>
                 <p className="text-gray-600 dark:text-gray-300">
                   Your scheduled appointments and medical consultations
                 </p>
               </div>
-              
+
               {upcomingAppointments.length > 0 ? (
                 <div className="space-y-6">
                   {upcomingAppointments.map(appointment => (
@@ -335,31 +340,47 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                             <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-4">
                               <User className="w-6 h-6 text-white" />
                             </div>
-                      <div>
+                            <div>
                               <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">{appointment.doctor}</h3>
                               <p className="text-sm text-[#0075A2] dark:text-[#0EA5E9] font-medium">{appointment.specialty}</p>
                             </div>
                           </div>
                           <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
-                          <Clock className="w-4 h-4 mr-2" />
+                            <Clock className="w-4 h-4 mr-2" />
                             <span className="font-medium">{appointment.date} at {appointment.time}</span>
                           </div>
                           <div className="flex items-center text-gray-600 dark:text-gray-300">
                             <MapPin className="w-4 h-4 mr-2" />
                             <span>EaseHealth Medical Center</span>
                           </div>
-                      </div>
+                          {appointment.queue_token && (
+                            <div className="mt-2 flex items-center text-[#0075A2] dark:text-[#0EA5E9]">
+                              <Bell className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Queue Token: {appointment.queue_token}</span>
+                            </div>
+                          )}
+                          {appointment.payment_status && (
+                            <div className="mt-2 flex items-center text-gray-600 dark:text-gray-300">
+                              <Shield className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Payment: {appointment.payment_status.charAt(0).toUpperCase() + appointment.payment_status.slice(1)}</span>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex flex-col items-end">
-                          <span className={`px-4 py-2 rounded-full text-sm font-semibold mb-3 ${
-                            appointment.status === 'Confirmed' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
+                          <span className={`px-4 py-2 rounded-full text-sm font-semibold mb-3 ${appointment.status === 'confirmed' || appointment.status === 'booked'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : appointment.status === 'cancelled'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                               : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                      }`}>
-                        {appointment.status}
-                      </span>
-                          <button className="text-[#0075A2] dark:text-[#0EA5E9] text-sm font-medium hover:underline">
+                            }`}>
+                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                          </span>
+                          <Link
+                            to={`/appointments/${appointment.id}`}
+                            className="text-[#0075A2] dark:text-[#0EA5E9] text-sm font-medium hover:underline"
+                          >
                             View Details
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </div>
@@ -374,10 +395,18 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <p className="text-gray-600 dark:text-gray-300 mb-6">You don't have any scheduled appointments yet.</p>
                 </div>
               )}
-              
+
               <div className="mt-8 text-center">
-                <Link 
-                  to="/smart-appointment-booking" 
+                <Link
+                  to={{
+                    pathname: "/smart-appointment-booking",
+                    search: `?patientId=${patientProfile?.id || ''}&userId=${user?.id || ''}`
+                  }}
+                  state={{
+                    fromDashboard: true,
+                    patientProfile: patientProfile,
+                    user: user
+                  }}
                   className="inline-flex items-center bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 transform hover:scale-105 focus-ring"
                 >
                   <Calendar className="w-5 h-5 mr-2" />
@@ -391,14 +420,14 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                <FileText className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                {t('patientDashboard.preRegDetails')}
-              </h2>
+                  <FileText className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  {t('patientDashboard.preRegDetails')}
+                </h2>
                 <p className="text-gray-600 dark:text-gray-300">
                   Your complete medical profile and registration information
                 </p>
               </div>
-              
+
               <div className="space-y-6">
                 {/* Personal Information */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6">
@@ -406,8 +435,8 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
                     Personal Information
                   </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.fullName')}</p>
                       <p className="text-[#0A2647] dark:text-gray-100 font-medium">
                         {patientProfile?.full_name || user?.user_metadata?.full_name || 'Not provided'}
@@ -416,8 +445,8 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.ageGender')}</p>
                       <p className="text-[#0A2647] dark:text-gray-100 font-medium">
-                        {patientProfile?.date_of_birth ? 
-                          `${new Date().getFullYear() - new Date(patientProfile.date_of_birth).getFullYear()} years` : 
+                        {patientProfile?.date_of_birth ?
+                          `${new Date().getFullYear() - new Date(patientProfile.date_of_birth).getFullYear()} years` :
                           'Not provided'
                         } / {patientProfile?.gender || 'Not specified'}
                       </p>
@@ -507,21 +536,20 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Profile Status</p>
                       <p className="text-[#0A2647] dark:text-gray-100">Medical profile completion and data consent</p>
-                </div>
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                      patientProfile?.is_active 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}>
+                    </div>
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${patientProfile?.is_active
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      }`}>
                       {patientProfile?.is_active ? 'Active' : 'Incomplete'}
-                  </span>
+                    </span>
                   </div>
                 </div>
               </div>
-              
+
               <div className="mt-8 text-center">
-                <Link 
-                  to="/patient-pre-registration" 
+                <Link
+                  to="/patient-pre-registration"
                   className="inline-flex items-center bg-white dark:bg-gray-800 text-[#0075A2] dark:text-[#0EA5E9] border-2 border-[#0075A2] dark:border-[#0EA5E9] px-8 py-4 rounded-xl font-semibold hover:bg-[#0075A2] dark:hover:bg-[#0EA5E9] hover:text-white transition-all duration-200 focus-ring"
                 >
                   <FileText className="w-5 h-5 mr-2" />
@@ -532,63 +560,19 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             </div>
           </div>
 
-          {/* Right Column - Quick Actions & Health Tips (1/3 width) */}
+          {/* Right Column - Health Tips (1/3 width) */}
           <div className="lg:col-span-1 space-y-8">
-            {/* Quick Actions */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700 sticky top-24">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {t('patientDashboard.quickActions')}
-              </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  Quick access to your most used features
-                </p>
-              </div>
-              
-              <div className="space-y-4">
-                <Link 
-                  to="/smart-appointment-booking" 
-                  className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-2xl font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 focus-ring group"
-                >
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                    <Calendar className="w-5 h-5" />
-                  </div>
-                  {t('patientDashboard.bookNew')}
-                  <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                
-                <Link 
-                  to="/patient-pre-registration" 
-                  className="w-full flex items-center justify-center px-6 py-4 border-2 border-[#0075A2] dark:border-[#0EA5E9] text-[#0075A2] dark:text-[#0EA5E9] rounded-2xl font-semibold hover:bg-[#0075A2] dark:hover:bg-[#0EA5E9] hover:text-white transition-all duration-200 focus-ring group"
-                >
-                  <div className="w-10 h-10 bg-[#0075A2]/10 dark:bg-[#0EA5E9]/10 rounded-full flex items-center justify-center mr-3 group-hover:bg-white/20 transition-colors">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  {t('patientDashboard.updatePreRegistration')}
-                  <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                
-                <button className="w-full flex items-center justify-center px-6 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 focus-ring group">
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                    <Bell className="w-5 h-5" />
-                  </div>
-                  {t('patientDashboard.manageReminders')}
-                  <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
-
             {/* Health Tips */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
               <div className="text-center mb-8">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {t('patientDashboard.healthTipsTitle')}
-              </h3>
+                  {t('patientDashboard.healthTipsTitle')}
+                </h3>
                 <p className="text-gray-600 dark:text-gray-300 text-sm">
                   Tips for maintaining good health
                 </p>
               </div>
-              
+
               <div className="space-y-6">
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-4">
                   <div className="flex items-start">
@@ -601,7 +585,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4">
                   <div className="flex items-start">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
@@ -613,7 +597,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
                   <div className="flex items-start">
                     <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
@@ -647,6 +631,60 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions Section - Moved to Bottom */}
+        <div className="mt-12">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
+            <div className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                {t('patientDashboard.quickActions')}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">
+                Quick access to your most used features
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link
+                to={{
+                  pathname: "/smart-appointment-booking",
+                  search: `?patientId=${patientProfile?.id || ''}&userId=${user?.id || ''}`
+                }}
+                state={{
+                  fromDashboard: true,
+                  patientProfile: patientProfile,
+                  user: user
+                }}
+                className="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-2xl font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 focus-ring group"
+              >
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                {t('patientDashboard.bookNew')}
+                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+
+              <Link
+                to="/patient-pre-registration"
+                className="flex items-center justify-center px-6 py-4 border-2 border-[#0075A2] dark:border-[#0EA5E9] text-[#0075A2] dark:text-[#0EA5E9] rounded-2xl font-semibold hover:bg-[#0075A2] dark:hover:bg-[#0EA5E9] hover:text-white transition-all duration-200 focus-ring group"
+              >
+                <div className="w-10 h-10 bg-[#0075A2]/10 dark:bg-[#0EA5E9]/10 rounded-full flex items-center justify-center mr-3 group-hover:bg-white/20 transition-colors">
+                  <FileText className="w-5 h-5" />
+                </div>
+                {t('patientDashboard.updatePreRegistration')}
+                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Link>
+
+              <button className="flex items-center justify-center px-6 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 focus-ring group">
+                <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
+                  <Bell className="w-5 h-5" />
+                </div>
+                {t('patientDashboard.manageReminders')}
+                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
           </div>
         </div>

@@ -508,7 +508,8 @@ export const en = {
       male: "Male",
       female: "Female",
       other: "Other",
-      preferNotToSay: "Prefer not to say"
+      preferNotToSay: "Prefer not to say",
+      selectGender: "Select your gender"
     },
     stats: {
       secure: {

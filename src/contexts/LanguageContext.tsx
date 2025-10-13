@@ -25,13 +25,13 @@ const getInitialLanguage = (): Language => {
     if (savedLanguage && (savedLanguage === 'en' || savedLanguage === 'hi')) {
       return savedLanguage as Language;
     }
-    
+
     // Check browser language preference
     const browserLanguage = navigator.language.toLowerCase();
     if (browserLanguage.startsWith('hi')) {
       return 'hi';
     }
-    
+
     // Default to English
     return 'en';
   } catch (error) {
@@ -78,7 +78,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
         initialLanguage,
         availableTranslations: Object.keys(translations)
       });
-      
+
       // Verify translations exist
       if (!verifyTranslations(initialLanguage)) {
         console.error('❌ Initial language verification failed, falling back to English');
@@ -110,14 +110,14 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
       // Save language preference to localStorage
       localStorage.setItem('language', language);
-      
+
       // Update document language attribute for accessibility
       document.documentElement.lang = language;
       document.documentElement.setAttribute('lang', language);
-      
+
       // Update document direction for RTL languages (if needed in future)
       document.documentElement.dir = 'ltr'; // Both English and Hindi are LTR
-      
+
       // Force re-render of components using translations
       window.dispatchEvent(new Event('languagechange'));
     } catch (error) {
@@ -143,6 +143,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
 
   const toggleLanguage = () => {
     const newLanguage = language === 'en' ? 'hi' : 'en';
+    console.log('🔄 Toggling language from', language, 'to', newLanguage);
     setLanguage(newLanguage);
   };
 
