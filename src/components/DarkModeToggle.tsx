@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Sun, Moon, Monitor, ChevronDown } from 'lucide-react';
-import { useDarkMode } from '../hooks/useDarkMode';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface DarkModeToggleProps {
   className?: string;
@@ -11,16 +11,8 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
   className = '', 
   showDropdown = false 
 }) => {
-  const { isDarkMode, toggleDarkMode, setTheme } = useDarkMode();
+  const { theme, setTheme, isDarkMode } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const getCurrentTheme = () => {
-    const savedTheme = localStorage.getItem('theme');
-    if (!savedTheme) return 'system';
-    return savedTheme as 'light' | 'dark' | 'system';
-  };
-
-  const currentTheme = getCurrentTheme();
 
   const themeOptions = [
     { value: 'light', label: 'Light', icon: Sun },
@@ -28,8 +20,8 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
     { value: 'system', label: 'System', icon: Monitor }
   ];
 
-  const handleThemeSelect = (theme: 'light' | 'dark' | 'system') => {
-    setTheme(theme);
+  const handleThemeSelect = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme);
     setIsDropdownOpen(false);
   };
 
@@ -47,13 +39,13 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           onKeyDown={(e) => handleKeyDown(e, () => setIsDropdownOpen(!isDropdownOpen))}
           className="flex items-center space-x-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-          aria-label={`Current theme: ${currentTheme}. Click to change theme`}
+          aria-label={`Current theme: ${theme}. Click to change theme`}
           aria-expanded={isDropdownOpen}
           aria-haspopup="true"
         >
-          {currentTheme === 'light' && <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-          {currentTheme === 'dark' && <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-          {currentTheme === 'system' && <Monitor className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+          {theme === 'light' && <Sun className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+          {theme === 'dark' && <Moon className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+          {theme === 'system' && <Monitor className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
           <ChevronDown className={`w-4 h-4 text-gray-700 dark:text-gray-300 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
@@ -67,7 +59,7 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
                   onClick={() => handleThemeSelect(option.value as 'light' | 'dark' | 'system')}
                   onKeyDown={(e) => handleKeyDown(e, () => handleThemeSelect(option.value as 'light' | 'dark' | 'system'))}
                   className={`w-full flex items-center space-x-2 px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700 ${
-                    currentTheme === option.value 
+                    theme === option.value 
                       ? 'bg-[#0075A2] text-white hover:bg-[#0075A2] dark:hover:bg-[#0075A2]' 
                       : 'text-gray-700 dark:text-gray-300'
                   }`}
@@ -86,8 +78,8 @@ const DarkModeToggle: React.FC<DarkModeToggleProps> = ({
 
   return (
     <button
-      onClick={toggleDarkMode}
-      onKeyDown={(e) => handleKeyDown(e, toggleDarkMode)}
+      onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+      onKeyDown={(e) => handleKeyDown(e, () => setTheme(isDarkMode ? 'light' : 'dark'))}
       className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transform hover:scale-105 ${className}`}
       aria-label={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
       title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}

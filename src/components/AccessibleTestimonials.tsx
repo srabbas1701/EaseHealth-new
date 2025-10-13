@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Star, Quote, MapPin } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslations } from '../translations';
 
 interface Testimonial {
   id: string;
@@ -24,6 +26,8 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
   showRatings = true,
   className = ''
 }) => {
+  const { language } = useLanguage();
+  const { t } = useTranslations(language);
   const [preferredFormat, setPreferredFormat] = useState<'carousel' | 'list'>('carousel');
 
   // Simple carousel state
@@ -152,7 +156,7 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
             aria-selected={preferredFormat === 'carousel'}
             aria-controls="testimonials-content"
           >
-            Slideshow
+            {t('testimonials.slideshow')}
           </button>
           <button
             onClick={() => setPreferredFormat('list')}
@@ -165,7 +169,7 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
             aria-selected={preferredFormat === 'list'}
             aria-controls="testimonials-content"
           >
-            List View
+            {t('testimonials.listView')}
           </button>
         </div>
       </div>
@@ -181,8 +185,9 @@ const AccessibleTestimonials: React.FC<AccessibleTestimonialsProps> = ({
 
       {/* Summary for screen readers */}
       <div className="sr-only">
-        Summary: {testimonials.length} customer testimonials with an average rating of{' '}
-        {(testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length).toFixed(1)} stars.
+        {t('testimonials.summary')
+          .replace('{count}', testimonials.length.toString())
+          .replace('{rating}', (testimonials.reduce((sum, t) => sum + t.rating, 0) / testimonials.length).toFixed(1))}
       </div>
     </div>
   );

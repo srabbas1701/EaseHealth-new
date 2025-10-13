@@ -5,6 +5,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EaseHealth AI Landing Page - AI-Powered Healthcare Platform</title>
+    <!-- Prevent flash of wrong theme -->
+    <script>
+      (function() {
+        function getInitialTheme() {
+          const savedTheme = localStorage.getItem('theme');
+          if (savedTheme === 'dark') return true;
+          if (savedTheme === 'light') return false;
+          if (savedTheme === 'system' || !savedTheme) {
+            return window.matchMedia('(prefers-color-scheme: dark)').matches;
+          }
+          return false;
+        }
+
+        if (getInitialTheme()) {
+          document.documentElement.classList.add('dark');
+          document.body.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

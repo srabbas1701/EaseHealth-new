@@ -1,12 +1,13 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Calendar, Clock, Save, ChevronLeft, ChevronRight, X, CheckCircle, AlertCircle, User, FileText, ArrowLeft, Shield
+import {
+  Calendar, Clock, Save, ChevronLeft, ChevronRight, X, CheckCircle, AlertCircle, User,
+  FileText
 } from 'lucide-react';
 import Navigation from '../components/Navigation';
-import AuthModal from '../components/AuthModal';
 import UnifiedDoctorRegistrationForm from '../components/UnifiedDoctorRegistrationForm';
-import { createDoctorSchedulesForNext4Weeks, generateTimeSlotsForNext4Weeks, getDoctorIdByUserId, supabase } from '../utils/supabase';
+import { createDoctorSchedulesForNext4Weeks, generateTimeSlotsForNext4Weeks,
+  getDoctorIdByUserId, supabase } from '../utils/supabase';
 
 // Auth props interface
 interface AuthProps {
@@ -22,30 +23,31 @@ interface AuthProps {
 
 // Schedule types
 interface ScheduleDay {
-    isAvailable: boolean;
-    startTime: string;
-    endTime: string;
-    slotDuration: number;
-    breakStartTime: string;
-    breakEndTime: string;
+  isAvailable: boolean;
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  breakStartTime: string;
+  breakEndTime: string;
 }
 
 interface ScheduleForm {
   [dayId: number]: ScheduleDay;
 }
 
-function DoctorDashboardPage({ user, session, profile, userState, isAuthenticated, isLoadingInitialAuth, isProfileLoading, handleLogout }: AuthProps) {
-  console.log('≡ƒöì DoctorDashboardPage rendering with props:', { 
-    user: !!user, 
-    session: !!session, 
-    profile: !!profile, 
-    userState, 
-    isAuthenticated, 
-    isLoadingInitialAuth, 
-    isProfileLoading 
+function DoctorDashboardPage({ user, session, profile, userState, isAuthenticated,
+  isLoadingInitialAuth, isProfileLoading, handleLogout }: AuthProps) {
+  console.log('🔍 DoctorDashboardPage rendering with props:', {
+    user: !!user,
+    session: !!session,
+    profile: !!profile,
+    userState,
+    isAuthenticated,
+    isLoadingInitialAuth,
+    isProfileLoading
   });
   
-  console.log('≡ƒöì Detailed auth data:', {
+  console.log('🔍 Detailed auth data:', {
     user: user,
     session: session,
     profile: profile,
@@ -53,30 +55,12 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     isLoadingInitialAuth
   });
 
-  // Authentication states
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  // Doctor registration state
   const [showDoctorRegistration, setShowDoctorRegistration] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  
-  // Form states for inline login
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [loginError, setLoginError] = useState('');
-  const [isSignupMode, setIsSignupMode] = useState(false);
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
-  const [isSigningUp, setIsSigningUp] = useState(false);
-  const [signupError, setSignupError] = useState('');
-  const [isForgotPasswordMode, setIsForgotPasswordMode] = useState(false);
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
-  const [isSendingReset, setIsSendingReset] = useState(false);
-  const [forgotPasswordError, setForgotPasswordError] = useState('');
-  const [forgotPasswordSuccess, setForgotPasswordSuccess] = useState('');
   
   // Schedule management states
-  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'patients' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'schedule' | 'patients' |
+    'reports'>('overview');
   const [isSaving, setIsSaving] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -90,13 +74,20 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
   
   // Schedule form state - starts with all days unchecked and blank
   const [currentWeekSchedule, setCurrentWeekSchedule] = useState<ScheduleForm>({
-    1: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    2: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    3: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    4: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    5: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    6: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' },
-    0: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' }
+    1: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    2: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    3: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    4: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    5: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    6: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' },
+    0: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '',
+      breakEndTime: '' }
   });
   
   // Slot duration options
@@ -188,16 +179,16 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
   
   // Handle schedule form changes
   const handleScheduleChange = useCallback((dayId: number, field: keyof ScheduleDay, value: any) => {
-    console.log(`≡ƒöä Schedule change - Day ${dayId}, Field: ${field}, Value: ${value}`);
+    console.log(`🔄 Schedule change - Day ${dayId}, Field: ${field}, Value: ${value}`);
     setCurrentWeekSchedule(prev => {
       const newSchedule = {
-      ...prev,
-      [dayId]: {
-        ...prev[dayId],
-        [field]: value
-      }
+        ...prev,
+        [dayId]: {
+          ...prev[dayId],
+          [field]: value
+        }
       };
-      console.log(`≡ƒô¥ Updated schedule for day ${dayId}:`, newSchedule[dayId]);
+      console.log(`📝 Updated schedule for day ${dayId}:`, newSchedule[dayId]);
       return newSchedule;
     });
   }, []);
@@ -232,7 +223,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error('Please log in to save schedules.');
       }
       
-      console.log('≡ƒöä Saving schedules for doctor:', user.id);
+      console.log('🔄 Saving schedules for doctor:', user.id);
       
       // Get the actual doctor ID from the doctors table
       const doctorId = await getDoctorIdByUserId(user.id);
@@ -240,10 +231,10 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error('Doctor profile not found. Please complete your doctor registration first.');
       }
       
-      console.log('≡ƒöä Using doctor ID:', doctorId);
+      console.log('🔄 Using doctor ID:', doctorId);
       
       // First, check if there are any booked time slots that would prevent changes
-      console.log('≡ƒöä Checking for booked time slots...');
+      console.log('🔄 Checking for booked time slots...');
       const { data: bookedSlots, error: bookedError } = await supabase
         .from('time_slots')
         .select('id, schedule_date, start_time, status')
@@ -251,7 +242,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         .eq('status', 'booked');
       
       if (bookedError) {
-        console.error('Γ¥î Error checking booked slots:', bookedError);
+        console.error('❌ Error checking booked slots:', bookedError);
         throw bookedError;
       }
       
@@ -260,14 +251,12 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error(`Cannot modify schedule. You have ${bookedSlots.length} booked appointments on dates: ${bookedDates.join(', ')}. Please contact patients to reschedule before making changes.`);
       }
       
-      // Don't mark existing schedules as inactive - just update them directly
-      
       // Save schedules for each available day
       const savePromises = [];
       for (const [dayId, schedule] of Object.entries(currentWeekSchedule)) {
         if (schedule.isAvailable && schedule.startTime && schedule.endTime) {
           const dayNumber = parseInt(dayId);
-          console.log(`≡ƒôà Creating schedule for day ${dayNumber}:`, schedule);
+          console.log(`📅 Creating schedule for day ${dayNumber}:`, schedule);
           
           const savePromise = createDoctorSchedulesForNext4Weeks(
             doctorId,
@@ -286,10 +275,10 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       await Promise.all(savePromises);
       
       // Generate time slots for the next 4 weeks (this will handle existing slots properly)
-      console.log('≡ƒöä Generating time slots for next 4 weeks...');
+      console.log('🔄 Generating time slots for next 4 weeks...');
       await generateTimeSlotsForNext4Weeks(doctorId);
       
-      console.log('Γ£à Schedule and time slots saved successfully');
+      console.log('✅ Schedule and time slots saved successfully');
       setSaveSuccess(true);
       setSlotsGenerated(true);
       
@@ -302,8 +291,8 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       setTimeout(() => setSaveSuccess(false), 3000);
       
     } catch (error) {
-      console.error('Γ¥î Error saving schedules:', error);
-      console.error('Γ¥î Error details:', {
+      console.error('❌ Error saving schedules:', error);
+      console.error('❌ Error details:', {
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
@@ -345,7 +334,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error('Please log in to update schedules.');
       }
       
-      console.log('≡ƒöä Updating schedules for doctor:', user.id);
+      console.log('🔄 Updating schedules for doctor:', user.id);
       
       // Get the actual doctor ID from the doctors table
       const doctorId = await getDoctorIdByUserId(user.id);
@@ -353,7 +342,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error('Doctor profile not found. Please complete your doctor registration first.');
       }
       
-      console.log('≡ƒöä Using doctor ID:', doctorId);
+      console.log('🔄 Using doctor ID:', doctorId);
       
       // Get the specific week date range (same as loadExistingSchedules)
       const today = new Date();
@@ -383,13 +372,13 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         throw new Error(`Failed to fetch existing schedules: ${fetchError.message}`);
       }
       
-      console.log(`≡ƒöì Found ${existingSchedules?.length || 0} existing schedule records for week ${currentWeekOffset + 1}:`, existingSchedules);
+      console.log(`🔍 Found ${existingSchedules?.length || 0} existing schedule records for week ${currentWeekOffset + 1}:`, existingSchedules);
       
       // Calculate the specific dates for the current week to match schedules
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
       
-      console.log(`≡ƒöä Updating schedules for week ${currentWeekOffset + 1} (${startDateStr} to ${endDateStr})`);
+      console.log(`🔄 Updating schedules for week ${currentWeekOffset + 1} (${startDateStr} to ${endDateStr})`);
       
       // Update schedules for each day
       const updatePromises = [];
@@ -405,19 +394,19 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         dayDate.setDate(startDate.getDate() + dayOffset);
         const dayDateStr = dayDate.toISOString().split('T')[0];
         
-        console.log(`≡ƒôà Calculating date for day ${dayNumber}: ${dayDateStr} (offset: ${dayOffset} from Monday)`);
+        console.log(`📅 Calculating date for day ${dayNumber}: ${dayDateStr} (offset: ${dayOffset} from Monday)`);
         
         // Find existing schedule record for this specific date
         const existingSchedule = existingSchedules?.find(s => s.schedule_date === dayDateStr);
         
         if (!existingSchedule) {
-          console.log(`ΓÜá∩╕Å No existing schedule found for date ${dayDateStr} (day ${dayNumber}), skipping update`);
+          console.log(`⚠️ No existing schedule found for date ${dayDateStr} (day ${dayNumber}), skipping update`);
           continue;
         }
         
         // Check if we've already updated this record
         if (updatedRecordIds.has(existingSchedule.id)) {
-          console.log(`ΓÜá∩╕Å Record ${existingSchedule.id} already updated, skipping duplicate`);
+          console.log(`⚠️ Record ${existingSchedule.id} already updated, skipping duplicate`);
           continue;
         }
         
@@ -426,11 +415,11 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         if (schedule.isAvailable) {
           // Validate that required times are provided for available days
           if (!schedule.startTime || !schedule.endTime) {
-            console.log(`ΓÜá∩╕Å Day ${dayNumber} is marked as available but missing start/end times, skipping update`);
+            console.log(`⚠️ Day ${dayNumber} is marked as available but missing start/end times, skipping update`);
             continue;
           }
           
-          console.log(`≡ƒôà Updating existing schedule ID ${existingSchedule.id} for date ${dayDateStr} (day ${dayNumber}):`, schedule);
+          console.log(`📅 Updating existing schedule ID ${existingSchedule.id} for date ${dayDateStr} (day ${dayNumber}):`, schedule);
           
           // Ensure consistent time format (HH:MM:SS)
           const formatTime = (time: string) => {
@@ -447,7 +436,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           const breakStartTime = formatTime(schedule.breakStartTime || '');
           const breakEndTime = formatTime(schedule.breakEndTime || '');
           
-          console.log(`≡ƒôà Formatted times - Start: ${startTime}, End: ${endTime}, Break: ${breakStartTime}-${breakEndTime}`);
+          console.log(`📅 Formatted times - Start: ${startTime}, End: ${endTime}, Break: ${breakStartTime}-${breakEndTime}`);
           
           // Update by ID to ensure we're updating the correct record
           const updateData = {
@@ -460,7 +449,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
             status: 'active'
           };
           
-          console.log(`≡ƒôñ Sending update data for ID ${existingSchedule.id}:`, updateData);
+          console.log(`📤 Sending update data for ID ${existingSchedule.id}:`, updateData);
           
           const updatePromise = supabase
             .from('doctor_schedules')
@@ -469,14 +458,14 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           updatePromises.push(updatePromise);
         } else {
           // Mark day as unavailable - keep original times, just change status
-          console.log(`≡ƒôà Marking existing schedule ID ${existingSchedule.id} for date ${dayDateStr} (day ${dayNumber}) as unavailable`);
+          console.log(`📅 Marking existing schedule ID ${existingSchedule.id} for date ${dayDateStr} (day ${dayNumber}) as unavailable`);
           
           const inactiveUpdateData = {
             is_available: false,
             status: 'inactive'
           };
           
-          console.log(`≡ƒôñ Sending inactive update data for ID ${existingSchedule.id}:`, inactiveUpdateData);
+          console.log(`📤 Sending inactive update data for ID ${existingSchedule.id}:`, inactiveUpdateData);
           
           const updatePromise = supabase
             .from('doctor_schedules')
@@ -487,16 +476,16 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       }
       
       // Wait for all updates to complete and check for errors
-      console.log(`≡ƒöä Executing ${updatePromises.length} update operations...`);
+      console.log(`🔄 Executing ${updatePromises.length} update operations...`);
       const results = await Promise.all(updatePromises);
       
       // Log detailed results for debugging
-      console.log('≡ƒôè Update results:', results);
+      console.log('📊 Update results:', results);
       results.forEach((result, index) => {
         if (result.error) {
-          console.error(`Γ¥î Update ${index + 1} failed:`, result.error);
+          console.error(`❌ Update ${index + 1} failed:`, result.error);
         } else {
-          console.log(`Γ£à Update ${index + 1} succeeded:`, result.data);
+          console.log(`✅ Update ${index + 1} succeeded:`, result.data);
         }
       });
       
@@ -504,22 +493,22 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       const hasErrors = results.some(result => result.error);
       if (hasErrors) {
         const errors = results.filter(result => result.error).map(result => result.error);
-        console.error('Γ¥î Update errors:', errors);
-        console.error('Γ¥î Failed results:', results.filter(result => result.error));
+        console.error('❌ Update errors:', errors);
+        console.error('❌ Failed results:', results.filter(result => result.error));
         throw new Error(`Failed to update some schedules: ${errors[0]?.message || 'Unknown error'}`);
       }
       
-      console.log(`Γ£à Successfully updated ${results.length} schedule records`);
+      console.log(`✅ Successfully updated ${results.length} schedule records`);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
       
     } catch (error) {
-      console.error('Γ¥î Error updating schedules:', error);
+      console.error('❌ Error updating schedules:', error);
       setError(error instanceof Error ? error.message : 'Failed to update schedule. Please try again.');
     } finally {
       setIsUpdating(false);
     }
-  }, [currentWeekSchedule, user, profile]);
+  }, [currentWeekSchedule, user, profile, currentWeekOffset]);
   
   // Clear all schedules
   const clearAllSchedules = useCallback(async () => {
@@ -538,178 +527,19 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         0: { isAvailable: false, startTime: '', endTime: '', slotDuration: 15, breakStartTime: '', breakEndTime: '' }
       });
       
-      console.log('Γ£à Cleared all schedules');
+      console.log('✅ Cleared all schedules');
       
     } catch (error) {
-      console.error('Γ¥î Error clearing schedules:', error);
+      console.error('❌ Error clearing schedules:', error);
       setError('Failed to clear schedules. Please try again.');
     } finally {
       setIsSaving(false);
     }
   }, []);
 
-  // Authentication handlers
-  const handleLoginClick = () => {
-    setAuthMode('login');
-    setShowAuthModal(true);
-  };
-
-  const handleInlineLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginEmail || !loginPassword) {
-      setLoginError('Please enter both email and password');
-      return;
-    }
-
-    setIsLoggingIn(true);
-    setLoginError('');
-
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
-      });
-
-      if (error) {
-        setLoginError(error.message);
-      } else {
-        console.log('Γ£à Login successful:', data);
-        // The useAuth hook will automatically update the authentication state
-      }
-    } catch (error) {
-      console.error('Γ¥î Login error:', error);
-      setLoginError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleInlineSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!signupEmail || !signupPassword || !signupConfirmPassword) {
-      setSignupError('Please fill in all fields');
-      return;
-    }
-
-    if (signupPassword !== signupConfirmPassword) {
-      setSignupError('Passwords do not match');
-      return;
-    }
-
-    if (signupPassword.length < 6) {
-      setSignupError('Password must be at least 6 characters');
-      return;
-    }
-
-    setIsSigningUp(true);
-    setSignupError('');
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: signupEmail,
-        password: signupPassword,
-      });
-
-      if (error) {
-        setSignupError(error.message);
-      } else {
-        console.log('Γ£à Signup successful:', data);
-        // Show doctor registration form after successful signup
-        setShowDoctorRegistration(true);
-        setIsSignupMode(false);
-      }
-    } catch (error) {
-      console.error('Γ¥î Signup error:', error);
-      setSignupError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSigningUp(false);
-    }
-  };
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotPasswordEmail) {
-      setForgotPasswordError('Please enter your email address');
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(forgotPasswordEmail)) {
-      setForgotPasswordError('Please enter a valid email address');
-      return;
-    }
-
-    setIsSendingReset(true);
-    setForgotPasswordError('');
-    setForgotPasswordSuccess('');
-
-    try {
-      // Dynamic URL detection - works for any hosting provider
-      const baseUrl = window.location.hostname === 'localhost' 
-        ? 'http://localhost:5173' 
-        : `${window.location.protocol}//${window.location.host}`;
-      
-      console.log('≡ƒöä Sending password reset email to:', forgotPasswordEmail);
-      console.log('≡ƒöä Redirect URL:', `${baseUrl}/reset-password`);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotPasswordEmail, {
-        redirectTo: `${baseUrl}/reset-password`,
-      });
-
-      console.log('≡ƒöä Password reset email result:', { error });
-
-      if (error) {
-        setForgotPasswordError(error.message);
-      } else {
-        setForgotPasswordSuccess('Password reset email sent! Please check your inbox.');
-        setForgotPasswordEmail('');
-      }
-    } catch (error) {
-      console.error('Γ¥î Forgot password error:', error);
-      setForgotPasswordError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSendingReset(false);
-    }
-  };
-
-  const toggleSignupMode = () => {
-    setIsSignupMode(!isSignupMode);
-    setLoginError('');
-    setSignupError('');
-    setIsForgotPasswordMode(false);
-    setForgotPasswordError('');
-    setForgotPasswordSuccess('');
-  };
-
-  const toggleForgotPasswordMode = () => {
-    setIsForgotPasswordMode(!isForgotPasswordMode);
-    setLoginError('');
-    setSignupError('');
-    setIsSignupMode(false);
-    setForgotPasswordError('');
-    setForgotPasswordSuccess('');
-  };
-
-  const handleSignupClick = () => {
-    setAuthMode('signup');
-    setShowAuthModal(true);
-  };
-
-  const handleAuthSuccess = async (authData?: { name?: string; email?: string; phone?: string }) => {
-    setShowAuthModal(false);
-    console.log('Γ£à Authentication successful:', authData);
-    
-    // If this is a signup, show doctor registration form
-    if (authMode === 'signup' && authData) {
-      setShowDoctorRegistration(true);
-    }
-    // The useAuth hook will automatically update the authentication state
-    // and the component will re-render with the authenticated user
-  };
-
   const handleDoctorRegistrationSuccess = () => {
     setShowDoctorRegistration(false);
-    console.log('Γ£à Doctor registration completed successfully');
+    console.log('✅ Doctor registration completed successfully');
     // The dashboard will automatically refresh with the new doctor data
   };
 
@@ -722,14 +552,11 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-300">Loading...</p>
           </div>
-            </div>
+        </div>
       </div>
     );
   }
 
-  // Authentication check - require proper login
-  const isTestMode = false; // Set to false in production
-  
   // Doctor data state
   const [doctor, setDoctor] = useState<any>(null);
   const [isLoadingDoctor, setIsLoadingDoctor] = useState(false);
@@ -765,7 +592,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       const startDateStr = startDate.toISOString().split('T')[0];
       const endDateStr = endDate.toISOString().split('T')[0];
       
-      console.log(`≡ƒöì Checking rolling 4-week schedules: ${startDateStr} to ${endDateStr}`);
+      console.log(`🔍 Checking rolling 4-week schedules: ${startDateStr} to ${endDateStr}`);
       
       // Count how many days in the 4-week period have schedules
       const { data: schedules, error } = await supabase
@@ -777,7 +604,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         .not('schedule_date', 'is', null); // Only count records with actual dates
       
       if (error) {
-        console.error('Γ¥î Error checking 4-week schedules:', error);
+        console.error('❌ Error checking 4-week schedules:', error);
         setHasSchedulesFor4Weeks(false);
         return;
       }
@@ -786,17 +613,17 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
       const uniqueDates = new Set(schedules?.map(s => s.schedule_date) || []);
       const totalDays = 28; // 4 weeks * 7 days
       
-      console.log(`≡ƒôè Found schedules for ${uniqueDates.size} out of ${totalDays} days in rolling 4-week period`);
+      console.log(`📊 Found schedules for ${uniqueDates.size} out of ${totalDays} days in rolling 4-week period`);
       
       // Consider schedules exist if we have schedules for at least 80% of the days (22+ days)
       // This accounts for weekends or days when doctor might not work
       const hasEnoughSchedules = uniqueDates.size >= 22;
       setHasSchedulesFor4Weeks(hasEnoughSchedules);
       
-      console.log(`Γ£à Rolling 4-week schedule check: ${hasEnoughSchedules ? 'Schedules exist' : 'No schedules'}`);
+      console.log(`✅ Rolling 4-week schedule check: ${hasEnoughSchedules ? 'Schedules exist' : 'No schedules'}`);
       
     } catch (error) {
-      console.error('Γ¥î Error in checkSchedulesFor4Weeks:', error);
+      console.error('❌ Error in checkSchedulesFor4Weeks:', error);
       setHasSchedulesFor4Weeks(false);
     }
   }, [user, profile]);
@@ -958,25 +785,25 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         .order('start_time');
       
       if (error) {
-        console.error('Γ¥î Error loading time slots:', error);
+        console.error('❌ Error loading time slots:', error);
         return;
       }
       
       if (timeSlots && timeSlots.length > 0) {
-        console.log('Γ£à Loaded existing time slots:', timeSlots.length, 'slots');
+        console.log('✅ Loaded existing time slots:', timeSlots.length, 'slots');
         setExistingTimeSlots(timeSlots);
       } else {
         console.log('No existing time slots found');
         setExistingTimeSlots([]);
       }
     } catch (error) {
-      console.error('Γ¥î Error in loadExistingTimeSlots:', error);
+      console.error('❌ Error in loadExistingTimeSlots:', error);
     } finally {
       setIsLoadingSlots(false);
     }
   }, [user, profile]);
   
-  // Load doctor data and existing schedules when authenticated or in test mode
+  // Load doctor data and existing schedules when authenticated
   useEffect(() => {
     const loadDoctorData = async () => {
       if (isAuthenticated && user && profile) {
@@ -1020,10 +847,10 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           } else {
             // No doctor ID found
             setDoctor({
-            id: user?.id || 'test-doctor-id',
+              id: user?.id || 'test-doctor-id',
               full_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Doctor',
               specialty: 'Specialty not set',
-            profile_image_url: null,
+              profile_image_url: null,
               email: user?.email || '',
               phone: user?.user_metadata?.phone || ''
             });
@@ -1049,317 +876,6 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     }
   }, [doctor, isAuthenticated, loadExistingSchedules, loadExistingTimeSlots, currentWeekOffset, checkSchedulesFor4Weeks]);
   
-  if (!isAuthenticated && !isTestMode) {
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-        {/* Standard Navigation */}
-        <Navigation 
-          user={user}
-          session={session}
-          profile={profile}
-          userState={userState}
-          isAuthenticated={isAuthenticated}
-          handleLogout={handleLogout}
-          doctor={null}
-        />
-
-        {/* Main Login Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            
-            {/* Left Side - Login Form */}
-            <div className="flex justify-center lg:justify-end">
-              <div className="w-full max-w-md">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-[#E8E8E8] dark:border-gray-600 p-8">
-                  
-                  {/* Header with Logo */}
-                  <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">Doctor Login</h1>
-                      <p className="text-gray-600 dark:text-gray-300">Access your professional portal</p>
-                    </div>
-                    {/* EaseHealth.AI Logo */}
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">E</span>
-                      </div>
-                      <span className="text-[#0075A2] font-semibold text-sm">EaseHealth.AI</span>
-                    </div>
-                  </div>
-
-                  {/* Login/Signup/Forgot Password Form */}
-                  {!isSignupMode && !isForgotPasswordMode ? (
-                    <form onSubmit={handleInlineLogin} className="space-y-6">
-                      {/* Error Message */}
-                      {loginError && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                          <p className="text-red-700 dark:text-red-300 text-sm">{loginError}</p>
-                        </div>
-                      )}
-
-                      {/* Email Field */}
-                      <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          value={loginEmail}
-                          onChange={(e) => setLoginEmail(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Enter your email address"
-                          required
-                        />
-                      </div>
-
-                      {/* Password Field */}
-                      <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Password
-                        </label>
-                        <input
-                          type="password"
-                          id="password"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Enter your password"
-                          required
-                        />
-                      </div>
-
-                      {/* Login Button */}
-                      <button
-                        type="submit"
-                        disabled={isLoggingIn}
-                        className="w-full bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white py-3 rounded-lg font-semibold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        {isLoggingIn ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                            <span>LOGGING IN...</span>
-                          </div>
-                        ) : (
-                          'LOGIN'
-                        )}
-                      </button>
-                    </form>
-                  ) : isSignupMode ? (
-                    <form onSubmit={handleInlineSignup} className="space-y-6">
-                      {/* Error Message */}
-                      {signupError && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                          <p className="text-red-700 dark:text-red-300 text-sm">{signupError}</p>
-                        </div>
-                      )}
-
-                      {/* Email Field */}
-                      <div>
-                        <label htmlFor="signupEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          id="signupEmail"
-                          value={signupEmail}
-                          onChange={(e) => setSignupEmail(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Enter your email address"
-                          required
-                        />
-                      </div>
-
-                      {/* Password Field */}
-                      <div>
-                        <label htmlFor="signupPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Password
-                        </label>
-                        <input
-                          type="password"
-                          id="signupPassword"
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Enter your password"
-                          required
-                          minLength={6}
-                        />
-                      </div>
-
-                      {/* Confirm Password Field */}
-                      <div>
-                        <label htmlFor="signupConfirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Confirm Password
-                        </label>
-                        <input
-                          type="password"
-                          id="signupConfirmPassword"
-                          value={signupConfirmPassword}
-                          onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Confirm your password"
-                          required
-                          minLength={6}
-                        />
-                      </div>
-
-                      {/* Signup Button */}
-                      <button
-                        type="submit"
-                        disabled={isSigningUp}
-                        className="w-full bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white py-3 rounded-lg font-semibold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        {isSigningUp ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                            <span>CREATING ACCOUNT...</span>
-                          </div>
-                        ) : (
-                          'CREATE ACCOUNT'
-                        )}
-                      </button>
-                    </form>
-                  ) : (
-                    <form onSubmit={handleForgotPassword} className="space-y-6">
-                      {/* Success Message */}
-                      {forgotPasswordSuccess && (
-                        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                          <p className="text-green-700 dark:text-green-300 text-sm">{forgotPasswordSuccess}</p>
-                        </div>
-                      )}
-
-                      {/* Error Message */}
-                      {forgotPasswordError && (
-                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                          <p className="text-red-700 dark:text-red-300 text-sm">{forgotPasswordError}</p>
-                        </div>
-                      )}
-
-                      {/* Email Field */}
-                      <div>
-                        <label htmlFor="forgotPasswordEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          id="forgotPasswordEmail"
-                          value={forgotPasswordEmail}
-                          onChange={(e) => setForgotPasswordEmail(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 transition-colors"
-                          placeholder="Enter your email address"
-                          required
-                        />
-                      </div>
-
-                      {/* Send Reset Email Button */}
-                      <button
-                        type="submit"
-                        disabled={isSendingReset}
-                        className="w-full bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white py-3 rounded-lg font-semibold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                      >
-                        {isSendingReset ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                            <span>SENDING...</span>
-                          </div>
-                        ) : (
-                          'SEND RESET EMAIL'
-                        )}
-                      </button>
-                    </form>
-                  )}
-
-                  {/* Footer Links */}
-                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
-                    <div className="flex justify-between items-center text-sm">
-                      <button
-                        onClick={isForgotPasswordMode ? toggleForgotPasswordMode : toggleSignupMode}
-                        className="text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors"
-                      >
-                        {isSignupMode ? 'Already have an account?' : 
-                         isForgotPasswordMode ? 'Back to Login' : 
-                         "Don't have your account?"}
-                      </button>
-                      {!isSignupMode && !isForgotPasswordMode && (
-                        <button 
-                          onClick={toggleForgotPasswordMode}
-                          className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline transition-colors"
-                        >
-                          Forgot Password?
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Back to Home Link */}
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => window.location.href = '/'}
-                      className="text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] transition-colors text-sm"
-                    >
-                      ΓåÉ Back to Home
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Side - Image */}
-            <div className="hidden lg:flex lg:justify-start">
-              <div className="relative w-full max-w-lg">
-                {/* Main Image with Decorative Elements */}
-                <div className="relative">
-                  <img 
-                    src="/Doctor Login Image.png" 
-                    alt="Healthcare Technology" 
-                    className="w-full h-auto rounded-2xl shadow-2xl border border-[#E8E8E8] dark:border-gray-600"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/digital pre-registration.png';
-                    }}
-                  />
-                  
-                  {/* Decorative Circles */}
-                  <div className="absolute -top-4 -right-4 w-16 h-16 bg-blue-200 dark:bg-blue-900/30 rounded-full opacity-60"></div>
-                  <div className="absolute -bottom-4 -left-4 w-12 h-12 bg-blue-100 dark:bg-blue-800/30 rounded-full opacity-80"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        {/* Auth Modal */}
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-          onSuccess={handleAuthSuccess}
-          mode={authMode}
-          context={{
-            title: authMode === 'login' ? 'Sign In as Doctor' : 'Register as Doctor',
-            description: authMode === 'login' 
-              ? 'Welcome back! Please sign in to access your doctor dashboard.'
-              : 'Join EaseHealth as a medical professional and start managing your practice.',
-            actionText: authMode === 'login' ? 'Sign In' : 'Register'
-          }}
-        />
-        
-        {/* Doctor Registration Modal */}
-        <UnifiedDoctorRegistrationForm
-          isOpen={showDoctorRegistration}
-          onClose={() => setShowDoctorRegistration(false)}
-          onSuccess={handleDoctorRegistrationSuccess}
-          userId={user?.id}
-          prefillData={user ? {
-            fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-            email: user.email || '',
-            mobileNumber: user.user_metadata?.phone || ''
-          } : undefined}
-        />
-      </div>
-    );
-  }
-
   // Show loading while fetching doctor data
   if (isLoadingDoctor) {
     return (
@@ -1368,30 +884,30 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto mb-4"></div>
             <p className="text-gray-600 dark:text-gray-300">Loading doctor information...</p>
-            </div>
           </div>
+        </div>
       </div>
     );
   }
 
   // Show main dashboard content
-    return (
-      <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-        {/* Standard Navigation */}
-        <Navigation 
-          user={user}
-          session={session}
-          profile={profile}
-          userState={userState}
-          isAuthenticated={isAuthenticated}
-          handleLogout={handleLogout}
-          doctor={doctor}
-        />
+  return (
+    <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+      {/* Standard Navigation */}
+      <Navigation
+        user={user}
+        session={session}
+        profile={profile}
+        userState={userState}
+        isAuthenticated={isAuthenticated}
+        handleLogout={handleLogout}
+        doctor={doctor}
+      />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1406,9 +922,9 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
             <div className="flex items-center space-x-6">
               <div className="w-24 h-24 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-3xl overflow-hidden">
                 {doctor?.profile_image_url ? (
-                  <img 
-                    src={doctor.profile_image_url} 
-                    alt="Profile" 
+                  <img
+                    src={doctor.profile_image_url}
+                    alt="Profile"
                     className="w-full h-full object-cover rounded-2xl"
                   />
                 ) : (
@@ -1444,7 +960,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
               { id: 'overview', label: 'Overview', icon: Calendar },
               { id: 'schedule', label: 'Schedule', icon: Clock },
               { id: 'patients', label: 'Patients', icon: User },
-                { id: 'reports', label: 'Reports', icon: FileText }
+              { id: 'reports', label: 'Reports', icon: FileText }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -1526,12 +1042,12 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                 <Calendar className="w-16 h-16 text-[#0075A2] dark:text-[#0EA5E9] mb-4" />
                 <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">Schedule Management</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">Manage your availability and appointments.</p>
-                <button 
+                <button
                   onClick={() => setActiveTab('schedule')}
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
                 >
                   Go to Schedule
-                  </button>
+                </button>
               </div>
 
               {/* Patient Records Card */}
@@ -1539,12 +1055,12 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                 <User className="w-16 h-16 text-[#0075A2] dark:text-[#0EA5E9] mb-4" />
                 <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">Patient Records</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">Access and manage patient information.</p>
-                <button 
+                <button
                   onClick={() => setActiveTab('patients')}
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
                 >
                   View Patients
-                  </button>
+                </button>
               </div>
               
               {/* Reports Card */}
@@ -1552,14 +1068,14 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                 <FileText className="w-16 h-16 text-[#0075A2] dark:text-[#0EA5E9] mb-4" />
                 <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">Reports</h2>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">Generate and view various reports.</p>
-                <button 
+                <button
                   onClick={() => setActiveTab('reports')}
                   className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all focus-ring"
                 >
                   View Reports
                 </button>
-                      </div>
-                      </div>
+              </div>
+            </div>
 
             {/* Recent Activity */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
@@ -1569,17 +1085,17 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-300">Appointment completed with John Doe</span>
                   <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">2 hours ago</span>
-                    </div>
+                </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-300">New patient registration: Jane Smith</span>
                   <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">4 hours ago</span>
-                        </div>
+                </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                   <span className="text-sm text-gray-600 dark:text-gray-300">Schedule updated for next week</span>
                   <span className="text-xs text-gray-400 dark:text-gray-500 ml-auto">1 day ago</span>
-                      </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1609,16 +1125,16 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   >
                     <ChevronRight className="w-5 h-5" />
                   </button>
-            </div>
+                </div>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                Week {currentWeekOffset + 1} of 4 ΓÇó {weekRange.start} - {weekRange.end}
+                Week {currentWeekOffset + 1} of 4 • {weekRange.start} - {weekRange.end}
               </p>
             </div>
 
             {/* Schedule Form */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
-          <div className="space-y-6">
+              <div className="space-y-6">
                 {daysOfWeek.map((day) => {
                   const weekDate = currentWeekDates.find(d => d.dayOfWeek === day.id);
                   const schedule = currentWeekSchedule[day.id];
@@ -1627,31 +1143,31 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   
                   return (
                     <div key={day.id} className={`p-6 rounded-xl border-2 transition-all ${
-                      isPast 
-                        ? 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50' 
+                      isPast
+                        ? 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50'
                         : 'border-[#E8E8E8] dark:border-gray-600 bg-white dark:bg-gray-800'
                     }`}>
                       <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-4">
                           <label className="flex items-center space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
+                            <input
+                              type="checkbox"
                               checked={schedule.isAvailable}
-                        onChange={(e) => handleScheduleChange(day.id, 'isAvailable', e.target.checked)}
+                              onChange={(e) => handleScheduleChange(day.id, 'isAvailable', e.target.checked)}
                               disabled={isPast}
                               className="w-5 h-5 text-[#0075A2] dark:text-[#0EA5E9] rounded focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9]"
                             />
                             <span className={`text-lg font-medium ${
-                              isPast 
-                                ? 'text-gray-400 dark:text-gray-500' 
+                              isPast
+                                ? 'text-gray-400 dark:text-gray-500'
                                 : 'text-[#0A2647] dark:text-gray-100'
                             }`}>
                               {day.name}
                             </span>
                             {weekDate && (
                               <span className={`text-sm px-2 py-1 rounded ${
-                                isPast 
-                                  ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400' 
+                                isPast
+                                  ? 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
                                   : isToday
                                   ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                                   : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
@@ -1659,148 +1175,148 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                                 {isPast ? 'Past' : isToday ? 'Today' : weekDate.dateString}
                               </span>
                             )}
-                    </label>
-                  </div>
+                          </label>
+                        </div>
                         
                         {!isPast && schedule.isAvailable && (
                           <div className="flex space-x-2">
                             {daysOfWeek.filter(d => d.id !== day.id).map((otherDay) => (
-                    <button
+                              <button
                                 key={otherDay.id}
                                 onClick={() => copySchedule(day.id, otherDay.id)}
                                 className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
+                              >
                                 Copy to {otherDay.name}
-                    </button>
+                              </button>
                             ))}
                           </div>
-                  )}
-                </div>
+                        )}
+                      </div>
 
                       {schedule.isAvailable && !isPast && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           {/* Start Time */}
-                    <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Start Time
-                      </label>
-                      <input
-                        type="time"
+                              Start Time
+                            </label>
+                            <input
+                              type="time"
                               value={schedule.startTime}
-                        onChange={(e) => handleScheduleChange(day.id, 'startTime', e.target.value)}
+                              onChange={(e) => handleScheduleChange(day.id, 'startTime', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
+                            />
+                          </div>
 
                           {/* End Time */}
-                    <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        End Time
-                      </label>
-                      <input
-                        type="time"
+                              End Time
+                            </label>
+                            <input
+                              type="time"
                               value={schedule.endTime}
-                        onChange={(e) => handleScheduleChange(day.id, 'endTime', e.target.value)}
+                              onChange={(e) => handleScheduleChange(day.id, 'endTime', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
+                            />
+                          </div>
 
                           {/* Slot Duration */}
-                    <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Slot Duration
-                      </label>
-                      <select
+                              Slot Duration
+                            </label>
+                            <select
                               value={schedule.slotDuration}
-                        onChange={(e) => handleScheduleChange(day.id, 'slotDuration', parseInt(e.target.value))}
+                              onChange={(e) => handleScheduleChange(day.id, 'slotDuration', parseInt(e.target.value))}
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      >
-                        {slotDurations.map((duration) => (
-                          <option key={duration.value} value={duration.value}>
-                            {duration.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                            >
+                              {slotDurations.map((duration) => (
+                                <option key={duration.value} value={duration.value}>
+                                  {duration.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
 
                           {/* Break Time */}
-                    <div>
+                          <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Break Time (Optional)
-                      </label>
-                      <div className="flex space-x-2">
-                        <input
-                          type="time"
+                              Break Time (Optional)
+                            </label>
+                            <div className="flex space-x-2">
+                              <input
+                                type="time"
                                 value={schedule.breakStartTime}
-                          onChange={(e) => handleScheduleChange(day.id, 'breakStartTime', e.target.value)}
-                          placeholder="Start"
+                                onChange={(e) => handleScheduleChange(day.id, 'breakStartTime', e.target.value)}
+                                placeholder="Start"
                                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        />
-                        <input
-                          type="time"
+                              />
+                              <input
+                                type="time"
                                 value={schedule.breakEndTime}
-                          onChange={(e) => handleScheduleChange(day.id, 'breakEndTime', e.target.value)}
-                          placeholder="End"
+                                onChange={(e) => handleScheduleChange(day.id, 'breakEndTime', e.target.value)}
+                                placeholder="End"
                                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] dark:focus:ring-[#0EA5E9] focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {isPast && (
                         <div className="text-center py-4">
                           <p className="text-gray-400 dark:text-gray-500 italic">Past dates cannot be edited</p>
-              </div>
+                        </div>
                       )}
                     </div>
                   );
                 })}
-          </div>
+              </div>
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-4 mt-8 pt-6 border-t border-gray-200 dark:border-gray-600">
-            {/* Show Update button only when schedules exist for 4 weeks */}
-            {hasSchedulesFor4Weeks && (
-              <button
-                onClick={handleUpdateSchedules}
-                disabled={isUpdating || isSaving}
-                className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {isUpdating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Updating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>Update Schedule</span>
-                  </>
+                {/* Show Update button only when schedules exist for 4 weeks */}
+                {hasSchedulesFor4Weeks && (
+                  <button
+                    onClick={handleUpdateSchedules}
+                    disabled={isUpdating || isSaving}
+                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Updating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Update Schedule</span>
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
-            )}
 
-            {/* Show Generate button only when NO schedules exist for 4 weeks */}
-            {!hasSchedulesFor4Weeks && (
-            <button
-              onClick={handleSaveSchedules}
-                disabled={isSaving || isUpdating}
-                  className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {isSaving ? (
-                <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                      <Save className="w-4 h-4" />
-                    <span>Generate New Schedule & Time Slots</span>
-                </>
-              )}
-            </button>
-            )}
+                {/* Show Generate button only when NO schedules exist for 4 weeks */}
+                {!hasSchedulesFor4Weeks && (
+                  <button
+                    onClick={handleSaveSchedules}
+                    disabled={isSaving || isUpdating}
+                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Generate New Schedule & Time Slots</span>
+                      </>
+                    )}
+                  </button>
+                )}
 
                 <button
                   onClick={clearAllSchedules}
@@ -1810,8 +1326,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <X className="w-4 h-4" />
                   <span>Clear All</span>
                 </button>
-
-                    </div>
+              </div>
 
               {/* Success/Error Messages */}
               {saveSuccess && (
@@ -1819,102 +1334,19 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <div className="flex items-center">
                     <CheckCircle className="w-5 h-5 text-green-500 mr-2" />
                     <p className="text-green-700 dark:text-green-300">Schedule and time slots generated successfully for the next 4 weeks!</p>
-              </div>
-            </div>
-          )}
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                   <div className="flex items-center">
                     <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
                     <p className="text-red-700 dark:text-red-300">{error}</p>
-            </div>
-                      </div>
+                  </div>
+                </div>
               )}
-          </div>
-          </div>
-        )}
-
-        {/* Time Slots Display Section - Hidden initially as requested */}
-        {false && activeTab === 'schedule' && existingTimeSlots.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">Generated Time Slots (Next 4 Weeks)</h3>
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="text-sm text-gray-600 dark:text-gray-300">{existingTimeSlots.length} slots generated</span>
-              </div>
             </div>
-            
-            {isLoadingSlots ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto mb-4"></div>
-                <p className="text-gray-600 dark:text-gray-300">Loading time slots...</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Group slots by week */}
-                {Array.from({ length: 4 }, (_, weekIndex) => {
-                  const weekStart = new Date();
-                  weekStart.setDate(weekStart.getDate() + (weekIndex * 7));
-                  const weekEnd = new Date(weekStart);
-                  weekEnd.setDate(weekStart.getDate() + 6);
-                  
-                  const weekSlots = existingTimeSlots.filter(slot => {
-                    const slotDate = new Date(slot.schedule_date);
-                    return slotDate >= weekStart && slotDate <= weekEnd;
-                  });
-                  
-                  if (weekSlots.length === 0) return null;
-                  
-                  return (
-                    <div key={weekIndex} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
-                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 mb-3">
-                        Week {weekIndex + 1}: {weekStart.toLocaleDateString()} - {weekEnd.toLocaleDateString()}
-                      </h4>
-                      
-                      {/* Group slots by date */}
-                      {Array.from(new Set(weekSlots.map(slot => slot.schedule_date))).map(date => {
-                        const dateSlots = weekSlots.filter(slot => slot.schedule_date === date);
-                        const dateObj = new Date(date);
-                        
-                        return (
-                          <div key={date} className="mb-3 last:mb-0">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                              </span>
-                              <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {dateSlots.length} slots
-                              </span>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                              {dateSlots.map(slot => (
-                                <div
-                                  key={slot.id}
-                                  className={`px-2 py-1 rounded text-xs text-center ${
-                                    slot.status === 'available'
-                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                      : slot.status === 'booked'
-                                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                      : slot.status === 'blocked'
-                                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                                      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                                  }`}
-                                >
-                                  {slot.start_time}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 
@@ -1926,14 +1358,14 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                 <div className="flex items-center">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
                     <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
+                  </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Patients</p>
                     <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">142</p>
                   </div>
+                </div>
               </div>
-            </div>
-            
+             
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
                 <div className="flex items-center">
                   <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
@@ -1971,13 +1403,13 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     <div>
                       <p className="font-medium text-[#0A2647] dark:text-gray-100">John Doe</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Last visit: 2 days ago</p>
-                        </div>
-                        </div>
+                    </div>
+                  </div>
                   <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm">
                     Active
                   </span>
-                      </div>
-                
+                </div>
+               
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-medium">
@@ -1986,12 +1418,12 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     <div>
                       <p className="font-medium text-[#0A2647] dark:text-gray-100">Jane Smith</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Last visit: 1 week ago</p>
+                    </div>
                   </div>
-                      </div>
                   <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded-full text-sm">
                     Follow-up
-                      </span>
-                    </div>
+                  </span>
+                </div>
                 
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div className="flex items-center space-x-3">
@@ -2001,16 +1433,16 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     <div>
                       <p className="font-medium text-[#0A2647] dark:text-gray-100">Mike Brown</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Last visit: 3 days ago</p>
-                  </div>
+                    </div>
                   </div>
                   <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm">
                     Active
                   </span>
                 </div>
               </div>
-              </div>
             </div>
-          )}
+          </div>
+        )}
 
         {activeTab === 'reports' && (
           <div className="space-y-6">
@@ -2026,25 +1458,25 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">24</p>
                   </div>
                 </div>
-            </div>
-            
+              </div>
+             
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
                 <div className="flex items-center">
                   <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
                     <Calendar className="w-6 h-6 text-green-600 dark:text-green-400" />
-                      </div>
+                  </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">This Month</p>
                     <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">8</p>
-                      </div>
-                    </div>
                   </div>
-                  
+                </div>
+              </div>
+              
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
                 <div className="flex items-center">
                   <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
                     <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                        </div>
+                  </div>
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Pending</p>
                     <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">2</p>
@@ -2061,7 +1493,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                     <p className="font-medium text-[#0A2647] dark:text-gray-100">Patient Summary Report</p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">Generate patient activity summary</p>
-                          </button>
+                  </button>
                   <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                     <p className="font-medium text-[#0A2647] dark:text-gray-100">Appointment Analytics</p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">View appointment trends and statistics</p>
@@ -2069,9 +1501,9 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <button className="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                     <p className="font-medium text-[#0A2647] dark:text-gray-100">Revenue Report</p>
                     <p className="text-sm text-gray-600 dark:text-gray-300">Track financial performance</p>
-                          </button>
-                        </div>
-                      </div>
+                  </button>
+                </div>
+              </div>
               
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
                 <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Recent Reports</h3>
@@ -2080,11 +1512,11 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     <div>
                       <p className="font-medium text-[#0A2647] dark:text-gray-100">Monthly Summary</p>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Generated 2 days ago</p>
-                  </div>
+                    </div>
                     <button className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm">
                       Download
                     </button>
-                </div>
+                  </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div>
                       <p className="font-medium text-[#0A2647] dark:text-gray-100">Patient List</p>
@@ -2097,7 +1529,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                 </div>
               </div>
             </div>
-        </div>
+          </div>
         )}
       </main>
       
@@ -2118,3 +1550,4 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
 }
 
 export default DoctorDashboardPage;
+

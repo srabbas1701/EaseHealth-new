@@ -14,7 +14,7 @@ import PracticeSettingsSection from './UnifiedDoctorRegistrationForm/PracticeSet
 import LegalConsentsSection from './UnifiedDoctorRegistrationForm/LegalConsentsSection';
 
 interface UnifiedDoctorRegistrationFormProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: () => void;
   userId?: string;
@@ -23,6 +23,7 @@ interface UnifiedDoctorRegistrationFormProps {
     email?: string;
     mobileNumber?: string;
   };
+  isStandalone?: boolean;
 }
 
 
@@ -77,11 +78,12 @@ const initialFormData: DoctorFormData = {
 };
 
 const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   onSuccess,
   userId,
-  prefillData
+  prefillData,
+  isStandalone = false
 }) => {
   const [formData, setFormData] = useState<DoctorFormData>(() => ({
     ...initialFormData,
@@ -282,7 +284,11 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
   };
 
   // Handle form submission
-  const handleSubmit = async () => {
+  const handleSubmit = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+    console.log('Starting form submission...');
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -318,10 +324,11 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Upload medical registration certificate
       if (formData.medicalRegistrationCertificate && !uploadedFiles.has('medicalRegistrationCertificate')) {
         uploadPromises.push(
-          uploadFile(formData.medicalRegistrationCertificate, 'medical_certificate', 'medicalRegistrationCertificate', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.medicalRegistrationCertificate, finalUserId, 'medical_certificate')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('medicalRegistrationCertificate'));
-              updateFormData({ medicalRegistrationCertificateUrl: url });
+              updateFormData({ medicalRegistrationCertificateUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
@@ -329,20 +336,22 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Upload Aadhaar documents
       if (formData.aadhaarFront && !uploadedFiles.has('aadhaarFront')) {
         uploadPromises.push(
-          uploadFile(formData.aadhaarFront, 'aadhaar_front', 'aadhaarFront', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.aadhaarFront, finalUserId, 'aadhaar_front')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('aadhaarFront'));
-              updateFormData({ aadhaarFrontUrl: url });
+              updateFormData({ aadhaarFrontUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
 
       if (formData.aadhaarBack && !uploadedFiles.has('aadhaarBack')) {
         uploadPromises.push(
-          uploadFile(formData.aadhaarBack, 'aadhaar_back', 'aadhaarBack', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.aadhaarBack, finalUserId, 'aadhaar_back')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('aadhaarBack'));
-              updateFormData({ aadhaarBackUrl: url });
+              updateFormData({ aadhaarBackUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
@@ -350,10 +359,11 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Upload PAN card
       if (formData.panCard && !uploadedFiles.has('panCard')) {
         uploadPromises.push(
-          uploadFile(formData.panCard, 'pan_card', 'panCard', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.panCard, finalUserId, 'pan_card')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('panCard'));
-              updateFormData({ panCardUrl: url });
+              updateFormData({ panCardUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
@@ -361,10 +371,11 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Upload profile picture
       if (formData.profilePicture && !uploadedFiles.has('profilePicture')) {
         uploadPromises.push(
-          uploadFile(formData.profilePicture, 'profile_image', 'profilePicture', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.profilePicture, finalUserId, 'profile_image')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('profilePicture'));
-              updateFormData({ profilePictureUrl: url });
+              updateFormData({ profilePictureUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
@@ -374,10 +385,10 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
         const degreeUploadPromises = formData.degreeCertificates.map((file, index) => {
           const fileKey = `degreeCertificate_${index}`;
           if (!uploadedFiles.has(fileKey)) {
-            return uploadFile(file, 'degree_certificate', fileKey, finalUserId)
-              .then(url => {
+            return uploadDoctorDocument(file, finalUserId, 'degree_certificate')
+              .then(result => {
                 setUploadedFiles(prev => new Set(prev).add(fileKey));
-                return url;
+                return result.publicUrl || result.signedUrl;
               });
           }
           return Promise.resolve(formData.degreeCertificateUrls?.[index] || '');
@@ -391,10 +402,11 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Upload cancelled cheque
       if (formData.cancelledCheque && !uploadedFiles.has('cancelledCheque')) {
         uploadPromises.push(
-          uploadFile(formData.cancelledCheque, 'cancelled_cheque', 'cancelledCheque', finalUserId)
-            .then(url => {
+          uploadDoctorDocument(formData.cancelledCheque, finalUserId, 'cancelled_cheque')
+            .then(result => {
               setUploadedFiles(prev => new Set(prev).add('cancelledCheque'));
-              updateFormData({ cancelledChequeUrl: url });
+              updateFormData({ cancelledChequeUrl: result.publicUrl || result.signedUrl });
+              return result.publicUrl || result.signedUrl;
             })
         );
       }
@@ -402,6 +414,8 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
       // Wait for all uploads to complete
       await Promise.all(uploadPromises);
 
+      console.log('All file uploads completed, creating doctor profile...');
+      
       // Create doctor profile with file URLs
       const doctorData = {
         user_id: finalUserId,
@@ -445,10 +459,14 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
 
       console.log('Attempting to insert doctor data:', doctorData);
       
+      console.log('Attempting to insert doctor data:', doctorData);
+      
       const { data: insertedData, error: doctorError } = await supabase
         .from('doctors')
         .insert([doctorData])
         .select();
+        
+      console.log('Insert response:', { data: insertedData, error: doctorError });
 
       if (doctorError) {
         console.error('Doctor insertion error:', doctorError);
@@ -510,12 +528,254 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
     formDataKeys: Object.keys(formData).length
   });
 
-  if (!isOpen) {
-    console.log('Form is not open, returning null');
+  if (!isStandalone && !isOpen) {
+    console.log('Form is not open and not standalone, returning null');
     return null;
   }
 
   console.log('About to render form JSX');
+
+  const renderFormContent = () => (
+    <div className="space-y-8">
+      {/* Upload Progress */}
+      {uploadingFiles.size > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6 shadow-lg">
+          <div className="flex items-center mb-4">
+            <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" />
+            <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+              Uploading files... ({uploadingFiles.size} remaining)
+            </h4>
+          </div>
+          <div className="space-y-3">
+            {Array.from(uploadingFiles).map(fileId => (
+              <div key={fileId} className="flex items-center space-x-4">
+                <div className="flex-1 bg-blue-200 dark:bg-blue-800 rounded-full h-3">
+                  <div 
+                    className="bg-blue-600 dark:bg-blue-400 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress[fileId] || 0}%` }}
+                  />
+                </div>
+                <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                  {uploadProgress[fileId] || 0}%
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Submit Error */}
+      {submitError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 shadow-lg">
+          <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+            <X className="w-5 h-5 mr-2" />
+            {submitError}
+          </p>
+        </div>
+      )}
+
+      {/* Form Sections */}
+      <BasicAccountSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+        showPassword={showPassword}
+        setShowPassword={setShowPassword}
+        showConfirmPassword={showConfirmPassword}
+        setShowConfirmPassword={setShowConfirmPassword}
+        isPrefilled={!!prefillData}
+      />
+
+      <ProfessionalVerificationSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+        issuingCouncils={issuingCouncils}
+      />
+
+      <ClinicalProfileSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+        specializations={specializations}
+        languages={languages}
+        degrees={degrees}
+      />
+
+      <PracticeSettingsSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+        consultationTypes={consultationTypes}
+      />
+
+      <LegalConsentsSection
+        formData={formData}
+        updateFormData={updateFormData}
+        errors={errors}
+      />
+
+      {/* Submit Button */}
+      <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6 -mx-6 -mb-6">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p>All fields marked with * are required</p>
+            <p>Your information will be verified before activation</p>
+          </div>
+          <button
+            onClick={handleSubmit}
+            disabled={isSubmitting || uploadingFiles.size > 0}
+            className="flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-2xl font-semibold text-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                {uploadingFiles.size > 0 ? 'Uploading files...' : 'Submitting...'}
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-5 h-5 mr-3" />
+                Submit Registration
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!isStandalone && !isOpen) {
+    console.log('Form is not open and not standalone, returning null');
+    return null;
+  }
+
+  if (isStandalone) {
+    return (
+      <div className="space-y-8">
+        {/* Upload Progress */}
+        {uploadingFiles.size > 0 && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-6 shadow-lg">
+            <div className="flex items-center mb-4">
+              <Upload className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" />
+              <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                Uploading files... ({uploadingFiles.size} remaining)
+              </h4>
+            </div>
+            <div className="space-y-3">
+              {Array.from(uploadingFiles).map(fileId => (
+                <div key={fileId} className="flex items-center space-x-4">
+                  <div className="flex-1 bg-blue-200 dark:bg-blue-800 rounded-full h-3">
+                    <div 
+                      className="bg-blue-600 dark:bg-blue-400 h-3 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress[fileId] || 0}%` }}
+                    />
+                  </div>
+                  <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">
+                    {uploadProgress[fileId] || 0}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Submit Error */}
+        {submitError && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 shadow-lg">
+            <p className="text-sm text-red-600 dark:text-red-400 flex items-center">
+              <X className="w-5 h-5 mr-2" />
+              {submitError}
+            </p>
+          </div>
+        )}
+
+        {/* Basic Account Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <BasicAccountSection
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={errors}
+            showPassword={showPassword}
+            setShowPassword={setShowPassword}
+            showConfirmPassword={showConfirmPassword}
+            setShowConfirmPassword={setShowConfirmPassword}
+            isPrefilled={!!prefillData}
+          />
+        </div>
+
+        {/* Professional Verification Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <ProfessionalVerificationSection
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={errors}
+            issuingCouncils={issuingCouncils}
+          />
+        </div>
+
+        {/* Clinical Profile Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <ClinicalProfileSection
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={errors}
+            specializations={specializations}
+            languages={languages}
+            degrees={degrees}
+          />
+        </div>
+
+        {/* Practice Settings Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <PracticeSettingsSection
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={errors}
+            consultationTypes={consultationTypes}
+          />
+        </div>
+
+        {/* Legal Consents Section */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <LegalConsentsSection
+            formData={formData}
+            updateFormData={updateFormData}
+            errors={errors}
+          />
+        </div>
+
+        {/* Submit Button */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <p>All fields marked with * are required</p>
+              <p>Your information will be verified before activation</p>
+            </div>
+            <button
+              onClick={(e) => {
+                console.log('Submit button clicked');
+                handleSubmit(e);
+              }}
+              disabled={isSubmitting || uploadingFiles.size > 0}
+              className="flex items-center px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-2xl font-semibold text-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-offset-2 disabled:transform-none disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  {uploadingFiles.size > 0 ? 'Uploading files...' : 'Submitting...'}
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-3" />
+                  Submit Registration
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 

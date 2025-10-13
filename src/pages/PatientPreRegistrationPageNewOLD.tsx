@@ -69,18 +69,27 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [announcement, setAnnouncement] = useState('');
 
+  // Simple translation function for debugging
+  const getText = (key: string) => {
+    const result = t(key);
+    if (result === key) {
+      console.warn(`Missing translation for key: ${key}`);
+    }
+    return result;
+  };
+
   const steps = [
-    { number: 1, title: 'Personal Information', icon: User, description: 'Basic details about you' },
-    { number: 2, title: 'Medical Information', icon: Heart, description: 'Your health history' },
-    { number: 3, title: 'Emergency Contacts', icon: Phone, description: 'Who to contact in emergencies' },
-    { number: 4, title: 'Review & Consent', icon: CheckCircle, description: 'Final review and consent' }
+    { number: 1, title: getText('preRegistration.steps.step1.title'), icon: User, description: getText('preRegistration.steps.step1.description') },
+    { number: 2, title: getText('preRegistration.steps.step2.title'), icon: Heart, description: getText('preRegistration.steps.step2.description') },
+    { number: 3, title: getText('preRegistration.steps.step3.title'), icon: Phone, description: getText('preRegistration.steps.step3.description') },
+    { number: 4, title: getText('preRegistration.steps.step4.title'), icon: CheckCircle, description: getText('preRegistration.steps.step4.description') }
   ];
 
   const genderOptions = [
-    { value: 'Male', label: 'Male' },
-    { value: 'Female', label: 'Female' },
-    { value: 'Other', label: 'Other' },
-    { value: 'Prefer not to say', label: 'Prefer not to say' }
+    { value: 'Male', label: getText('preRegistration.gender.male') },
+    { value: 'Female', label: getText('preRegistration.gender.female') },
+    { value: 'Other', label: getText('preRegistration.gender.other') },
+    { value: 'Prefer not to say', label: getText('preRegistration.gender.preferNotToSay') }
   ];
 
   const bloodTypeOptions = [
@@ -107,21 +116,21 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
     switch (step) {
       case 1:
-        if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-        if (!formData.email.trim()) newErrors.email = 'Email is required';
-        if (!formData.phoneNumber.trim()) newErrors.phoneNumber = 'Phone number is required';
-        if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
-        if (!formData.gender) newErrors.gender = 'Gender is required';
+        if (!formData.fullName.trim()) newErrors.fullName = getText('preRegistration.validation.fullNameRequired');
+        if (!formData.email.trim()) newErrors.email = getText('preRegistration.validation.emailRequired');
+        if (!formData.phoneNumber.trim()) newErrors.phoneNumber = getText('preRegistration.validation.phoneRequired');
+        if (!formData.dateOfBirth) newErrors.dateOfBirth = getText('preRegistration.validation.dateOfBirthRequired');
+        if (!formData.gender) newErrors.gender = getText('preRegistration.validation.genderRequired');
         break;
       case 2:
-        if (!formData.address.trim()) newErrors.address = 'Address is required';
+        if (!formData.address.trim()) newErrors.address = getText('preRegistration.validation.addressRequired');
         break;
       case 3:
-        if (!formData.emergencyContactName.trim()) newErrors.emergencyContactName = 'Emergency contact name is required';
-        if (!formData.emergencyContactPhone.trim()) newErrors.emergencyContactPhone = 'Emergency contact phone is required';
+        if (!formData.emergencyContactName.trim()) newErrors.emergencyContactName = getText('preRegistration.validation.emergencyContactNameRequired');
+        if (!formData.emergencyContactPhone.trim()) newErrors.emergencyContactPhone = getText('preRegistration.validation.emergencyContactPhoneRequired');
         break;
       case 4:
-        if (!formData.consent) newErrors.consent = 'You must agree to the terms and conditions';
+        if (!formData.consent) newErrors.consent = getText('preRegistration.validation.consentRequired');
         break;
     }
 
@@ -196,9 +205,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
   };
 
   const authContext = {
-    title: 'Complete Your Patient Profile',
-    description: 'To create your patient profile, please sign in to your account or create a new one.',
-    actionText: 'Sign In & Create Profile',
+    title: getText('preRegistration.title'),
+    description: getText('preRegistration.subtitle'),
+    actionText: getText('preRegistration.navigation.createProfile'),
     showSignupOption: true
   };
 
@@ -210,7 +219,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name *
+                  {getText('preRegistration.formLabels.fullName')}
                 </label>
                 <input
                   type="text"
@@ -220,7 +229,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.fullName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your full name"
+                  placeholder={getText('preRegistration.placeholders.fullName')}
                 />
                 {errors.fullName && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -232,7 +241,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address *
+                  {getText('preRegistration.formLabels.email')}
                 </label>
                 <input
                   type="email"
@@ -242,7 +251,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your email"
+                  placeholder={getText('preRegistration.placeholders.email')}
                 />
                 {errors.email && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -254,7 +263,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
               <div>
                 <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Phone Number *
+                  {getText('preRegistration.formLabels.phone')}
                 </label>
                 <input
                   type="tel"
@@ -264,7 +273,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.phoneNumber ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Enter your phone number"
+                  placeholder={getText('preRegistration.placeholders.phone')}
                 />
                 {errors.phoneNumber && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -276,7 +285,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
               <div>
                 <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Date of Birth *
+                  {getText('preRegistration.formLabels.dateOfBirth')}
                 </label>
                 <input
                   type="date"
@@ -297,7 +306,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
               <div className="md:col-span-2">
                 <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Gender *
+                  {getText('preRegistration.formLabels.gender')}
                 </label>
                 <select
                   id="gender"
@@ -307,7 +316,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                     errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 >
-                  <option value="">Select gender</option>
+                  <option value="">{getText('preRegistration.placeholders.gender')}</option>
                   {genderOptions.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -330,7 +339,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           <div className="space-y-6">
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Address *
+                {getText('preRegistration.formLabels.address')}
               </label>
               <textarea
                 id="address"
@@ -340,7 +349,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                   errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                 }`}
-                placeholder="Enter your full address"
+                placeholder={getText('preRegistration.placeholders.address')}
               />
               {errors.address && (
                 <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -353,7 +362,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="medicalHistory" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Medical History
+                  {getText('preRegistration.formLabels.medicalHistory')}
                 </label>
                 <textarea
                   id="medicalHistory"
@@ -361,13 +370,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Any previous medical conditions, surgeries, etc."
+                  placeholder={getText('preRegistration.placeholders.medicalHistory')}
                 />
               </div>
 
               <div>
                 <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Allergies
+                  {getText('preRegistration.formLabels.allergies')}
                 </label>
                 <textarea
                   id="allergies"
@@ -375,13 +384,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   onChange={(e) => handleInputChange('allergies', e.target.value)}
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Any known allergies"
+                  placeholder={getText('preRegistration.placeholders.allergies')}
                 />
               </div>
 
               <div>
                 <label htmlFor="currentMedications" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Current Medications
+                  {getText('preRegistration.formLabels.currentMedications')}
                 </label>
                 <textarea
                   id="currentMedications"
@@ -389,13 +398,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   onChange={(e) => handleInputChange('currentMedications', e.target.value)}
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Current medications you are taking"
+                  placeholder={getText('preRegistration.placeholders.currentMedications')}
                 />
               </div>
 
               <div>
                 <label htmlFor="bloodType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Blood Type
+                  {getText('preRegistration.formLabels.bloodType')}
                 </label>
                 <select
                   id="bloodType"
@@ -403,7 +412,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   onChange={(e) => handleInputChange('bloodType', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
-                  <option value="">Select blood type</option>
+                  <option value="">{getText('preRegistration.placeholders.bloodType')}</option>
                   {bloodTypeOptions.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -416,7 +425,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="insuranceProvider" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Insurance Provider
+                  {getText('preRegistration.formLabels.insuranceProvider')}
                 </label>
                 <input
                   type="text"
@@ -424,13 +433,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   value={formData.insuranceProvider}
                   onChange={(e) => handleInputChange('insuranceProvider', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Your insurance provider"
+                  placeholder={getText('preRegistration.placeholders.insuranceProvider')}
                 />
               </div>
 
               <div>
                 <label htmlFor="insuranceNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Insurance Number
+                  {getText('preRegistration.formLabels.insuranceNumber')}
                 </label>
                 <input
                   type="text"
@@ -438,7 +447,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   value={formData.insuranceNumber}
                   onChange={(e) => handleInputChange('insuranceNumber', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="Your insurance policy number"
+                  placeholder={getText('preRegistration.placeholders.insuranceNumber')}
                 />
               </div>
             </div>
@@ -451,7 +460,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Emergency Contact Name *
+                  {getText('preRegistration.formLabels.emergencyContactName')}
                 </label>
                 <input
                   type="text"
@@ -461,7 +470,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.emergencyContactName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Emergency contact full name"
+                  placeholder={getText('preRegistration.placeholders.emergencyContactName')}
                 />
                 {errors.emergencyContactName && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -473,7 +482,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
 
               <div>
                 <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Emergency Contact Phone *
+                  {getText('preRegistration.formLabels.emergencyContactPhone')}
                 </label>
                 <input
                   type="tel"
@@ -483,7 +492,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:border-[#0075A2] transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
                     errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Emergency contact phone number"
+                  placeholder={getText('preRegistration.placeholders.emergencyContactPhone')}
                 />
                 {errors.emergencyContactPhone && (
                   <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
@@ -500,9 +509,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   <MessageCircle className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">Why do we need emergency contact information?</h4>
+                  <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">{getText('preRegistration.emergencyInfo.title')}</h4>
                   <p className="text-sm text-blue-700 dark:text-blue-300">
-                    In case of medical emergencies, we may need to contact someone on your behalf. This information helps us provide better care and ensures your safety.
+                    {getText('preRegistration.emergencyInfo.description')}
                   </p>
                 </div>
               </div>
@@ -514,50 +523,50 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
         return (
           <div className="space-y-6">
             <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Review Your Information</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">{getText('preRegistration.review.title')}</h3>
               
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Full Name</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.fullName')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.fullName}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.email')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.phone')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.phoneNumber}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Date of Birth</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.dateOfBirth')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.dateOfBirth}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Gender</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.gender')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.gender}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Blood Type</p>
-                    <p className="text-gray-900 dark:text-gray-100">{formData.bloodType || 'Not specified'}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.bloodType')}</p>
+                    <p className="text-gray-900 dark:text-gray-100">{formData.bloodType || getText('preRegistration.review.labels.notSpecified')}</p>
                   </div>
                 </div>
                 
                 <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.address')}</p>
                   <p className="text-gray-900 dark:text-gray-100">{formData.address}</p>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Emergency Contact</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.emergencyContact')}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.emergencyContactName}</p>
                     <p className="text-gray-900 dark:text-gray-100">{formData.emergencyContactPhone}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Insurance</p>
-                    <p className="text-gray-900 dark:text-gray-100">{formData.insuranceProvider || 'Not specified'}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{getText('preRegistration.review.labels.insurance')}</p>
+                    <p className="text-gray-900 dark:text-gray-100">{formData.insuranceProvider || getText('preRegistration.review.labels.notSpecified')}</p>
                     {formData.insuranceNumber && (
                       <p className="text-gray-900 dark:text-gray-100">{formData.insuranceNumber}</p>
                     )}
@@ -577,15 +586,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                   }`}
                 />
                 <span className="text-sm text-gray-700 dark:text-gray-300">
-                  I agree to the{' '}
-                  <Link to="/terms" className="text-[#0075A2] hover:underline">
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link to="/privacy" className="text-[#0075A2] hover:underline">
-                    Privacy Policy
-                  </Link>
-                  . I consent to the collection and use of my medical information for providing healthcare services.
+                  {getText('preRegistration.consent.text').replace('{terms}', getText('preRegistration.consent.terms')).replace('{privacy}', getText('preRegistration.consent.privacy'))}
                 </span>
               </label>
               {errors.consent && (
@@ -623,11 +624,11 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
             </div>
             
             <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Profile Created Successfully!
+              {getText('preRegistration.success.title')}
             </h1>
             
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Your patient profile has been created. You can now book appointments and access our healthcare services.
+              {getText('preRegistration.success.subtitle')}
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -635,13 +636,13 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 to="/smart-appointment-booking"
                 className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 transform hover:scale-105"
               >
-                Book an Appointment
+                {getText('preRegistration.success.bookAppointment')}
               </Link>
               <Link
                 to="/patient-dashboard"
                 className="bg-white dark:bg-gray-800 text-[#0075A2] border-2 border-[#0075A2] px-8 py-4 rounded-xl font-semibold hover:bg-[#0075A2] hover:text-white transition-all duration-200"
               >
-                View Dashboard
+                {getText('preRegistration.success.viewDashboard')}
               </Link>
             </div>
           </div>
@@ -669,16 +670,18 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Back to Home
+          {getText('preRegistration.navigation.backToHome')}
         </Link>
 
         {/* Header Section */}
         <div className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-            Complete Your Patient Profile
+            {getText('preRegistration.title')}
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-            Help us provide you with the best possible care by completing your medical profile. This information will help our doctors serve you better.
+            {getText('preRegistration.subtitle')}
+            <br />
+            {getText('preRegistration.description')}
           </p>
           
           {/* Quick Stats */}
@@ -688,8 +691,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <Shield className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">100%</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Secure & Private</p>
+                <p className="text-2xl font-bold">{getText('preRegistration.stats.secure.value')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{getText('preRegistration.stats.secure.label')}</p>
               </div>
             </div>
             <div className="flex items-center text-center">
@@ -697,8 +700,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <Clock className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">5 Min</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Quick Setup</p>
+                <p className="text-2xl font-bold">{getText('preRegistration.stats.setup.value')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{getText('preRegistration.stats.setup.label')}</p>
               </div>
             </div>
             <div className="flex items-center text-center">
@@ -706,8 +709,8 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 <Star className="w-6 h-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold">Better</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Care Experience</p>
+                <p className="text-2xl font-bold">{getText('preRegistration.stats.care.value')}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{getText('preRegistration.stats.care.label')}</p>
               </div>
             </div>
           </div>
@@ -745,7 +748,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
           </div>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600 dark:text-gray-300">
-              Step {currentStep} of {totalSteps}: {steps[currentStep - 1]?.title}
+              {getText('common.step')} {currentStep} {getText('common.of')} {totalSteps}: {steps[currentStep - 1]?.title}
             </p>
           </div>
         </div>
@@ -777,7 +780,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 }`}
               >
                 <ChevronLeft className="w-5 h-5 mr-2" />
-                Previous
+                {getText('preRegistration.navigation.previous')}
               </button>
 
               <button
@@ -792,11 +795,11 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
                 {isSubmitting ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    {currentStep === totalSteps ? 'Creating Profile...' : 'Validating...'}
+                    {currentStep === totalSteps ? getText('preRegistration.navigation.creatingProfile') : getText('preRegistration.navigation.validating')}
                   </>
                 ) : (
                   <>
-                    {currentStep === totalSteps ? 'Create Profile' : 'Next'}
+                    {currentStep === totalSteps ? getText('preRegistration.navigation.createProfile') : getText('preRegistration.navigation.next')}
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </>
                 )}
@@ -808,7 +811,7 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
         {/* Help Section */}
         <div className="mt-12 bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-8 border border-gray-200 dark:border-gray-700">
           <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">
-            Why We Need This Information
+            {getText('preRegistration.help.title')}
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -816,9 +819,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
               <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Heart className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Better Care</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{getText('preRegistration.help.betterCare.title')}</h4>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Your medical history helps doctors make informed decisions about your treatment.
+                {getText('preRegistration.help.betterCare.description')}
               </p>
             </div>
             
@@ -826,9 +829,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
               <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Shield className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Safety First</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{getText('preRegistration.help.safety.title')}</h4>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Emergency contacts and medical information ensure your safety in urgent situations.
+                {getText('preRegistration.help.safety.description')}
               </p>
             </div>
             
@@ -836,9 +839,9 @@ function PatientPreRegistrationPage({ user, session, profile, userState, isAuthe
               <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-4">
                 <Zap className="w-8 h-8 text-white" />
               </div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Faster Service</h4>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{getText('preRegistration.help.fasterService.title')}</h4>
               <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Pre-filled information speeds up your appointments and reduces waiting time.
+                {getText('preRegistration.help.fasterService.description')}
               </p>
             </div>
           </div>

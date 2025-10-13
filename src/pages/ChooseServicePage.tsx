@@ -131,7 +131,7 @@ function ChooseServicePage({ user, session, profile, userState, isAuthenticated,
                   
                   {/* CTA */}
                   <div className="flex items-center text-[#0075A2] dark:text-[#0EA5E9] font-medium group-hover:text-[#0A2647] dark:group-hover:text-gray-100 transition-colors">
-                    Get Started
+                    {t('chooseService.getStarted')}
                     <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </div>

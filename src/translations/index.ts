@@ -4,6 +4,7 @@ import { hi } from './hi';
 
 export type Language = 'en' | 'hi';
 
+
 export const translations = {
   en,
   hi
@@ -11,36 +12,55 @@ export const translations = {
 
 export type TranslationKeys = typeof en;
 
-// Helper function to get translation
-export const getTranslation = (language: Language, key: string): string => {
-  const keys = key.split('.');
-  let value: any = translations[language];
-  
-  for (const k of keys) {
-    if (value && typeof value === 'object' && k in value) {
-      value = value[k];
-    } else {
-      // Fallback to English if key not found
-      value = translations.en;
-      for (const fallbackKey of keys) {
-        if (value && typeof value === 'object' && fallbackKey in value) {
-          value = value[fallbackKey];
-        } else {
-          return key; // Return the key itself if not found
-        }
-      }
-      break;
-    }
+// Helper function to get nested object value
+const getNestedValue = (obj: any, path: string): any => {
+  if (!obj) {
+    return undefined;
   }
-  
-  return typeof value === 'string' ? value : key;
+
+  try {
+    return path.split('.').reduce((current, key) => {
+      if (!current || typeof current !== 'object') {
+        return undefined;
+      }
+      return current[key];
+    }, obj);
+  } catch (error) {
+    return undefined;
+  }
 };
 
-// Helper function to get nested object value
-export const getNestedValue = (obj: any, path: string): any => {
-  return path.split('.').reduce((current, key) => {
-    return current && current[key] !== undefined ? current[key] : undefined;
-  }, obj);
+// Helper function to get translation
+const getTranslation = (language: Language, key: string): string => {
+  if (!key) {
+    return '';
+  }
+
+  try {
+    // First try to get the value in the current language
+    const currentLangTranslations = translations[language];
+    if (!currentLangTranslations) {
+      return key;
+    }
+
+    const value = getNestedValue(currentLangTranslations, key);
+    if (value !== undefined && value !== null) {
+      return value;
+    }
+
+    // If not found and language is not English, try English
+    if (language !== 'en') {
+      const englishValue = getNestedValue(translations.en, key);
+      if (englishValue !== undefined && englishValue !== null) {
+        return englishValue;
+      }
+    }
+
+    // If still not found, return the key
+    return key;
+  } catch (error) {
+    return key;
+  }
 };
 
 // Hook for using translations
@@ -49,19 +69,25 @@ export const useTranslations = (language: Language) => {
   const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   
   React.useEffect(() => {
+    console.log('🔄 useTranslations: Language changed to', language);
     forceUpdate();
   }, [language]);
-  
+
+  // Memoize the translation function
+  const t = React.useCallback((key: string): string => {
+    if (!key) {
+      return '';
+    }
+
+    const value = getTranslation(language, key);
+    if (value === key) {
+      console.warn('⚠️ Translation missing for key:', key, 'in language:', language);
+    }
+    return value;
+  }, [language]);
+
   return {
-    t: (key: string) => {
-      const value = getNestedValue(translations[language], key);
-      if (value !== undefined) {
-        return value;
-      }
-      // Fallback to English
-      const fallbackValue = getNestedValue(translations.en, key);
-      return fallbackValue !== undefined ? fallbackValue : key;
-    },
+    t,
     translations: translations[language]
   };
 };

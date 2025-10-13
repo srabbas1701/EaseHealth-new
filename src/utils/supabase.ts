@@ -935,14 +935,16 @@ export const getDoctorByUserId = async (userId: string) => {
 }
 
 
-// Optimized getDoctorSchedules function
+// Get available dates from time_slots table - this is the correct table for appointment booking
 export const getDoctorSchedules = async (doctorId: string, startDate?: string, endDate?: string) => {
   try {
+    console.log(`🔍 Fetching available dates for doctor ${doctorId} from time_slots table`);
+    
     let query = supabase
-      .from('doctor_schedules')
-      .select('*')
+      .from('time_slots')
+      .select('schedule_date, status')
       .eq('doctor_id', doctorId)
-      .eq('is_available', true);
+      .eq('status', 'available'); // Only get available slots
 
     // If date range is provided, filter by schedule_date
     if (startDate && endDate) {
@@ -952,15 +954,22 @@ export const getDoctorSchedules = async (doctorId: string, startDate?: string, e
     }
 
     const { data, error } = await query
-      .order('schedule_date')
-      .order('day_of_week');
+      .order('schedule_date');
 
     if (error) {
       console.error('Schedule fetch error:', error)
       return []
     }
 
-    return data || []
+    // Get unique dates that have available slots
+    const uniqueDates = [...new Set(data?.map(slot => slot.schedule_date) || [])];
+    console.log('Available dates from time_slots:', uniqueDates);
+    
+    return uniqueDates.map(date => ({
+      schedule_date: date,
+      is_available: true,
+      status: 'available'
+    }));
   } catch (error) {
     console.error('Network error:', error)
     return []
@@ -1077,6 +1086,25 @@ export const getAppointmentsByDate = async (doctorId: string, date: string) => {
   return data
 }
 
+// Generate queue token function
+export const generateQueueToken = async (): Promise<string> => {
+  try {
+    const { data, error } = await supabase.rpc('generate_queue_token');
+    if (error) {
+      console.error('❌ Error generating queue token:', error);
+      // Fallback to manual generation
+      const fallbackToken = `QT-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+      return fallbackToken;
+    }
+    return data;
+  } catch (error) {
+    console.error('❌ Error generating queue token:', error);
+    // Fallback to manual generation
+    const fallbackToken = `QT-${new Date().getFullYear()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+    return fallbackToken;
+  }
+};
+
 export const createAppointment = async (
   doctorId: string,
   patientId: string,
@@ -1115,6 +1143,33 @@ export const createAppointment = async (
 
   // Generate a unique appointment ID
   const appointmentId = crypto.randomUUID();
+  
+  // Generate queue token
+  const queueToken = await generateQueueToken();
+  console.log('🎫 Generated queue token:', queueToken);
+
+  // Create appointment record in appointments table
+  const { data: appointmentData, error: appointmentError } = await supabase
+    .from('appointments')
+    .insert({
+      id: appointmentId,
+      doctor_id: doctorId,
+      patient_id: patientId,
+      appointment_date: date,
+      start_time: startTime,
+      end_time: existingSlot.end_time,
+      duration_minutes: durationMinutes,
+      status: 'scheduled',
+      notes: notes || `Appointment booked by patient ${patientId}`,
+      queue_token: queueToken
+    })
+    .select()
+    .single();
+
+  if (appointmentError) {
+    console.error('❌ Error creating appointment record:', appointmentError);
+    throw appointmentError;
+  }
 
   // Update the time slot to mark it as booked (atomic operation)
   const { data, error } = await supabase
@@ -1131,24 +1186,35 @@ export const createAppointment = async (
 
   if (error) {
     console.error('❌ Error updating time slot:', error);
+    // Rollback appointment creation
+    await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', appointmentId);
     throw error;
   }
 
   if (!data) {
+    // Rollback appointment creation
+    await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', appointmentId);
     throw new Error('Failed to book appointment - slot may have been taken by another user');
   }
 
-  console.log('✅ Appointment created successfully:', data);
+  console.log('✅ Appointment created successfully:', appointmentData);
   return {
     id: appointmentId,
     doctor_id: doctorId,
     patient_id: patientId,
-    schedule_date: date,
+    appointment_date: date,
     start_time: startTime,
     end_time: existingSlot.end_time,
     duration_minutes: durationMinutes,
-    status: 'booked',
+    status: 'scheduled',
     notes: notes || `Appointment booked by patient ${patientId}`,
+    queue_token: queueToken,
     time_slot_id: existingSlot.id
   };
 }
@@ -1395,8 +1461,8 @@ export const generateTimeSlotsForNext4Weeks = async (doctorId: string) => {
   const endDate = new Date(mondayOfCurrentWeek);
   endDate.setDate(mondayOfCurrentWeek.getDate() + 27); // 4 weeks = 28 days
   
-  const startDateStr = startDate.toISOString().split('T')[0];
-  const endDateStr = endDate.toISOString().split('T')[0];
+  const startDateStr = formatLocalDate(startDate);
+  const endDateStr = formatLocalDate(endDate);
   
   console.log(`🚀 Generating time slots for rolling 4-week period: ${startDateStr} to ${endDateStr}`);
   return await generateTimeSlotsForRange(doctorId, startDateStr, endDateStr);
@@ -1457,6 +1523,14 @@ export const createDoctorSchedule = async (
 }
 
 // Create schedules for next 4 weeks (for doctor dashboard) - creates individual records for each specific date
+// Helper function to format date as YYYY-MM-DD in local timezone (no UTC conversion)
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const createDoctorSchedulesForNext4Weeks = async (
   doctorId: string,
   dayOfWeek: number,
@@ -1483,7 +1557,9 @@ export const createDoctorSchedulesForNext4Weeks = async (
     const endDate = new Date(mondayOfCurrentWeek);
     endDate.setDate(mondayOfCurrentWeek.getDate() + 27); // 4 weeks = 28 days
     
-    console.log(`📅 Creating schedules for 4-week period: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+    const startDateStr = formatLocalDate(startDate);
+    const endDateStr = formatLocalDate(endDate);
+    console.log(`📅 Creating schedules for 4-week period: ${startDateStr} to ${endDateStr}`);
     
     // First, check which dates already have schedules for this day of week
     const { data: existingSchedules, error: fetchError } = await supabase
@@ -1491,8 +1567,8 @@ export const createDoctorSchedulesForNext4Weeks = async (
       .select('schedule_date')
       .eq('doctor_id', doctorId)
       .eq('day_of_week', dayOfWeek)
-      .gte('schedule_date', startDate.toISOString().split('T')[0])
-      .lte('schedule_date', endDate.toISOString().split('T')[0])
+      .gte('schedule_date', startDateStr)
+      .lte('schedule_date', endDateStr)
       .not('schedule_date', 'is', null);
     
     if (fetchError) {
@@ -1509,7 +1585,7 @@ export const createDoctorSchedulesForNext4Weeks = async (
     
     while (currentDate <= endDate) {
       const currentDayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = formatLocalDate(currentDate);
       
       // Check if this date matches the day of week we're creating schedules for
       if (currentDayOfWeek === dayOfWeek) {
