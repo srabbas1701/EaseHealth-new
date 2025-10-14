@@ -19,12 +19,12 @@ interface AuthProps {
   handleLogout: () => Promise<void>;
 }
 
-import { 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar, 
-  Clock, 
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Clock,
   User,
   CheckCircle,
   FileText,
@@ -64,12 +64,14 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [specialtiesLoaded, setSpecialtiesLoaded] = useState(false);
   const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false);
-  
+
   // Queue token modal state
   const [showQueueTokenModal, setShowQueueTokenModal] = useState(false);
   const [queueToken, setQueueToken] = useState<string>('');
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
 
+  // Ref to track if we've already processed auth success
+  const authSuccessProcessed = React.useRef(false);
 
   // Close dropdowns when clicking outside
   React.useEffect(() => {
@@ -93,25 +95,242 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     loadSpecialties(); // Preload specialties for instant dropdown display
   }, []);
 
+  // Define handleAuthSuccess before useEffect that uses it
+  const handleAuthSuccess = React.useCallback(async (restoredBookingDetails = null) => {
+    console.log('🔍 handleAuthSuccess called with restored details:', !!restoredBookingDetails);
+    try {
+      setShowAuthModal(false);
+
+      // Use restored booking details if provided, otherwise use current state
+      const doctor = restoredBookingDetails?.selectedDoctor || selectedDoctor;
+      const date = restoredBookingDetails?.selectedDate || selectedDate;
+      const time = restoredBookingDetails?.selectedTime || selectedTime;
+
+      console.log('🔍 Checking booking requirements:', {
+        selectedDoctor: !!doctor,
+        selectedDate: !!date,
+        selectedTime: !!time,
+        user: !!user
+      });
+
+      if (!doctor || !date || !time || !user) {
+        console.log('❌ Missing booking information');
+        setAnnouncement('Missing booking information. Please try again.');
+        return;
+      }
+
+      console.log('✅ All booking requirements met, proceeding...');
+
+      // First, ensure user has a patient profile
+      console.log('🔍 Getting patient profile for user:', user.id);
+      let patientProfile = await getPatientProfile(user.id);
+      console.log('🔍 Patient profile result:', patientProfile);
+
+      if (!patientProfile) {
+        console.log('🔍 Creating patient profile for user');
+        try {
+          patientProfile = await createPatientProfile(user.id, {
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Patient',
+            email: user.email || '',
+            phone_number: user.user_metadata?.phone || '000-000-0000',
+            is_active: true
+          });
+          console.log('✅ Patient profile created:', patientProfile);
+        } catch (error) {
+          console.error('❌ Error creating patient profile:', error);
+          setAnnouncement(`Failed to create patient profile: ${error.message || 'Unknown error occurred'}. Please try again.`);
+          return;
+        }
+      }
+
+      if (!patientProfile) {
+        console.error('❌ Failed to create or get patient profile');
+        setAnnouncement('Failed to create patient profile. Please try again.');
+        return;
+      }
+
+      console.log('✅ Patient profile ready:', patientProfile.id);
+
+      // Convert time to proper format (e.g., "9:30 AM" to "09:30:00")
+      const timeParts = time.split(':');
+      const hour = parseInt(timeParts[0]);
+      const minute = parseInt(timeParts[1].split(' ')[0]);
+      const isPM = time.includes('PM');
+
+      let hour24 = hour;
+      if (isPM && hour !== 12) hour24 += 12;
+      if (!isPM && hour === 12) hour24 = 0;
+
+      const timeString = `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+      // Use IST timezone for date string to match database
+      const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+      console.log('🔍 Time conversion debug:', {
+        inputTime: time,
+        convertedTime: timeString,
+        availableSlotsCount: availableSlots.length,
+        availableSlotTimes: availableSlots.map(s => s.start_time)
+      });
+
+      // Find the selected slot to get its duration
+      // Use a more robust comparison that handles different time formats
+      const selectedSlot = availableSlots.find(slot => {
+        const slotTime = slot.start_time;
+        // Handle both HH:MM:SS and HH:MM formats
+        const normalizedSlotTime = slotTime.length === 5 ? `${slotTime}:00` : slotTime;
+        return normalizedSlotTime === timeString;
+      });
+
+      if (!selectedSlot) {
+        console.error('❌ Slot not found!', {
+          lookingFor: timeString,
+          availableSlots: availableSlots.map(s => ({
+            id: s.id,
+            start_time: s.start_time,
+            status: s.status
+          }))
+        });
+        setAnnouncement(`Error: Selected time slot not found. Please try selecting a different time slot.`);
+        return;
+      }
+
+      // Check if the slot is still available
+      if (selectedSlot.status !== 'available') {
+        console.error('❌ Slot is not available!', {
+          slotId: selectedSlot.id,
+          status: selectedSlot.status,
+          startTime: selectedSlot.start_time
+        });
+        setAnnouncement(`Error: Selected time slot is no longer available (status: ${selectedSlot.status}). Please select a different time slot.`);
+        return;
+      }
+
+      const durationMinutes = selectedSlot?.duration_minutes || 30; // Default to 30 if not found
+
+      console.log('Creating appointment:', {
+        doctorId: doctor.id,
+        patientId: patientProfile.id,
+        date: dateString,
+        startTime: timeString,
+        durationMinutes: durationMinutes,
+        selectedSlot: selectedSlot,
+        slotFound: !!selectedSlot,
+        availableSlots: availableSlots
+      });
+
+      // Create the appointment in the database
+      console.log('🔍 Creating appointment for real slot:', {
+        doctorId: doctor.id,
+        patientId: patientProfile.id,
+        date: dateString,
+        time: timeString,
+        duration: durationMinutes
+      });
+
+      const appointment = await createAppointment(
+        doctor.id,
+        patientProfile.user_id, // Fixed: Use user_id (auth.users.id) not patient profile id
+        dateString,
+        timeString,
+        durationMinutes, // Use actual slot duration
+        `Appointment booked through EaseHealth platform`
+      );
+
+      console.log('Appointment created:', appointment);
+
+      // Only set booking confirmed if appointment was actually created
+      if (appointment && appointment.id) {
+        setBookingConfirmed(true);
+        setAnnouncement(`Appointment confirmed with ${doctor.full_name} on ${date.toLocaleDateString()} at ${time}. Your appointment has been saved.`);
+
+        // Set queue token and appointment details for modal
+        setQueueToken(appointment.queue_token || 'QT-2024-0001');
+        setAppointmentDetails({
+          doctorName: doctor.full_name,
+          date: date.toLocaleDateString(),
+          time: time,
+          specialty: selectedSpecialty?.name
+        });
+
+        // Show queue token modal
+        setShowQueueTokenModal(true);
+      } else {
+        throw new Error('Appointment creation failed - no appointment ID returned');
+      }
+
+    } catch (error) {
+      console.error('❌ Error in handleAuthSuccess:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      setAnnouncement(`Failed to create appointment: ${error.message || 'Unknown error occurred'}. Please try again.`);
+      // Don't reopen modal - user is already authenticated, just show error
+    }
+  }, [user, selectedDoctor, selectedDate, selectedTime, selectedSpecialty, availableSlots, setAnnouncement, setBookingConfirmed, setQueueToken, setAppointmentDetails, setShowQueueTokenModal]);
+
   // Handle auth success from login page
   useEffect(() => {
-    if (location.state?.authSuccess && isAuthenticated && user) {
+    console.log('🔍 Auth success useEffect triggered:', {
+      'location.state': location.state,
+      'authSuccess': location.state?.authSuccess,
+      'isAuthenticated': isAuthenticated,
+      'user': !!user,
+      'alreadyProcessed': authSuccessProcessed.current,
+      'hasBookingDetails': !!location.state?.bookingDetails
+    });
+
+    if (location.state?.authSuccess && isAuthenticated && user && !authSuccessProcessed.current) {
       console.log('✅ Auth success detected, proceeding with booking');
-      handleAuthSuccess();
+
+      // Restore booking details from location state
+      const bookingDetails = location.state?.bookingDetails;
+      if (bookingDetails) {
+        console.log('📋 Restoring booking details from location state:', bookingDetails);
+
+        // Restore the booking state
+        if (bookingDetails.selectedDoctor) {
+          setSelectedDoctor(bookingDetails.selectedDoctor);
+          console.log('✅ Restored selectedDoctor:', bookingDetails.selectedDoctor.full_name);
+        }
+        if (bookingDetails.selectedDate) {
+          setSelectedDate(bookingDetails.selectedDate);
+          console.log('✅ Restored selectedDate:', bookingDetails.selectedDate);
+        }
+        if (bookingDetails.selectedTime) {
+          setSelectedTime(bookingDetails.selectedTime);
+          console.log('✅ Restored selectedTime:', bookingDetails.selectedTime);
+        }
+        if (bookingDetails.selectedSpecialty) {
+          setSelectedSpecialty(bookingDetails.selectedSpecialty);
+          console.log('✅ Restored selectedSpecialty:', bookingDetails.selectedSpecialty.name);
+        }
+
+        // Call handleAuthSuccess with the restored booking details
+        console.log('🔄 Calling handleAuthSuccess with restored booking details');
+        authSuccessProcessed.current = true;
+        handleAuthSuccess(bookingDetails);
+      } else {
+        console.log('❌ No booking details found in location state');
+        authSuccessProcessed.current = true;
+      }
+    } else {
+      console.log('❌ Auth success conditions not met');
     }
-  }, [location.state?.authSuccess, isAuthenticated, user]);
+  }, [location.state, isAuthenticated, user, handleAuthSuccess]);
 
   // Filter doctors when specialty changes
   React.useEffect(() => {
     if (selectedSpecialty) {
       // Simple name-based filtering instead of UUID lookup
-      const filtered = doctors.filter(doctor => 
+      const filtered = doctors.filter(doctor =>
         doctor.specialty.toLowerCase() === selectedSpecialty.name.toLowerCase()
       );
       console.log('Filtering doctors for specialty:', selectedSpecialty.name);
       console.log('Available doctors:', doctors);
       console.log('Filtered doctors:', filtered);
-      
+
       setFilteredDoctors(filtered);
       setSelectedDoctor(null); // Reset doctor selection
       setSelectedDate(null);
@@ -162,7 +381,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       setIsLoadingDoctors(true);
       const doctorsList = await getDoctors();
       console.log('Loaded doctors:', doctorsList);
-      
+
       setDoctors(doctorsList || []);
       setFilteredDoctors(doctorsList || []);
     } catch (error) {
@@ -179,33 +398,33 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
     try {
       console.log('Loading available dates for doctor:', selectedDoctor.id);
-      
+
       // Get available dates for the next 30 days in IST timezone
       const today = new Date();
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + 30);
-      
+
       // Convert to IST timezone for date strings
-      const todayIST = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      const endDateIST = new Date(endDate.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
-      
+      const todayIST = new Date(today.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      const endDateIST = new Date(endDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
       const startDateStr = `${todayIST.getFullYear()}-${String(todayIST.getMonth() + 1).padStart(2, '0')}-${String(todayIST.getDate()).padStart(2, '0')}`;
       const endDateStr = `${endDateIST.getFullYear()}-${String(endDateIST.getMonth() + 1).padStart(2, '0')}-${String(endDateIST.getDate()).padStart(2, '0')}`;
-      
+
       const availableSchedules = await getDoctorSchedules(selectedDoctor.id, startDateStr, endDateStr);
       console.log('Available schedules from time_slots:', availableSchedules);
       setDoctorSchedules(availableSchedules || []);
-      
+
       // Create set of available dates from time_slots table
       const dates = new Set<string>();
-      
+
       if (availableSchedules && availableSchedules.length > 0) {
         availableSchedules.forEach(schedule => {
           if (schedule.schedule_date && schedule.is_available && schedule.status === 'available') {
             const scheduleDate = new Date(schedule.schedule_date);
-            const todayDateIST = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+            const todayDateIST = new Date(today.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
             todayDateIST.setHours(0, 0, 0, 0);
-            
+
             // Only add future dates (including today) in IST
             if (scheduleDate >= todayDateIST) {
               dates.add(schedule.schedule_date);
@@ -214,9 +433,9 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
           }
         });
       }
-      
+
       console.log('📅 Final available dates for calendar:', Array.from(dates).sort());
-      
+
       // If no schedules found, make all future dates available for testing
       if (dates.size === 0) {
         console.log('⚠️ No schedules found in time_slots, making all future dates available for testing');
@@ -224,12 +443,12 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
           const date = new Date(today);
           date.setDate(today.getDate() + i);
           // Use IST timezone for date string
-          const dateIST = new Date(date.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+          const dateIST = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
           const dateStr = `${dateIST.getFullYear()}-${String(dateIST.getMonth() + 1).padStart(2, '0')}-${String(dateIST.getDate()).padStart(2, '0')}`;
           dates.add(dateStr);
         }
       }
-      
+
       setAvailableDates(dates);
     } catch (error) {
       console.error('Error loading doctor schedules:', error);
@@ -240,7 +459,9 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       for (let i = 1; i < 30; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        dates.add(date.toISOString().split('T')[0]);
+        // Use IST timezone for date string
+        const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        dates.add(dateStr);
       }
       setAvailableDates(dates);
     }
@@ -249,44 +470,44 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   // Smart time filtering function based on database slot status
   const applySmartTimeFiltering = (slots: any[], selectedDateStr: string) => {
     const today = new Date();
-    const todayIST = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const todayIST = new Date(today.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     const todayStr = `${todayIST.getFullYear()}-${String(todayIST.getMonth() + 1).padStart(2, '0')}-${String(todayIST.getDate()).padStart(2, '0')}`;
-    
+
     // Only apply smart filtering if the selected date is today
     if (selectedDateStr !== todayStr) {
       console.log('Selected date is not today, no smart filtering applied');
       return slots;
     }
-    
+
     console.log('Applying smart time filtering for today:', todayStr);
-    
+
     // Get current time in IST
-    const currentTimeIST = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+    const currentTimeIST = new Date(today.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
     const currentHour = currentTimeIST.getHours();
     const currentMinute = currentTimeIST.getMinutes();
     const currentTimeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}:00`;
-    
+
     console.log('Current time in IST:', currentTimeStr);
-    
+
     return slots.map(slot => {
       const slotStartTime = slot.start_time;
       const slotEndTime = slot.end_time;
       const dbStatus = slot.status; // This comes from database: 'available', 'booked', 'blocked'
-      
+
       // Parse slot start time
       const [slotHour, slotMinute] = slotStartTime.split(':').map(Number);
       const slotTimeInMinutes = slotHour * 60 + slotMinute;
       const currentTimeInMinutes = currentHour * 60 + currentMinute;
-      
+
       // Calculate slot duration in minutes
       const [endHour, endMinute] = slotEndTime.split(':').map(Number);
       const slotDurationMinutes = (endHour * 60 + endMinute) - slotTimeInMinutes;
-      
+
       // Determine final availability based on database status and time
       let finalStatus = dbStatus;
       let isAvailable = false;
       let reason = '';
-      
+
       // First check database status
       if (dbStatus === 'booked') {
         isAvailable = false;
@@ -313,7 +534,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
           const timeDifferenceMinutes = slotTimeInMinutes - currentTimeInMinutes;
           const bufferSlots = 2;
           const bufferMinutes = bufferSlots * slotDurationMinutes;
-          
+
           if (timeDifferenceMinutes <= bufferMinutes) {
             isAvailable = false;
             reason = 'buffer';
@@ -325,9 +546,9 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
           }
         }
       }
-      
+
       console.log(`Slot ${slotStartTime}-${slotEndTime}: Status=${dbStatus}, Final=${finalStatus}, Available=${isAvailable} (${reason})`);
-      
+
       return {
         ...slot,
         status: finalStatus,
@@ -343,66 +564,39 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
     try {
       setIsLoadingSlots(true);
-      
+
       // Use IST timezone for date string
       const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
       console.log('Loading time slots for:', selectedDoctor.id, selectedDateStr);
-      
+
       // First try to get existing slots
       let slots = await getAvailableTimeSlots(selectedDoctor.id, selectedDateStr);
       console.log('Existing slots:', slots);
-      
+
       // If no slots exist, generate them
       if (!slots || slots.length === 0) {
         console.log('No existing slots, generating new ones...');
         slots = await generateTimeSlots(selectedDoctor.id, selectedDateStr);
         console.log('Generated slots:', slots);
       }
-      
-      // If still no slots, provide some mock slots for testing
+
+      // If still no slots, show error message
       if (!slots || slots.length === 0) {
-        console.log('No slots generated, using mock slots for testing');
-        slots = [
-          { id: 'mock-1', start_time: '09:00:00', end_time: '09:10:00', duration_minutes: 10, status: 'available' },
-          { id: 'mock-2', start_time: '09:10:00', end_time: '09:20:00', duration_minutes: 10, status: 'booked' },
-          { id: 'mock-3', start_time: '09:20:00', end_time: '09:35:00', duration_minutes: 15, status: 'available' },
-          { id: 'mock-4', start_time: '09:35:00', end_time: '09:50:00', duration_minutes: 15, status: 'blocked' },
-          { id: 'mock-5', start_time: '09:50:00', end_time: '10:10:00', duration_minutes: 20, status: 'available' },
-          { id: 'mock-6', start_time: '10:10:00', end_time: '10:30:00', duration_minutes: 20, status: 'booked' },
-          { id: 'mock-7', start_time: '10:30:00', end_time: '11:00:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-8', start_time: '11:00:00', end_time: '11:30:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-9', start_time: '11:30:00', end_time: '12:00:00', duration_minutes: 30, status: 'blocked' },
-          { id: 'mock-10', start_time: '12:00:00', end_time: '12:30:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-11', start_time: '12:30:00', end_time: '13:00:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-12', start_time: '13:00:00', end_time: '13:30:00', duration_minutes: 30, status: 'booked' },
-          { id: 'mock-13', start_time: '13:30:00', end_time: '14:00:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-14', start_time: '14:00:00', end_time: '14:30:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-15', start_time: '14:30:00', end_time: '15:00:00', duration_minutes: 30, status: 'blocked' },
-          { id: 'mock-16', start_time: '15:00:00', end_time: '15:30:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-17', start_time: '15:30:00', end_time: '16:00:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-18', start_time: '16:00:00', end_time: '16:30:00', duration_minutes: 30, status: 'booked' },
-          { id: 'mock-19', start_time: '16:30:00', end_time: '17:00:00', duration_minutes: 30, status: 'available' },
-          { id: 'mock-20', start_time: '17:00:00', end_time: '17:30:00', duration_minutes: 30, status: 'available' },
-        ];
+        console.error('❌ No slots available for selected date');
+        setAnnouncement('No time slots available for the selected date. Please try another date.');
+        setAvailableSlots([]);
+        return;
       }
-      
+
       // Apply smart time filtering for today's date
       const filteredSlots = applySmartTimeFiltering(slots, selectedDateStr);
       console.log('Filtered slots after smart time filtering:', filteredSlots);
-      
+
       setAvailableSlots(filteredSlots || []);
     } catch (error) {
       console.error('Error loading time slots:', error);
-      // Provide mock slots as fallback
-      const mockSlots = [
-        { id: 'mock-1', start_time: '09:00:00', end_time: '09:30:00', status: 'available' },
-        { id: 'mock-2', start_time: '09:30:00', end_time: '10:00:00', status: 'available' },
-        { id: 'mock-3', start_time: '10:00:00', end_time: '10:30:00', status: 'available' },
-        { id: 'mock-4', start_time: '10:30:00', end_time: '11:00:00', status: 'available' },
-        { id: 'mock-5', start_time: '11:00:00', end_time: '11:30:00', status: 'available' },
-        { id: 'mock-6', start_time: '11:30:00', end_time: '12:00:00', status: 'available' },
-      ];
-      setAvailableSlots(mockSlots);
+      setAnnouncement('Failed to load time slots. Please try again.');
+      setAvailableSlots([]);
     } finally {
       setIsLoadingSlots(false);
     }
@@ -417,35 +611,35 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     const lastDay = new Date(year, month + 1, 0);
     const firstDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
-    
+
     const days = [];
-    
+
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < firstDayOfWeek; i++) {
       days.push({ day: '', disabled: true, isPast: false, isAvailable: false });
     }
-    
+
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const currentDate = new Date(year, month, day);
       // Use IST timezone for date string to match database
       const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
+
       // Compare with today in IST timezone
-      const todayIST = new Date(today.toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+      const todayIST = new Date(today.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
       todayIST.setHours(0, 0, 0, 0);
       const isPast = currentDate < todayIST;
-      
+
       // Use the current availableDates state
       const isAvailable = availableDates.has(dateString);
       const isSelected = selectedDate && selectedDate.toDateString() === currentDate.toDateString();
-      
+
       // Debug: Log calendar generation for first week
       if (day <= 7) {
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         console.log(`📅 Calendar Day ${day}: ${currentDate.toDateString()} (${dayNames[currentDate.getDay()]}), Date String: ${dateString}, Available: ${isAvailable}, Disabled: ${isPast || !isAvailable}, In Set: ${availableDates.has(dateString)}`);
       }
-      
+
       days.push({
         day,
         disabled: isPast || !isAvailable,
@@ -455,7 +649,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         date: currentDate
       });
     }
-    
+
     return days;
   };
 
@@ -463,12 +657,12 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const calendarDays = useMemo(() => {
     // Debug: Log available dates set before calendar generation
     console.log('Available dates set:', Array.from(availableDates).sort());
-    
+
     return generateCalendarDays();
   }, [currentMonth, availableDates, selectedDate]);
 
   const weekDays = t('appointmentBooking.weekDaysShort') as unknown as string[];
-  
+
   // Debug: Log weekDays to verify alignment
   console.log('Week days array:', weekDays);
 
@@ -486,14 +680,14 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       icon: User
     },
     {
-      number: "03", 
+      number: "03",
       title: t('appointmentBooking.steps.step3.title'),
       description: t('appointmentBooking.steps.step3.description'),
       icon: Calendar
     },
     {
       number: "04",
-      title: t('appointmentBooking.steps.step4.title'), 
+      title: t('appointmentBooking.steps.step4.title'),
       description: t('appointmentBooking.steps.step4.description'),
       icon: CheckCircle
     }
@@ -517,7 +711,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
   const handleDateSelect = (dayObj: any) => {
     if (dayObj.disabled || !dayObj.isAvailable) return;
-    
+
     setSelectedDate(dayObj.date);
     setSelectedTime('');
     setAnnouncement(`Selected date: ${dayObj.date.toLocaleDateString()}`);
@@ -538,19 +732,19 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
     setCurrentMonth(newMonth);
   };
 
-  const handleConfirmBooking = () => {
-    console.log('🔍 handleConfirmBooking called:', { 
-      isAuthenticated, 
-      user: !!user, 
+  const handleConfirmBooking = async () => {
+    console.log('🔍 handleConfirmBooking called:', {
+      isAuthenticated,
+      user: !!user,
       selectedDoctor: !!selectedDoctor,
       selectedDate: !!selectedDate,
       selectedTime: !!selectedTime
     });
-    
+
     if (isAuthenticated && user) {
       // User is already logged in, proceed with booking
       console.log('✅ User authenticated, calling handleAuthSuccess');
-      handleAuthSuccess();
+      await handleAuthSuccess();
     } else {
       // User needs to authenticate first - redirect to login page with booking details
       console.log('❌ User not authenticated, redirecting to login page');
@@ -560,205 +754,12 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         selectedTime,
         selectedSpecialty
       };
-      navigate('/login-page', { 
-        state: { 
+      navigate('/login-page', {
+        state: {
           bookingDetails,
           redirectTo: '/smart-appointment-booking'
-        } 
-      });
-    }
-  };
-
-  const handleAuthSuccess = async () => {
-    console.log('🔍 handleAuthSuccess called');
-    try {
-      setShowAuthModal(false);
-      
-      console.log('🔍 Checking booking requirements:', {
-        selectedDoctor: !!selectedDoctor,
-        selectedDate: !!selectedDate,
-        selectedTime: !!selectedTime,
-        user: !!user
-      });
-      
-      if (!selectedDoctor || !selectedDate || !selectedTime || !user) {
-        console.log('❌ Missing booking information');
-        setAnnouncement('Missing booking information. Please try again.');
-        return;
-      }
-      
-      console.log('✅ All booking requirements met, proceeding...');
-
-
-      // Convert time to proper format (e.g., "9:30 AM" to "09:30:00")
-      const timeParts = selectedTime.split(':');
-      const hour = parseInt(timeParts[0]);
-      const minute = parseInt(timeParts[1].split(' ')[0]);
-      const isPM = selectedTime.includes('PM');
-      
-      let hour24 = hour;
-      if (isPM && hour !== 12) hour24 += 12;
-      if (!isPM && hour === 12) hour24 = 0;
-      
-      const timeString = `${hour24.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-      const dateString = selectedDate.toISOString().split('T')[0];
-      
-      // Find the selected slot to get its duration
-      const selectedSlot = availableSlots.find(slot => slot.start_time === timeString);
-      const durationMinutes = selectedSlot?.duration_minutes || 30; // Default to 30 if not found
-      
-      console.log('Creating appointment:', {
-        doctorId: selectedDoctor.id,
-        patientId: user.id,
-        date: dateString,
-        startTime: timeString,
-        durationMinutes: durationMinutes,
-        selectedSlot: selectedSlot,
-        availableSlots: availableSlots
-      });
-
-      // First, ensure user has a patient profile (for both mock and real slots)
-      console.log('🔍 Getting patient profile for user:', user.id);
-      let patientProfile = await getPatientProfile(user.id);
-      console.log('🔍 Patient profile result:', patientProfile);
-      
-      if (!patientProfile) {
-        console.log('🔍 Creating patient profile for user');
-        try {
-          patientProfile = await createPatientProfile(user.id, {
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Patient',
-            email: user.email || '',
-            phone_number: user.user_metadata?.phone || '000-000-0000', // Provide default phone number
-            is_active: true
-          });
-          console.log('✅ Patient profile created:', patientProfile);
-        } catch (error) {
-          console.error('❌ Error creating patient profile:', error);
-          setAnnouncement(`Failed to create patient profile: ${error.message || 'Unknown error occurred'}. Please try again.`);
-          return;
         }
-      }
-      
-      if (!patientProfile) {
-        console.error('❌ Failed to create or get patient profile');
-        setAnnouncement('Failed to create patient profile. Please try again.');
-        return;
-      }
-      
-      console.log('✅ Patient profile ready:', patientProfile.id);
-
-      // Check if this is a mock slot
-      const isMockSlot = selectedSlot?.id?.startsWith('mock-');
-      
-      if (isMockSlot) {
-        // For mock slots, create a simple appointment record in the database
-        console.log('🔍 Creating appointment with mock slot - creating appointment record');
-        console.log('🔍 Mock slot details:', { selectedSlot, timeString, dateString, durationMinutes });
-        
-        try {
-          // Generate queue token for mock slots too
-          const queueToken = await generateQueueToken();
-          console.log('🎫 Generated queue token for mock slot:', queueToken);
-          
-          // Create appointment record directly
-          const endTime = new Date(`2000-01-01T${timeString}`);
-          endTime.setMinutes(endTime.getMinutes() + durationMinutes);
-          const endTimeString = endTime.toTimeString().split(' ')[0];
-          
-          const { data: appointment, error } = await supabase
-            .from('appointments')
-            .insert({
-              doctor_id: selectedDoctor.id,
-              patient_id: patientProfile.id, // Use patient profile ID, not user ID
-              appointment_date: dateString,
-              start_time: timeString,
-              end_time: endTimeString,
-              duration_minutes: durationMinutes,
-              status: 'scheduled',
-              notes: 'Appointment booked through EaseHealth platform',
-              queue_token: queueToken
-            })
-            .select()
-            .single();
-
-          if (error) {
-            console.error('Error creating appointment:', error);
-            setAnnouncement(`Failed to create appointment: ${error.message || 'Unknown error occurred'}. Please try again.`);
-            return;
-          }
-
-          console.log('Appointment created successfully:', appointment);
-          setBookingConfirmed(true);
-          setAnnouncement(`Appointment confirmed with ${selectedDoctor.full_name} on ${selectedDate.toLocaleDateString()} at ${selectedTime}. Your appointment has been saved.`);
-          
-          // Set queue token and appointment details for modal
-          setQueueToken(appointment.queue_token || queueToken);
-          setAppointmentDetails({
-            doctorName: selectedDoctor.full_name,
-            date: selectedDate.toLocaleDateString(),
-            time: selectedTime,
-            specialty: selectedSpecialty?.name
-          });
-          
-          // Show queue token modal
-          setShowQueueTokenModal(true);
-          return;
-        } catch (error) {
-          console.error('Error creating appointment:', error);
-          setAnnouncement(`Failed to create appointment: ${error.message || 'Unknown error occurred'}. Please try again.`);
-          return;
-        }
-      }
-
-      // Create the appointment in the database for real slots
-      console.log('🔍 Creating appointment for real slot:', {
-        doctorId: selectedDoctor.id,
-        patientId: patientProfile.id,
-        date: dateString,
-        time: timeString,
-        duration: durationMinutes
       });
-      
-      const appointment = await createAppointment(
-        selectedDoctor.id,
-        patientProfile.id, // Use patient profile ID, not user ID
-        dateString,
-        timeString,
-        durationMinutes, // Use actual slot duration
-        `Appointment booked through EaseHealth platform`
-      );
-
-      console.log('Appointment created:', appointment);
-      
-      // Only set booking confirmed if appointment was actually created
-      if (appointment && appointment.id) {
-        setBookingConfirmed(true);
-        setAnnouncement(`Appointment confirmed with ${selectedDoctor.full_name} on ${selectedDate.toLocaleDateString()} at ${selectedTime}. Your appointment has been saved.`);
-        
-        // Set queue token and appointment details for modal
-        setQueueToken(appointment.queue_token || 'QT-2024-0001');
-        setAppointmentDetails({
-          doctorName: selectedDoctor.full_name,
-          date: selectedDate.toLocaleDateString(),
-          time: selectedTime,
-          specialty: selectedSpecialty?.name
-        });
-        
-        // Show queue token modal
-        setShowQueueTokenModal(true);
-      } else {
-        throw new Error('Appointment creation failed - no appointment ID returned');
-      }
-      
-    } catch (error) {
-      console.error('❌ Error in handleAuthSuccess:', error);
-      console.error('❌ Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      setAnnouncement(`Failed to create appointment: ${error.message || 'Unknown error occurred'}. Please try again.`);
-      // Don't reopen modal - user is already authenticated, just show error
     }
   };
 
@@ -780,7 +781,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       <KeyboardSkipLinks />
       <AccessibilityAnnouncer message={announcement} />
 
-      <Navigation 
+      <Navigation
         user={user}
         session={session}
         profile={profile}
@@ -794,14 +795,14 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Back Button */}
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="inline-flex items-center text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 transition-colors mb-8 focus-ring"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
               {t('appointmentBooking.backToHome')}
             </Link>
-          
+
             {/* Page Header */}
             <div className="text-center mb-8">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-6">
@@ -810,7 +811,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
               <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
                 {t('appointmentBooking.pageSubtitle')}
               </p>
-              
+
               {/* Quick Stats */}
               <div className="flex flex-wrap justify-center gap-8 mb-12">
                 <div className="flex items-center text-center">
@@ -852,46 +853,39 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                     <h2 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('appointmentBooking.bookAppointment.title')}</h2>
                     <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.bookAppointment.subtitle')}</p>
                   </div>
-                  
+
                   {/* Progress Indicator */}
                   <div className="mb-10">
                     <div className="flex items-center justify-center">
                       <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                          selectedSpecialty 
-                            ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110' 
-                            : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                        }`}>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${selectedSpecialty
+                          ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+                          }`}>
                           {selectedSpecialty ? <CheckCircle className="w-6 h-6" /> : '1'}
                         </div>
-                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${
-                          selectedSpecialty ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
-                        }`}></div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                          selectedDoctor 
-                            ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110' 
-                            : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                        }`}>
+                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${selectedSpecialty ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
+                          }`}></div>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${selectedDoctor
+                          ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+                          }`}>
                           {selectedDoctor ? <CheckCircle className="w-6 h-6" /> : '2'}
                         </div>
-                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${
-                          selectedDoctor ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
-                        }`}></div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                          selectedDate 
-                            ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110' 
-                            : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                        }`}>
+                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${selectedDoctor ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
+                          }`}></div>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${selectedDate
+                          ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+                          }`}>
                           {selectedDate ? <CheckCircle className="w-6 h-6" /> : '3'}
                         </div>
-                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${
-                          selectedDate ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
-                        }`}></div>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                          selectedTime 
-                            ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110' 
-                            : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                        }`}>
+                        <div className={`w-20 h-1 rounded-full transition-all duration-300 ${selectedDate ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]' : 'bg-gray-200 dark:bg-gray-600'
+                          }`}></div>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${selectedTime
+                          ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg scale-110'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
+                          }`}>
                           {selectedTime ? <CheckCircle className="w-6 h-6" /> : '4'}
                         </div>
                       </div>
@@ -899,10 +893,10 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                     <div className="mt-4 text-center">
                       <p className="text-sm text-gray-600 dark:text-gray-300">
                         {!selectedSpecialty ? 'Start by selecting your medical specialty' :
-                         !selectedDoctor ? 'Choose your preferred doctor' :
-                         !selectedDate ? 'Pick your appointment date' :
-                         !selectedTime ? 'Select your preferred time slot' :
-                         'Ready to confirm your appointment!'}
+                          !selectedDoctor ? 'Choose your preferred doctor' :
+                            !selectedDate ? 'Pick your appointment date' :
+                              !selectedTime ? 'Select your preferred time slot' :
+                                'Ready to confirm your appointment!'}
                       </p>
                     </div>
                   </div>
@@ -918,7 +912,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.bookAppointment.selectSpecialty.subtitle')}</p>
                       </div>
                     </div>
-                    
+
                     <div className="relative specialty-dropdown">
                       <button
                         onClick={() => {
@@ -960,7 +954,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                               Refresh
                             </button>
                           </div>
-                          
+
                           {isLoadingSpecialties && specialties.length === 0 ? (
                             <div className="px-6 py-8 text-center">
                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto mb-3"></div>
@@ -1012,7 +1006,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.bookAppointment.selectDoctor.subtitle')}</p>
                       </div>
                     </div>
-                    
+
                     {!selectedSpecialty ? (
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 text-center">
                         <User className="w-12 h-12 text-gray-400 mx-auto mb-3" />
@@ -1112,7 +1106,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                       <div className="bg-gradient-to-br from-gray-50 dark:from-gray-700 to-gray-100 dark:to-gray-600 rounded-2xl p-6">
                         {/* Calendar Header */}
                         <div className="flex items-center justify-between mb-6">
-                          <button 
+                          <button
                             onClick={() => handleMonthChange('prev')}
                             className="p-3 hover:bg-white dark:hover:bg-gray-600 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] shadow-sm"
                             aria-label="Previous month"
@@ -1122,7 +1116,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                           <h4 className="text-xl font-bold text-[#0A2647] dark:text-gray-100">
                             {currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                           </h4>
-                          <button 
+                          <button
                             onClick={() => handleMonthChange('next')}
                             className="p-3 hover:bg-white dark:hover:bg-gray-600 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] shadow-sm"
                             aria-label="Next month"
@@ -1149,10 +1143,10 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                               disabled={dayObj.disabled}
                               className={`
                                 h-14 w-full rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] flex items-center justify-center
-                                ${!dayObj.day 
-                                  ? 'text-transparent cursor-default' 
-                                  : dayObj.isSelected 
-                                    ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg transform scale-105' 
+                                ${!dayObj.day
+                                  ? 'text-transparent cursor-default'
+                                  : dayObj.isSelected
+                                    ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg transform scale-105'
                                     : dayObj.disabled
                                       ? dayObj.isPast
                                         ? 'text-gray-300 dark:text-gray-500 cursor-not-allowed bg-gray-100 dark:bg-gray-600'
@@ -1204,13 +1198,13 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                               minute: '2-digit',
                               hour12: true
                             });
-                            
+
                             // Determine slot state and styling based on database status
                             const isAvailable = slot.status === 'available';
                             const isBooked = slot.status === 'booked';
                             const isBlocked = slot.status === 'blocked';
                             const isUnavailable = !isAvailable;
-                            
+
                             // Get reason for tooltip
                             const getTooltipText = () => {
                               if (isBooked) return 'Already booked';
@@ -1220,7 +1214,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                               if (slot.reason === 'buffer') return 'Too soon to book';
                               return 'Available';
                             };
-                            
+
                             return (
                               <button
                                 key={index}
@@ -1231,39 +1225,37 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                                   ${selectedTime === timeDisplay
                                     ? 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white shadow-lg transform scale-105'
                                     : isAvailable
-                                    ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 cursor-pointer'
-                                    : isBooked
-                                    ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed opacity-75'
-                                    : isBlocked
-                                    ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 cursor-not-allowed opacity-75'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
+                                      ? 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm hover:shadow-md border border-gray-200 dark:border-gray-600 cursor-pointer'
+                                      : isBooked
+                                        ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 cursor-not-allowed opacity-75'
+                                        : isBlocked
+                                          ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 cursor-not-allowed opacity-75'
+                                          : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
                                   }
                                 `}
                                 aria-label={`${timeDisplay} ${isAvailable ? 'available' : isBooked ? 'booked' : isBlocked ? 'blocked' : 'unavailable'}`}
                                 aria-selected={selectedTime === timeDisplay}
                                 title={getTooltipText()}
                               >
-                                <Clock className={`w-4 h-4 mr-2 ${
-                                  selectedTime === timeDisplay 
-                                    ? 'text-white' 
-                                    : isAvailable 
-                                    ? 'text-gray-500 dark:text-gray-400' 
+                                <Clock className={`w-4 h-4 mr-2 ${selectedTime === timeDisplay
+                                  ? 'text-white'
+                                  : isAvailable
+                                    ? 'text-gray-500 dark:text-gray-400'
                                     : isBooked
-                                    ? 'text-red-500 dark:text-red-400'
-                                    : isBlocked
-                                    ? 'text-yellow-500 dark:text-yellow-400'
-                                    : 'text-gray-300 dark:text-gray-600'
-                                }`} />
+                                      ? 'text-red-500 dark:text-red-400'
+                                      : isBlocked
+                                        ? 'text-yellow-500 dark:text-yellow-400'
+                                        : 'text-gray-300 dark:text-gray-600'
+                                  }`} />
                                 {timeDisplay}
                                 {isUnavailable && (
                                   <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className={`w-full h-0.5 ${
-                                      isBooked 
-                                        ? 'bg-red-400 dark:bg-red-600' 
-                                        : isBlocked 
+                                    <div className={`w-full h-0.5 ${isBooked
+                                      ? 'bg-red-400 dark:bg-red-600'
+                                      : isBlocked
                                         ? 'bg-yellow-400 dark:bg-yellow-600'
                                         : 'bg-gray-400 dark:bg-gray-600'
-                                    }`}></div>
+                                      }`}></div>
                                   </div>
                                 )}
                               </button>
@@ -1286,13 +1278,12 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                     <button
                       onClick={handleConfirmBooking}
                       disabled={bookingConfirmed || !selectedTime || !selectedDate}
-                      className={`w-full font-bold py-5 px-8 rounded-2xl transition-all duration-200 transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#0075A2] focus:ring-opacity-50 text-lg ${
-                        bookingConfirmed
-                          ? 'bg-green-600 text-white cursor-default shadow-lg'
-                          : !selectedTime || !selectedDate
-                            ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed transform-none hover:scale-100 hover:shadow-none'
-                            : 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] text-white shadow-lg'
-                      }`}
+                      className={`w-full font-bold py-5 px-8 rounded-2xl transition-all duration-200 transform hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#0075A2] focus:ring-opacity-50 text-lg ${bookingConfirmed
+                        ? 'bg-green-600 text-white cursor-default shadow-lg'
+                        : !selectedTime || !selectedDate
+                          ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed transform-none hover:scale-100 hover:shadow-none'
+                          : 'bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] hover:from-[#005a7a] hover:to-[#081f3a] text-white shadow-lg'
+                        }`}
                       aria-describedby="booking-summary"
                     >
                       {bookingConfirmed ? (
@@ -1317,7 +1308,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                         </div>
                       )}
                     </button>
-                    
+
                     {/* Booking Status Info */}
                     {selectedTime && selectedDate && !bookingConfirmed && (
                       <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
@@ -1328,7 +1319,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                           <div className="flex-1">
                             <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">{t('appointmentBooking.readyToBook.title')}</h4>
                             <p className="text-xs text-blue-700 dark:text-blue-300">
-                              {!isAuthenticated 
+                              {!isAuthenticated
                                 ? t('appointmentBooking.readyToBook.signInRequired')
                                 : t('appointmentBooking.readyToBook.confirmBooking')
                               }
@@ -1355,17 +1346,16 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                       <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">{t('appointmentBooking.howItWorksTitle')}</h3>
                       <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.howItWorksSubtitle')}</p>
                     </div>
-                    
+
                     <div className="space-y-6">
                       {steps.map((step, index) => (
                         <div key={index} className="flex items-start space-x-4">
                           <div className="flex-shrink-0">
-                            <div className={`w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-xl flex items-center justify-center text-white font-bold ${
-                              index === 0 && selectedSpecialty ? 'ring-4 ring-green-200 dark:ring-green-800' :
+                            <div className={`w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-xl flex items-center justify-center text-white font-bold ${index === 0 && selectedSpecialty ? 'ring-4 ring-green-200 dark:ring-green-800' :
                               index === 1 && selectedDoctor ? 'ring-4 ring-green-200 dark:ring-green-800' :
-                              index === 2 && selectedDate ? 'ring-4 ring-green-200 dark:ring-green-800' :
-                              index === 3 && selectedTime ? 'ring-4 ring-green-200 dark:ring-green-800' : ''
-                            }`}>
+                                index === 2 && selectedDate ? 'ring-4 ring-green-200 dark:ring-green-800' :
+                                  index === 3 && selectedTime ? 'ring-4 ring-green-200 dark:ring-green-800' : ''
+                              }`}>
                               <step.icon className="w-6 h-6" />
                             </div>
                           </div>
@@ -1458,7 +1448,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 mb-6">Why Choose Our Smart Booking?</h2>
               <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">Experience the future of healthcare appointment booking with our intelligent, secure, and user-friendly platform</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 lg:p-10 shadow-xl hover:shadow-2xl transform hover:-translate-y-3 transition-all duration-300 border border-gray-200 dark:border-gray-700 group text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform mx-auto">
@@ -1467,7 +1457,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                 <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">Real-Time Availability</h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">See live doctor schedules and available slots updated in real-time. No more waiting for callbacks or playing phone tag.</p>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 lg:p-10 shadow-xl hover:shadow-2xl transform hover:-translate-y-3 transition-all duration-300 border border-gray-200 dark:border-gray-700 group text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform mx-auto">
                   <Bell className="w-10 h-10 text-white" />
@@ -1475,7 +1465,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                 <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">Smart Reminders</h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">Get automatic SMS and WhatsApp reminders before your appointment. Never miss an important consultation again.</p>
               </div>
-              
+
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 lg:p-10 shadow-xl hover:shadow-2xl transform hover:-translate-y-3 transition-all duration-300 border border-gray-200 dark:border-gray-700 group text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform mx-auto">
                   <Shield className="w-10 h-10 text-white" />

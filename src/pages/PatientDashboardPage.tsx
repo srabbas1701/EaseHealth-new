@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { useDarkMode } from '../hooks/useDarkMode';
-import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon, X, AlertCircle } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHistory } from '../utils/patientProfileUtils';
@@ -40,10 +40,15 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   const { isDarkMode } = useDarkMode();
   const { language } = useLanguage();
   const { t } = useTranslations(language);
+  const location = useLocation();
   const [announcement, setAnnouncement] = useState('');
   const [patientProfile, setPatientProfile] = useState<any>(null);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
+  const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+  const [errorMessage, setErrorMessage] = useState('');
   const [stats, setStats] = useState({
     totalAppointments: 0,
     completedAppointments: 0,
@@ -76,6 +81,22 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   ];
 
   const COLORS = ['#0075A2', '#0A2647', '#E53E3E', '#38A169'];
+
+  // Check for appointment success message from login
+  useEffect(() => {
+    if (location.state?.appointmentCreated) {
+      setShowSuccessMessage(true);
+      setAppointmentDetails(location.state.appointmentDetails);
+      // Announce to screen readers
+      setAnnouncement(`Appointment created successfully with ${location.state.appointmentDetails.doctorName}`);
+    } else if (location.state?.appointmentError) {
+      // Show error message
+      setShowErrorMessage(true);
+      setErrorMessage(location.state.errorMessage || 'Unknown error');
+      setAnnouncement(`Failed to create appointment: ${location.state.errorMessage || 'Unknown error'}`);
+      console.error('❌ Appointment creation error:', location.state.errorMessage);
+    }
+  }, [location.state]);
 
   // Load patient data
   useEffect(() => {
@@ -172,6 +193,68 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           <ArrowLeft className="w-5 h-5 mr-2" />
           {t('common.backToHome')}
         </Link>
+
+        {/* Success Message Banner */}
+        {showSuccessMessage && appointmentDetails && (
+          <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4 shadow-sm">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-2">
+                  ✅ Appointment Booked Successfully!
+                </h3>
+                <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
+                  <p><strong>Doctor:</strong> {appointmentDetails.doctorName}</p>
+                  <p><strong>Date:</strong> {appointmentDetails.date}</p>
+                  <p><strong>Time:</strong> {appointmentDetails.time}</p>
+                  {appointmentDetails.queueToken && (
+                    <p className="mt-2">
+                      <strong>Queue Token:</strong>
+                      <span className="ml-2 px-2 py-1 bg-green-100 dark:bg-green-800 rounded font-mono text-xs">
+                        {appointmentDetails.queueToken}
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                className="ml-4 flex-shrink-0 text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 focus-ring rounded"
+                aria-label="Close success message"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message Banner */}
+        {showErrorMessage && errorMessage && (
+          <div className="mb-6 bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 shadow-sm">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="ml-3 flex-1">
+                <h3 className="text-sm font-semibold text-red-900 dark:text-red-100 mb-2">
+                  ❌ Failed to Create Appointment
+                </h3>
+                <p className="text-sm text-red-800 dark:text-red-200">
+                  {errorMessage}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowErrorMessage(false)}
+                className="ml-4 flex-shrink-0 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 focus-ring rounded"
+                aria-label="Close error message"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Header Section */}
         <div className="mb-8">

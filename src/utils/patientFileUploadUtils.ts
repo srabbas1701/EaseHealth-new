@@ -84,6 +84,8 @@ export const uploadPatientDocument = async (
     documentType: PatientDocumentType
 ): Promise<PatientUploadResponse> => {
     try {
+        console.log(`📁 Starting upload for ${documentType}...`);
+
         // Validate file
         const validation = validatePatientFile(file, documentType);
         if (!validation.isValid) {
@@ -94,17 +96,22 @@ export const uploadPatientDocument = async (
         const fileName = generatePatientFileName(patientId, documentType, file.name);
         const bucketName = getPatientBucketName(documentType);
 
+        console.log(`📁 Uploading to bucket: ${bucketName}, path: ${fileName}`);
+
         // Upload file to storage
         const { data, error } = await supabase.storage
             .from(bucketName)
             .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: false // Don't overwrite existing files
+                upsert: true // Allow overwriting to prevent duplicates
             });
 
         if (error) {
+            console.error('❌ Upload error:', error);
             throw error;
         }
+
+        console.log('✅ File uploaded successfully');
 
         // Get public URL for profile images, signed URL for others
         let publicUrl: string | undefined;
@@ -114,19 +121,30 @@ export const uploadPatientDocument = async (
             // Profile images are public
             const { data: urlData } = supabase.storage
                 .from(bucketName)
-                .getPublicUrl(fileName);
+                .getPublicUrl(data.path);
             publicUrl = urlData.publicUrl;
+            console.log('🔗 Generated public URL for profile image');
         } else {
             // Other documents need signed URLs
             const { data: signedData, error: signedError } = await supabase.storage
                 .from(bucketName)
-                .createSignedUrl(fileName, 3600); // 1 hour expiry
+                .createSignedUrl(data.path, 24 * 3600); // 24 hour expiry for better usability
 
             if (signedError) {
-                console.warn('Could not create signed URL:', signedError);
+                console.warn('⚠️ Could not create signed URL:', signedError);
             } else {
                 signedUrl = signedData.signedUrl;
+                console.log('🔗 Generated signed URL for document');
             }
+        }
+
+        // Always get a public URL as fallback
+        if (!publicUrl && !signedUrl) {
+            const { data: urlData } = supabase.storage
+                .from(bucketName)
+                .getPublicUrl(data.path);
+            publicUrl = urlData.publicUrl;
+            console.log('🔗 Generated fallback public URL');
         }
 
         return {

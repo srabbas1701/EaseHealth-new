@@ -203,7 +203,7 @@ const PatientPreRegistrationPage: React.FC = () => {
     }
   };
 
-  const uploadFiles = async (): Promise<UploadedFiles> => {
+  const uploadFiles = async (patientId: string): Promise<UploadedFiles> => {
     const result: UploadedFiles = {
       idProofUrls: [],
       labReportUrls: [],
@@ -219,68 +219,65 @@ const PatientPreRegistrationPage: React.FC = () => {
     }
 
     try {
-      console.log('📁 Starting file upload...');
+      console.log('📁 Starting file upload process for patient:', patientId);
 
-      // Get patient ID for file organization
-      const patientId = patientResult?.id;
-      if (!patientId) {
-        throw new Error('No patient ID available for file upload. Please ensure patient record is created first.');
+      // Upload Profile Image first (since it's most important for UI)
+      if (formData.profileImageFile) {
+        try {
+          console.log('📸 Uploading profile image...');
+          const uploadResult = await uploadPatientDocument(formData.profileImageFile, patientId, 'profile_image');
+          result.profileImageUrl = uploadResult.publicUrl || uploadResult.signedUrl;
+          if (result.profileImageUrl) {
+            console.log('✅ Profile image uploaded successfully');
+          }
+        } catch (err) {
+          console.error('❌ Profile image upload failed:', err);
+          setAnnouncement('Failed to upload profile image. You can try again later from your profile.');
+        }
       }
 
       // Upload ID Proof files (Aadhaar documents)
+      console.log(`📄 Uploading ${formData.idProofFiles.length} ID proof files...`);
       for (const file of formData.idProofFiles) {
         try {
           const uploadResult = await uploadPatientDocument(file, patientId, 'aadhaar_documents');
           const url = uploadResult.publicUrl || uploadResult.signedUrl;
           if (url) {
             result.idProofUrls.push(url);
-            console.log('✅ Uploaded ID proof file:', uploadResult.path);
+            console.log('✅ ID proof file uploaded:', file.name);
           }
         } catch (err) {
-          console.warn('⚠️ Error uploading ID proof file:', err);
-          setAnnouncement(`Failed to upload ID proof file: ${file.name}`);
-          // Continue with other files
+          console.error('❌ ID proof upload failed:', err);
+          setAnnouncement(`Failed to upload ID proof: ${file.name}. You can try again later.`);
         }
       }
 
       // Upload Lab Report files
+      console.log(`📄 Uploading ${formData.labReportFiles.length} lab report files...`);
       for (const file of formData.labReportFiles) {
         try {
           const uploadResult = await uploadPatientDocument(file, patientId, 'lab_reports');
           const url = uploadResult.publicUrl || uploadResult.signedUrl;
           if (url) {
             result.labReportUrls.push(url);
-            console.log('✅ Uploaded lab report file:', uploadResult.path);
+            console.log('✅ Lab report file uploaded:', file.name);
           }
         } catch (err) {
-          console.warn('⚠️ Error uploading lab report file:', err);
-          setAnnouncement(`Failed to upload lab report file: ${file.name}`);
+          console.error('❌ Lab report upload failed:', err);
+          setAnnouncement(`Failed to upload lab report: ${file.name}. You can try again later.`);
         }
       }
 
-      // Upload Profile Image
-      if (formData.profileImageFile) {
-        try {
-          const uploadResult = await uploadPatientDocument(formData.profileImageFile, patientId, 'profile_image');
-          if (uploadResult.publicUrl) {
-            result.profileImageUrl = uploadResult.publicUrl;
-            console.log('✅ Uploaded profile image:', uploadResult.path);
-          }
-        } catch (err) {
-          console.warn('⚠️ Error uploading profile image:', err);
-          setAnnouncement('Failed to upload profile image');
-        }
-      }
-
-      console.log('📁 File upload completed. Uploaded:', {
-        idProofs: result.idProofUrls.length,
-        labReports: result.labReportUrls.length,
-        profileImage: result.profileImageUrl ? 'Yes' : 'No'
+      // Log upload summary
+      console.log('📁 File upload summary:', {
+        profileImage: result.profileImageUrl ? '✅' : '❌',
+        idProofs: `✅ ${result.idProofUrls.length}/${formData.idProofFiles.length}`,
+        labReports: `✅ ${result.labReportUrls.length}/${formData.labReportFiles.length}`
       });
 
       return result;
     } catch (error) {
-      console.error('❌ Error in file upload process:', error);
+      console.error('❌ Critical error in file upload process:', error);
       setAnnouncement('Some files failed to upload. You can try uploading them later from your profile.');
       return result;
     }
@@ -424,10 +421,7 @@ const PatientPreRegistrationPage: React.FC = () => {
         console.log('✅ Successfully created auth account with ID:', authUserId);
       }
 
-      // Step 2: Upload files
-      const uploadedFiles = await uploadFiles();
-
-      // Step 3: Calculate age from date of birth
+      // Step 2: Calculate age from date of birth
       const calculateAge = (dob: string): number => {
         const birthDate = new Date(dob);
         const today = new Date();
@@ -442,14 +436,14 @@ const PatientPreRegistrationPage: React.FC = () => {
       const age = formData.dateOfBirth ? calculateAge(formData.dateOfBirth) : null;
       console.log('📊 Calculated age from DOB:', age);
 
-      // Step 4: Prepare patient data
-      const patientData = {
+      // Step 3: Create patient record first (without file URLs)
+      const initialPatientData = {
         user_id: authUserId,
         full_name: formData.fullName,
         email: formData.email,
         phone_number: formData.phoneNumber,
         date_of_birth: formData.dateOfBirth,
-        age: age, // Add calculated age
+        age: age,
         gender: formData.gender,
         address: formData.address,
         city: formData.city,
@@ -462,66 +456,70 @@ const PatientPreRegistrationPage: React.FC = () => {
         insurance_provider: formData.insuranceProvider || null,
         insurance_number: formData.insuranceNumber || null,
         blood_type: formData.bloodType || null,
-        profile_image_url: uploadedFiles.profileImageUrl,
-        id_proof_urls: uploadedFiles.idProofUrls,
-        lab_report_urls: uploadedFiles.labReportUrls,
-        is_active: true,
-        consent_agreed: formData.consent // Add consent for patient_pre_registrations
+        is_active: true
       };
 
-      console.log('📊 Attempting to insert into patients table:', patientData);
+      console.log('📊 Creating initial patient record...');
 
-      // Step 5: Prepare data for patients table (without age and consent_agreed - it doesn't have those columns)
-      const { age: _age, consent_agreed: _consent, ...patientsTableData } = patientData;
-
-      // Insert into patients table
       const { data: patientResult, error: patientError } = await supabase
         .from('patients')
-        .insert([patientsTableData])
+        .insert([initialPatientData])
         .select()
         .single();
 
       if (patientError) {
-        console.error('❌ Error inserting into patients table:', patientError);
+        console.error('❌ Error creating patient record:', patientError);
         throw patientError;
       }
 
-      console.log('✅ Successfully inserted into patients table:', patientResult);
+      console.log('✅ Created patient record:', patientResult);
 
-      // Insert into patient_pre_registrations table
-      // Only send fields that exist in patient_pre_registrations schema
+      // Step 4: Upload files using the patient ID
+      console.log('📁 Starting file uploads...');
+      const uploadedFiles = await uploadFiles(patientResult.id);
+
+      // Step 5: Update patient record with file URLs
+      if (uploadedFiles.profileImageUrl || uploadedFiles.idProofUrls.length > 0 || uploadedFiles.labReportUrls.length > 0) {
+        console.log('🔄 Updating patient record with file URLs...');
+
+        const { error: updateError } = await supabase
+          .from('patients')
+          .update({
+            profile_image_url: uploadedFiles.profileImageUrl,
+            id_proof_urls: uploadedFiles.idProofUrls,
+            lab_report_urls: uploadedFiles.labReportUrls
+          })
+          .eq('id', patientResult.id);
+
+        if (updateError) {
+          console.error('⚠️ Error updating patient with file URLs:', updateError);
+          // Don't throw, continue with registration
+        } else {
+          console.log('✅ Updated patient record with file URLs');
+        }
+      }
+
+      // Step 6: Create pre-registration record with minimal data
       const preRegData = {
-        user_id: patientData.user_id,
-        full_name: patientData.full_name,
-        age: patientData.age,
-        gender: patientData.gender,
-        phone_number: patientData.phone_number,
-        city: patientData.city,
-        state: patientData.state,
-        symptoms: patientData.medical_history || '', // Map medical_history to symptoms
-        lab_reports_url: patientData.lab_report_urls,
-        aadhaar_url: patientData.id_proof_urls,
-        consent_agreed: patientData.consent_agreed,
-        email: patientData.email,
-        address: patientData.address,
-        date_of_birth: patientData.date_of_birth,
-        emergency_contact_name: patientData.emergency_contact_name,
-        emergency_contact_phone: patientData.emergency_contact_phone
+        user_id: authUserId,
+        patient_id: patientResult.id,
+        registration_time: new Date().toISOString(),
+        status: 'pending',
+        consent_agreed: formData.consent
       };
 
-      console.log('📊 Attempting to insert into patient_pre_registrations table:', preRegData);
-      console.log('📊 Gender value being sent:', preRegData.gender);
+      console.log('📊 Creating pre-registration record...');
 
       const { error: preRegError } = await supabase
         .from('patient_pre_registrations')
         .insert([preRegData]);
 
       if (preRegError) {
-        console.error('❌ Error inserting into patient_pre_registrations table:', preRegError);
-        throw preRegError;
+        console.error('⚠️ Error creating pre-registration record:', preRegError);
+        // Don't throw, continue with registration as patient record is created
+      } else {
+        console.log('✅ Created pre-registration record');
       }
-
-      console.log('✅ Successfully inserted into patient_pre_registrations table');
 
       // If we have booking details, create the appointment
       if (bookingDetails) {
@@ -633,7 +631,7 @@ const PatientPreRegistrationPage: React.FC = () => {
           // Create appointment with correct field names and values
           const appointmentData = {
             doctor_id: doctorToUse.id,
-            patient_id: authUserId, // Use auth.users ID for foreign key constraint
+            patient_id: patientResult.id, // Use patients table ID for foreign key constraint
             schedule_date: dateString,
             start_time: timeString,
             end_time: (() => {
@@ -1460,7 +1458,8 @@ const PatientPreRegistrationPage: React.FC = () => {
       {showQueueTokenModal && queueToken && appointmentDetails && (
         <QueueTokenModal
           isOpen={showQueueTokenModal}
-          onClose={() => {
+          onClose={() => setShowQueueTokenModal(false)}
+          onRedirect={() => {
             setShowQueueTokenModal(false);
             navigate('/patient-dashboard');
           }}

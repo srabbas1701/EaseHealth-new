@@ -82,9 +82,8 @@ export const useTranslations = (language: Language) => {
     const value = getTranslation(language, key);
     if (value === key) {
       console.warn('⚠️ Translation missing for key:', key, 'in language:', language);
-    } else {
-      console.log('✅ Translation found:', { key, language, value });
     }
+    // Removed verbose translation logging to reduce console noise
     return value;
   }, [language]);
 

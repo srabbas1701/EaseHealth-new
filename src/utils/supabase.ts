@@ -40,35 +40,35 @@ const initializeMockData = () => {
     { id: '4', name: 'Pediatrics', description: 'Children\'s healthcare', is_active: true, sort_order: 4 },
     { id: '5', name: 'Orthopedics', description: 'Bone and joint care', is_active: true, sort_order: 5 }
   ];
-  
+
   mockSpecialties.forEach(specialty => {
     mockDatabase.specialties.set(specialty.id, specialty);
   });
-  
+
   // Add some mock doctors
   const mockDoctors = [
-    { 
-      id: 'doc-1', 
+    {
+      id: 'doc-1',
       user_id: 'demo-user-id',
-      full_name: 'Dr. Sarah Johnson', 
+      full_name: 'Dr. Sarah Johnson',
       specialty: 'General Medicine',
-      is_active: true, 
+      is_active: true,
       is_verified: true,
       consultation_fee: 500,
       created_at: new Date().toISOString()
     },
-    { 
-      id: 'doc-2', 
+    {
+      id: 'doc-2',
       user_id: 'demo-user-id-2',
-      full_name: 'Dr. Michael Chen', 
+      full_name: 'Dr. Michael Chen',
       specialty: 'Cardiology',
-      is_active: true, 
+      is_active: true,
       is_verified: true,
       consultation_fee: 800,
       created_at: new Date().toISOString()
     }
   ];
-  
+
   mockDoctors.forEach(doctor => {
     mockDatabase.doctors.set(doctor.id, doctor);
   });
@@ -99,7 +99,7 @@ let supabase: any
 
 if (isMockSupabase) {
   console.warn('⚠️ Supabase environment variables not found. Using enhanced mock client for development.')
-  
+
   // Create an enhanced mock Supabase client that stores data locally
   supabase = {
     auth: {
@@ -115,12 +115,12 @@ if (isMockSupabase) {
         console.log('🔐 Mock signOut called');
         mockSession = null;
         mockUser = null;
-        
+
         // Trigger auth state change after a short delay
         setTimeout(() => {
           triggerAuthStateChange('SIGNED_OUT', null);
         }, 100);
-        
+
         return Promise.resolve({ error: null });
       },
       refreshSession: () => {
@@ -129,7 +129,7 @@ if (isMockSupabase) {
       },
       signInWithPassword: ({ email, password }: { email: string; password: string }) => {
         console.log('🔐 Mock login attempt:', email);
-        
+
         // Determine user type based on email for testing
         let fullName = 'Demo User';
         if (email.includes('doctor') || email.includes('dr.') || email.includes('drnishit')) {
@@ -137,7 +137,7 @@ if (isMockSupabase) {
         } else if (email.includes('admin')) {
           fullName = 'Demo Admin';
         }
-        
+
         // Simulate successful login for demo purposes
         mockUser = {
           id: 'demo-user-id',
@@ -150,17 +150,17 @@ if (isMockSupabase) {
           expires_at: Date.now() + 3600000 // 1 hour from now
         };
         console.log('✅ Mock login successful, session created');
-        
+
         // Trigger auth state change after a short delay
         setTimeout(() => {
           triggerAuthStateChange('SIGNED_IN', mockSession);
         }, 100);
-        
+
         return Promise.resolve({ data: { user: mockUser, session: mockSession }, error: null });
       },
       signUp: ({ email, password }: { email: string; password: string }) => {
         console.log('🔐 Mock signup attempt:', email);
-        
+
         // Determine user type based on email for testing
         let fullName = 'Demo User';
         if (email.includes('doctor') || email.includes('dr.') || email.includes('drnishit')) {
@@ -168,7 +168,7 @@ if (isMockSupabase) {
         } else if (email.includes('admin')) {
           fullName = 'Demo Admin';
         }
-        
+
         // Simulate successful signup for demo purposes
         mockUser = {
           id: 'demo-user-id',
@@ -181,20 +181,20 @@ if (isMockSupabase) {
           expires_at: Date.now() + 3600000 // 1 hour from now
         };
         console.log('✅ Mock signup successful, session created');
-        
+
         // Trigger auth state change after a short delay
         setTimeout(() => {
           triggerAuthStateChange('SIGNED_IN', mockSession);
         }, 100);
-        
+
         return Promise.resolve({ data: { user: mockUser, session: mockSession }, error: null });
       },
       onAuthStateChange: (callback: (event: string, session: any) => void) => {
         console.log('🔐 Mock auth state change listener registered');
-        
+
         // Add callback to the list
         authStateChangeCallbacks.push(callback);
-        
+
         // Trigger initial auth state
         setTimeout(() => {
           if (mockSession) {
@@ -205,46 +205,46 @@ if (isMockSupabase) {
             callback('SIGNED_OUT', null);
           }
         }, 100);
-        
+
         // Return unsubscribe function
-        return { 
-          data: { 
-            subscription: { 
+        return {
+          data: {
+            subscription: {
               unsubscribe: () => {
                 console.log('🔐 Mock auth state change listener unsubscribed');
                 const index = authStateChangeCallbacks.indexOf(callback);
                 if (index > -1) {
                   authStateChangeCallbacks.splice(index, 1);
                 }
-              } 
-            } 
-          } 
+              }
+            }
+          }
         };
       },
       setSession: (_sessionData: { access_token: string; refresh_token: string }) => {
         console.log('🔐 Mock setSession called with recovery tokens');
-        
+
         // For password reset, we don't actually set a session, just validate the tokens
         // This simulates the password reset flow
         return Promise.resolve({ data: { session: null }, error: null });
       },
       updateUser: (_passwordData: { password: string }) => {
         console.log('🔐 Mock updateUser called for password reset');
-        
+
         // Simulate successful password update and maintain session
         if (mockUser) {
           // Update the user object to reflect password change
           mockUser.updated_at = new Date().toISOString();
-          
+
           // Keep the session active after password reset
           console.log('✅ Password updated successfully, maintaining session for auto-login');
-          
-          return Promise.resolve({ 
-            data: { 
-              user: mockUser, 
-              session: mockSession 
-            }, 
-            error: null 
+
+          return Promise.resolve({
+            data: {
+              user: mockUser,
+              session: mockSession
+            },
+            error: null
           });
         } else {
           // If no user, create a mock user for the password reset
@@ -254,20 +254,20 @@ if (isMockSupabase) {
             user_metadata: { full_name: 'Reset User' },
             updated_at: new Date().toISOString()
           };
-          
-          return Promise.resolve({ 
-            data: { 
-              user: resetUser, 
-              session: null 
-            }, 
-            error: null 
+
+          return Promise.resolve({
+            data: {
+              user: resetUser,
+              session: null
+            },
+            error: null
           });
         }
       }
     },
     from: (table: string) => {
       const tableData = mockDatabase[table as keyof typeof mockDatabase];
-      
+
       return {
         select: (columns?: string) => ({
           eq: (column: string, value: any) => ({
@@ -310,7 +310,7 @@ if (isMockSupabase) {
               order: (orderColumn: string, options?: { ascending?: boolean }) => ({
                 limit: (count: number) => ({
                   maybeSingle: () => {
-                    const items = Array.from(tableData.values()).filter((item: any) => 
+                    const items = Array.from(tableData.values()).filter((item: any) =>
                       item[column] !== value && item[otherColumn] === otherValue
                     );
                     const sorted = items.sort((a: any, b: any) => {
@@ -406,11 +406,11 @@ if (isMockSupabase) {
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }));
-            
+
             newItems.forEach(item => {
               tableData.set(item.id, item);
             });
-            
+
             console.log(`✅ Mock upsertMany ${newItems.length} items into ${table}`);
             console.log(`📊 Mock database now has ${tableData.size} items in ${table}`);
             return Promise.resolve({ data: newItems, error: null });
@@ -482,21 +482,21 @@ export const validateSession = async (maxRetries = 3): Promise<boolean> => {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`🔄 Validating session (attempt ${attempt}/${maxRetries})`)
-      
+
       const { data: { session }, error } = await supabase.auth.getSession()
-      
+
       if (error) {
         console.error(`❌ Session validation error (attempt ${attempt}):`, error)
         if (attempt === maxRetries) return false
         continue
       }
-      
+
       if (!session || !session.user) {
         console.log(`❌ No valid session found (attempt ${attempt})`)
         if (attempt === maxRetries) return false
         continue
       }
-      
+
       // Check if session is expired
       const now = Math.floor(Date.now() / 1000)
       if (session.expires_at && session.expires_at < now) {
@@ -504,18 +504,18 @@ export const validateSession = async (maxRetries = 3): Promise<boolean> => {
         if (attempt === maxRetries) return false
         continue
       }
-      
+
       console.log(`✅ Session is valid (attempt ${attempt})`)
       return true
     } catch (error) {
       console.error(`❌ Session validation failed (attempt ${attempt}):`, error)
       if (attempt === maxRetries) return false
-      
+
       // Wait before retrying (exponential backoff)
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
     }
   }
-  
+
   return false
 }
 
@@ -524,17 +524,17 @@ export const refreshSession = async (): Promise<boolean> => {
   try {
     console.log('🔄 Force refreshing session...')
     const { data: { session }, error } = await supabase.auth.refreshSession()
-    
+
     if (error) {
       console.error('❌ Session refresh failed:', error)
       return false
     }
-    
+
     if (!session || !session.user) {
       console.log('❌ No session after refresh')
       return false
     }
-    
+
     console.log('✅ Session refreshed successfully')
     return true
   } catch (error) {
@@ -568,7 +568,7 @@ export const createProfile = async (userId: string, profileData: Omit<Profile, '
 export const getProfile = async (userId: string) => {
   try {
     console.log('🔍 Attempting to fetch profile for user:', userId)
-    
+
     // Create a timeout promise
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
@@ -591,7 +591,7 @@ export const getProfile = async (userId: string) => {
       // Always return null for any error - don't throw
       return null
     }
-    
+
     console.log('✅ Profile fetched successfully:', data ? 'Profile found' : 'No data returned')
     return data
   } catch (error) {
@@ -753,7 +753,7 @@ let specialtiesCacheTime: number = 0
 // Get all active specialties - optimized for speed with caching
 export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]> => {
   const now = Date.now()
-  
+
   // Return cached data if it's still fresh and not forcing refresh
   if (!forceRefresh && specialtiesCache && (now - specialtiesCacheTime) < CACHE_DURATION) {
     console.log('📦 Returning cached specialties')
@@ -762,7 +762,7 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
 
   try {
     console.log('🔄 Fetching specialties from database...')
-    
+
     // First try to get from specialties table
     const { data: specialtiesData, error: specialtiesError } = await supabase
       .from('specialties')
@@ -779,7 +779,7 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
     }
 
     console.log('🔄 Specialties table empty or error, trying to get from doctors...')
-    
+
     // If specialties table is empty, get unique specialties from doctors table
     const { data: doctorsData, error: doctorsError } = await supabase
       .from('doctors')
@@ -807,7 +807,7 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
     }
 
     console.log('🔄 No specialties found in database, using fallback...')
-    
+
     // Return fallback specialties if both fail
     const fallbackSpecialties = [
       { id: 'fallback-1', name: 'Cardiology', description: 'Heart and cardiovascular system specialist', sort_order: 1, is_active: true },
@@ -831,13 +831,13 @@ export const getSpecialties = async (forceRefresh = false): Promise<Specialty[]>
       { id: 'fallback-19', name: 'Family Medicine', description: 'Comprehensive family healthcare specialist', sort_order: 19, is_active: true },
       { id: 'fallback-20', name: 'General Surgery', description: 'General surgical procedures specialist', sort_order: 20, is_active: true }
     ]
-    
+
     // Cache fallback data
     specialtiesCache = fallbackSpecialties
     specialtiesCacheTime = now
     console.log('✅ Using fallback specialties:', fallbackSpecialties.length)
     return fallbackSpecialties
-    
+
   } catch (error) {
     console.error('❌ Network error:', error)
     return []
@@ -939,7 +939,7 @@ export const getDoctorByUserId = async (userId: string) => {
 export const getDoctorSchedules = async (doctorId: string, startDate?: string, endDate?: string) => {
   try {
     console.log(`🔍 Fetching available dates for doctor ${doctorId} from time_slots table`);
-    
+
     let query = supabase
       .from('time_slots')
       .select('schedule_date, status')
@@ -964,7 +964,7 @@ export const getDoctorSchedules = async (doctorId: string, startDate?: string, e
     // Get unique dates that have available slots
     const uniqueDates = [...new Set(data?.map(slot => slot.schedule_date) || [])];
     console.log('Available dates from time_slots:', uniqueDates);
-    
+
     return uniqueDates.map(date => ({
       schedule_date: date,
       is_available: true,
@@ -978,18 +978,18 @@ export const getDoctorSchedules = async (doctorId: string, startDate?: string, e
 
 export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' | 'created_at' | 'updated_at'>) => {
   console.log(`🔄 Upserting schedule for doctor ${schedule.doctor_id}, day ${schedule.day_of_week}`);
-  
+
   const { data, error } = await supabase
     .from('doctor_schedules')
-    .upsert(schedule, { 
+    .upsert(schedule, {
       onConflict: 'doctor_id,schedule_date',
-      ignoreDuplicates: false 
+      ignoreDuplicates: false
     })
     .select()
     .maybeSingle()
 
   if (error) throw error
-  
+
   // Only generate time slots if this is a new schedule or if the schedule was updated
   if (data && schedule.is_available) {
     console.log(`🔄 Schedule saved for doctor ${schedule.doctor_id}, generating time slots for next 4 weeks...`);
@@ -1003,7 +1003,7 @@ export const upsertDoctorSchedule = async (schedule: Omit<DoctorSchedule, 'id' |
   } else if (data && !schedule.is_available) {
     console.log(`ℹ️ Schedule marked as unavailable for doctor ${schedule.doctor_id}, day ${schedule.day_of_week}`);
   }
-  
+
   return data
 }
 
@@ -1115,11 +1115,11 @@ export const createAppointment = async (
 ) => {
   console.log(`🔄 Creating appointment for doctor ${doctorId}, patient ${patientId}, date ${date}, time ${startTime}`);
   console.log('🔧 Using Mock Supabase:', isMockSupabase);
-  
+
   // First, check if the time slot is available (with race condition protection)
   const availabilityCheck = await checkSlotAvailability(doctorId, date, startTime);
   console.log('🔍 Availability check result:', availabilityCheck);
-  
+
   if (!availabilityCheck.available) {
     throw new Error(availabilityCheck.error || 'Time slot is not available');
   }
@@ -1143,7 +1143,7 @@ export const createAppointment = async (
 
   // Generate a unique appointment ID
   const appointmentId = crypto.randomUUID();
-  
+
   // Generate queue token
   const queueToken = await generateQueueToken();
   console.log('🎫 Generated queue token:', queueToken);
@@ -1155,11 +1155,11 @@ export const createAppointment = async (
       id: appointmentId,
       doctor_id: doctorId,
       patient_id: patientId,
-      appointment_date: date,
+      schedule_date: date,  // Fixed: Changed from appointment_date to schedule_date
       start_time: startTime,
       end_time: existingSlot.end_time,
       duration_minutes: durationMinutes,
-      status: 'scheduled',
+      status: 'booked',  // Fixed: Changed from 'scheduled' to 'booked' to match database constraint
       notes: notes || `Appointment booked by patient ${patientId}`,
       queue_token: queueToken
     })
@@ -1204,15 +1204,16 @@ export const createAppointment = async (
   }
 
   console.log('✅ Appointment created successfully:', appointmentData);
+  console.log('✅ Time slot status updated to "booked":', data);
   return {
     id: appointmentId,
     doctor_id: doctorId,
     patient_id: patientId,
-    appointment_date: date,
+    schedule_date: date,  // Fixed: Changed from appointment_date to schedule_date
     start_time: startTime,
     end_time: existingSlot.end_time,
     duration_minutes: durationMinutes,
-    status: 'scheduled',
+    status: 'booked',  // Fixed: Changed from 'scheduled' to 'booked' to match database constraint
     notes: notes || `Appointment booked by patient ${patientId}`,
     queue_token: queueToken,
     time_slot_id: existingSlot.id
@@ -1222,7 +1223,7 @@ export const createAppointment = async (
 // Cancel an appointment (mark time slot as available again)
 export const cancelAppointment = async (appointmentId: string) => {
   console.log(`🔄 Cancelling appointment: ${appointmentId}`);
-  
+
   // Find the time slot with this appointment ID
   const { data: timeSlot, error: findError } = await supabase
     .from('time_slots')
@@ -1314,10 +1315,10 @@ export const checkSlotAvailability = async (doctorId: string, date: string, star
   }
 
   if (data.status !== 'available') {
-    return { 
-      available: false, 
+    return {
+      available: false,
       error: `Slot is ${data.status}`,
-      currentStatus: data.status 
+      currentStatus: data.status
     };
   }
 
@@ -1326,7 +1327,7 @@ export const checkSlotAvailability = async (doctorId: string, date: string, star
 
 export const generateTimeSlots = async (doctorId: string, date: string) => {
   console.log(`🔄 Generating time slots for doctor ${doctorId} on ${date}`);
-  
+
   // First check if slots already exist for this date
   const { data: existingSlots, error: checkError } = await supabase
     .from('time_slots')
@@ -1347,7 +1348,7 @@ export const generateTimeSlots = async (doctorId: string, date: string) => {
 
   // This function generates time slots based on doctor's schedule for a specific date
   const dayOfWeek = new Date(date).getDay()
-  
+
   // Find the active schedule for this specific date
   const { data: schedule, error: scheduleError } = await supabase
     .from('doctor_schedules')
@@ -1372,20 +1373,20 @@ export const generateTimeSlots = async (doctorId: string, date: string) => {
   const endTime = new Date(`2000-01-01T${schedule.end_time}`)
   const breakStart = schedule.break_start_time ? new Date(`2000-01-01T${schedule.break_start_time}`) : null
   const breakEnd = schedule.break_end_time ? new Date(`2000-01-01T${schedule.break_end_time}`) : null
-  
+
   let currentTime = new Date(startTime)
-  
+
   while (currentTime < endTime) {
     const slotEnd = new Date(currentTime.getTime() + schedule.slot_duration_minutes * 60000)
-    
+
     // Skip break time
-    if (breakStart && breakEnd && 
-        ((currentTime >= breakStart && currentTime < breakEnd) ||
-         (slotEnd > breakStart && slotEnd <= breakEnd))) {
+    if (breakStart && breakEnd &&
+      ((currentTime >= breakStart && currentTime < breakEnd) ||
+        (slotEnd > breakStart && slotEnd <= breakEnd))) {
       currentTime = new Date(breakEnd)
       continue
     }
-    
+
     if (slotEnd <= endTime) {
       slots.push({
         doctor_id: doctorId,
@@ -1396,7 +1397,7 @@ export const generateTimeSlots = async (doctorId: string, date: string) => {
         status: 'available' as const
       })
     }
-    
+
     currentTime = slotEnd
   }
 
@@ -1405,9 +1406,9 @@ export const generateTimeSlots = async (doctorId: string, date: string) => {
     console.log(`💾 Inserting ${slots.length} time slots for ${date}`);
     const { data, error } = await supabase
       .from('time_slots')
-      .upsert(slots, { 
+      .upsert(slots, {
         onConflict: 'doctor_id,schedule_date,start_time',
-        ignoreDuplicates: true 
+        ignoreDuplicates: true
       })
       .select()
 
@@ -1423,16 +1424,16 @@ export const generateTimeSlots = async (doctorId: string, date: string) => {
 // Generate time slots for a range of dates (e.g., next 30 days)
 export const generateTimeSlotsForRange = async (doctorId: string, startDate: string, endDate: string) => {
   console.log(`🔄 Generating time slots for doctor ${doctorId} from ${startDate} to ${endDate}`);
-  
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const allSlots = [];
-  
+
   // Generate slots for each date in the range
   for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
     const dateStr = date.toISOString().split('T')[0];
     console.log(`📅 Generating slots for ${dateStr}`);
-    
+
     try {
       const slots = await generateTimeSlots(doctorId, dateStr);
       allSlots.push(...(slots || []));
@@ -1440,7 +1441,7 @@ export const generateTimeSlotsForRange = async (doctorId: string, startDate: str
       console.warn(`⚠️ Failed to generate slots for ${dateStr}:`, error);
     }
   }
-  
+
   console.log(`✅ Generated ${allSlots.length} total time slots`);
   return allSlots;
 }
@@ -1450,20 +1451,20 @@ export const generateTimeSlotsForNext4Weeks = async (doctorId: string) => {
   // Calculate rolling 4-week period starting from current week's Monday
   const today = new Date();
   const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-  
+
   // Find Monday of current week
   const mondayOfCurrentWeek = new Date(today);
   const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay; // If Sunday, go back 6 days; otherwise go to Monday
   mondayOfCurrentWeek.setDate(today.getDate() + daysToMonday);
-  
+
   // Calculate rolling 4-week period (28 days) starting from current week's Monday
   const startDate = new Date(mondayOfCurrentWeek);
   const endDate = new Date(mondayOfCurrentWeek);
   endDate.setDate(mondayOfCurrentWeek.getDate() + 27); // 4 weeks = 28 days
-  
+
   const startDateStr = formatLocalDate(startDate);
   const endDateStr = formatLocalDate(endDate);
-  
+
   console.log(`🚀 Generating time slots for rolling 4-week period: ${startDateStr} to ${endDateStr}`);
   return await generateTimeSlotsForRange(doctorId, startDateStr, endDateStr);
 }
@@ -1476,17 +1477,17 @@ export const generateTimeSlotsForNext30Days = async (doctorId: string) => {
 
 // Create doctor schedule for a specific date range (for doctor dashboard)
 export const createDoctorSchedule = async (
-  doctorId: string, 
-  scheduleDate: string, 
-  dayOfWeek: number, 
-  startTime: string, 
-  endTime: string, 
+  doctorId: string,
+  scheduleDate: string,
+  dayOfWeek: number,
+  startTime: string,
+  endTime: string,
   slotDurationMinutes: number = 30,
   breakStartTime?: string,
   breakEndTime?: string
 ) => {
   console.log(`🔄 Creating schedule for doctor ${doctorId} on ${scheduleDate} (day ${dayOfWeek})`);
-  
+
   const scheduleData = {
     doctor_id: doctorId,
     schedule_date: scheduleDate,
@@ -1502,9 +1503,9 @@ export const createDoctorSchedule = async (
   try {
     const { data, error } = await supabase
       .from('doctor_schedules')
-      .upsert(scheduleData, { 
+      .upsert(scheduleData, {
         onConflict: 'doctor_id,schedule_date',
-        ignoreDuplicates: false 
+        ignoreDuplicates: false
       })
       .select()
       .single();
@@ -1541,26 +1542,26 @@ export const createDoctorSchedulesForNext4Weeks = async (
   breakEndTime?: string
 ) => {
   console.log(`🔄 Creating date-specific schedules for doctor ${doctorId} on day ${dayOfWeek}`);
-  
+
   try {
     // Calculate rolling 4-week period starting from current week's Monday
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    
+
     // Find Monday of current week
     const mondayOfCurrentWeek = new Date(today);
     const daysToMonday = currentDay === 0 ? -6 : 1 - currentDay; // If Sunday, go back 6 days; otherwise go to Monday
     mondayOfCurrentWeek.setDate(today.getDate() + daysToMonday);
-    
+
     // Calculate rolling 4-week period (28 days) starting from current week's Monday
     const startDate = new Date(mondayOfCurrentWeek);
     const endDate = new Date(mondayOfCurrentWeek);
     endDate.setDate(mondayOfCurrentWeek.getDate() + 27); // 4 weeks = 28 days
-    
+
     const startDateStr = formatLocalDate(startDate);
     const endDateStr = formatLocalDate(endDate);
     console.log(`📅 Creating schedules for 4-week period: ${startDateStr} to ${endDateStr}`);
-    
+
     // First, check which dates already have schedules for this day of week
     const { data: existingSchedules, error: fetchError } = await supabase
       .from('doctor_schedules')
@@ -1570,23 +1571,23 @@ export const createDoctorSchedulesForNext4Weeks = async (
       .gte('schedule_date', startDateStr)
       .lte('schedule_date', endDateStr)
       .not('schedule_date', 'is', null);
-    
+
     if (fetchError) {
       console.error('❌ Error fetching existing schedules:', fetchError);
       throw fetchError;
     }
-    
+
     const existingDates = new Set(existingSchedules?.map((s: any) => s.schedule_date) || []);
     console.log(`📊 Found ${existingDates.size} existing schedules for day ${dayOfWeek} in 4-week period`);
-    
+
     // Generate all dates for the 4-week period that match the day of week
     const schedulesToCreate = [];
     const currentDate = new Date(startDate);
-    
+
     while (currentDate <= endDate) {
       const currentDayOfWeek = currentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
       const dateStr = formatLocalDate(currentDate);
-      
+
       // Check if this date matches the day of week we're creating schedules for
       if (currentDayOfWeek === dayOfWeek) {
         // Only create if this specific date doesn't already have a schedule
@@ -1607,17 +1608,17 @@ export const createDoctorSchedulesForNext4Weeks = async (
           console.log(`⏭️ Skipping ${dateStr} - schedule already exists`);
         }
       }
-      
+
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     console.log(`📝 Creating ${schedulesToCreate.length} new schedule records for day ${dayOfWeek}`);
-    
+
     if (schedulesToCreate.length === 0) {
       console.log(`✅ No new schedules needed for day ${dayOfWeek} - all dates already have schedules`);
       return [];
     }
-    
+
     // Insert all schedules at once
     const { data, error } = await supabase
       .from('doctor_schedules')
@@ -1651,12 +1652,12 @@ export const checkTimeSlotsStatus = async (doctorId: string, daysAhead: number =
   const today = new Date();
   const endDate = new Date();
   endDate.setDate(today.getDate() + daysAhead);
-  
+
   const startDateStr = today.toISOString().split('T')[0];
   const endDateStr = endDate.toISOString().split('T')[0];
-  
+
   console.log(`🔍 Checking time slots status for doctor ${doctorId} from ${startDateStr} to ${endDateStr}`);
-  
+
   // Get count of existing slots
   const { count: existingSlots, error: countError } = await supabase
     .from('time_slots')
@@ -1664,41 +1665,41 @@ export const checkTimeSlotsStatus = async (doctorId: string, daysAhead: number =
     .eq('doctor_id', doctorId)
     .gte('schedule_date', startDateStr)
     .lte('schedule_date', endDateStr)
-  
+
   if (countError) {
     console.warn('⚠️ Error checking existing slots count:', countError);
     return { needsGeneration: true, existingCount: 0 };
   }
-  
+
   // Get count of available days in the period
   const { data: schedules, error: scheduleError } = await supabase
     .from('doctor_schedules')
     .select('day_of_week')
     .eq('doctor_id', doctorId)
     .eq('is_available', true)
-  
+
   if (scheduleError) {
     console.warn('⚠️ Error checking doctor schedules:', scheduleError);
     return { needsGeneration: true, existingCount: 0 };
   }
-  
+
   if (!schedules || schedules.length === 0) {
     console.log('ℹ️ No available schedules found for doctor');
     return { needsGeneration: false, existingCount: 0 };
   }
-  
+
   // Calculate expected slots count (rough estimate)
   const availableDays = schedules.length;
   const totalDays = daysAhead;
   const expectedSlotsPerDay = 8; // Rough estimate
   const expectedTotalSlots = availableDays * Math.ceil(totalDays / 7) * expectedSlotsPerDay;
-  
+
   const needsGeneration = (existingSlots || 0) < expectedTotalSlots * 0.5; // If less than 50% of expected slots exist
-  
+
   console.log(`📊 Time slots status: ${existingSlots || 0} existing, ~${expectedTotalSlots} expected, needs generation: ${needsGeneration}`);
-  
-  return { 
-    needsGeneration, 
+
+  return {
+    needsGeneration,
     existingCount: existingSlots || 0,
     expectedCount: expectedTotalSlots,
     availableDays: availableDays
@@ -1710,7 +1711,7 @@ export const checkTimeSlotsStatus = async (doctorId: string, daysAhead: number =
 // Get weekly schedules for a specific week
 export const getWeeklySchedules = async (doctorId: string, startDate: string, endDate: string) => {
   console.log(`📅 Getting weekly schedules for doctor ${doctorId} from ${startDate} to ${endDate}`);
-  
+
   const { data, error } = await supabase
     .from('doctor_schedules')
     .select('*')
@@ -1732,7 +1733,7 @@ export const getWeeklySchedules = async (doctorId: string, startDate: string, en
 // Get template schedules for a doctor
 export const getTemplateSchedules = async (doctorId: string) => {
   console.log(`📋 Getting template schedules for doctor ${doctorId}`);
-  
+
   const { data, error } = await supabase
     .from('doctor_schedules')
     .select('*')
@@ -1763,7 +1764,7 @@ export const upsertWeeklySchedule = async (schedule: {
   is_template?: boolean;
 }) => {
   console.log(`🔄 Upserting weekly schedule for doctor ${schedule.doctor_id} on ${schedule.schedule_date}`);
-  
+
   const { data, error } = await supabase
     .from('doctor_schedules')
     .upsert(schedule, {
@@ -1785,18 +1786,18 @@ export const upsertWeeklySchedule = async (schedule: {
 // Generate weekly time slots for a specific date range
 export const generateWeeklyTimeSlots = async (doctorId: string, startDate: string, endDate: string) => {
   console.log(`🔄 Generating weekly time slots for doctor ${doctorId} from ${startDate} to ${endDate}`);
-  
+
   const start = new Date(startDate);
   const end = new Date(endDate);
   const allSlots = [];
-  
+
   // Generate slots for each date in the range
   for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
     const dateStr = date.toISOString().split('T')[0];
     const dayOfWeek = date.getDay();
-    
+
     console.log(`📅 Generating slots for ${dateStr} (day ${dayOfWeek})`);
-    
+
     try {
       // First check if specific schedule exists for this date
       const { data: specificSchedule } = await supabase
@@ -1806,9 +1807,9 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
         .eq('schedule_date', dateStr)
         .eq('is_template', false)
         .maybeSingle();
-      
+
       let schedule = specificSchedule;
-      
+
       // If no specific schedule, use template
       if (!schedule) {
         const { data: templateSchedule } = await supabase
@@ -1819,15 +1820,15 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
           .eq('is_template', true)
           .eq('is_available', true)
           .maybeSingle();
-        
+
         schedule = templateSchedule;
       }
-      
+
       if (!schedule || !schedule.is_available) {
         console.log(`ℹ️ No available schedule for ${dateStr}`);
         continue;
       }
-      
+
       // Check if slots already exist for this date
       const { data: existingSlots } = await supabase
         .from('time_slots')
@@ -1835,32 +1836,32 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
         .eq('doctor_id', doctorId)
         .eq('schedule_date', dateStr)
         .limit(1);
-      
+
       if (existingSlots && existingSlots.length > 0) {
         console.log(`✅ Slots already exist for ${dateStr}, skipping`);
         continue;
       }
-      
+
       // Generate time slots based on schedule
       const slots = [];
       const startTime = new Date(`2000-01-01T${schedule.start_time}`);
       const endTime = new Date(`2000-01-01T${schedule.end_time}`);
       const breakStart = schedule.break_start_time ? new Date(`2000-01-01T${schedule.break_start_time}`) : null;
       const breakEnd = schedule.break_end_time ? new Date(`2000-01-01T${schedule.break_end_time}`) : null;
-      
+
       let currentTime = new Date(startTime);
-      
+
       while (currentTime < endTime) {
         const slotEnd = new Date(currentTime.getTime() + schedule.slot_duration_minutes * 60000);
-        
+
         // Skip break time
-        if (breakStart && breakEnd && 
-            ((currentTime >= breakStart && currentTime < breakEnd) ||
-             (slotEnd > breakStart && slotEnd <= breakEnd))) {
+        if (breakStart && breakEnd &&
+          ((currentTime >= breakStart && currentTime < breakEnd) ||
+            (slotEnd > breakStart && slotEnd <= breakEnd))) {
           currentTime = new Date(breakEnd);
           continue;
         }
-        
+
         if (slotEnd <= endTime) {
           slots.push({
             doctor_id: doctorId,
@@ -1871,20 +1872,20 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
             status: 'available' as const
           });
         }
-        
+
         currentTime = slotEnd;
       }
-      
+
       // Insert generated slots
       if (slots.length > 0) {
-    const { data, error } = await supabase
-      .from('time_slots')
-      .upsertMany(slots, { 
-        onConflict: 'doctor_id,schedule_date,start_time',
-        ignoreDuplicates: true 
-      })
-      .select();
-        
+        const { data, error } = await supabase
+          .from('time_slots')
+          .upsertMany(slots, {
+            onConflict: 'doctor_id,schedule_date,start_time',
+            ignoreDuplicates: true
+          })
+          .select();
+
         if (error) {
           console.warn(`⚠️ Error inserting slots for ${dateStr}:`, error);
         } else {
@@ -1892,12 +1893,12 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
           allSlots.push(...(data || []));
         }
       }
-      
+
     } catch (error) {
       console.warn(`⚠️ Failed to generate slots for ${dateStr}:`, error);
     }
   }
-  
+
   console.log(`✅ Generated ${allSlots.length} total weekly time slots`);
   return allSlots;
 };
@@ -1905,7 +1906,7 @@ export const generateWeeklyTimeSlots = async (doctorId: string, startDate: strin
 // Get available weekly time slots for booking
 export const getAvailableWeeklyTimeSlots = async (doctorId: string, date: string) => {
   console.log(`🔍 Getting available weekly time slots for doctor ${doctorId} on ${date}`);
-  
+
   const { data, error } = await supabase
     .from('time_slots')
     .select('*')
@@ -1926,11 +1927,11 @@ export const getAvailableWeeklyTimeSlots = async (doctorId: string, date: string
 // Delete time slots for a specific day of week
 export const deleteTimeSlotsForDayOfWeek = async (doctorId: string, dayOfWeek: number, daysAhead: number = 28) => {
   console.log(`🗑️ Deleting time slots for doctor ${doctorId}, day ${dayOfWeek}, next ${daysAhead} days`);
-  
+
   const today = new Date();
   const endDate = new Date();
   endDate.setDate(today.getDate() + daysAhead);
-  
+
   // Get all dates for this day of week in the specified period
   const datesToClean = [];
   for (let date = new Date(today); date <= endDate; date.setDate(date.getDate() + 1)) {
@@ -1938,36 +1939,36 @@ export const deleteTimeSlotsForDayOfWeek = async (doctorId: string, dayOfWeek: n
       datesToClean.push(date.toISOString().split('T')[0]);
     }
   }
-  
+
   if (datesToClean.length === 0) {
     console.log(`ℹ️ No dates found for day ${dayOfWeek} in the next ${daysAhead} days`);
     return { deletedCount: 0 };
   }
-  
+
   console.log(`📅 Deleting slots for dates: ${datesToClean.join(', ')}`);
-  
+
   const { data, error } = await supabase
     .from('time_slots')
     .delete()
     .eq('doctor_id', doctorId)
     .in('schedule_date', datesToClean)
     .select('id');
-  
+
   if (error) {
     console.error('❌ Error deleting time slots:', error);
     throw error;
   }
-  
+
   const deletedCount = data?.length || 0;
   console.log(`✅ Deleted ${deletedCount} time slots for day ${dayOfWeek}`);
-  
+
   return { deletedCount };
 };
 
 // Get doctor ID by user ID
 export const getDoctorIdByUserId = async (userId: string): Promise<string | null> => {
   console.log(`🔄 Getting doctor ID for user: ${userId}`);
-  
+
   try {
     const { data, error } = await supabase
       .from('doctors')
@@ -1997,7 +1998,7 @@ export const getDoctorIdByUserId = async (userId: string): Promise<string | null
 export const createPatientProfile = async (userId: string, patientData: any) => {
   console.log('🔄 createPatientProfile called with:', { userId, patientData });
   console.log('🔧 Using Mock Supabase:', isMockSupabase);
-  
+
   // First check if patient already exists
   const { data: existingPatient, error: checkError } = await supabase
     .from('patients')
@@ -2046,7 +2047,7 @@ export const createPatientProfile = async (userId: string, patientData: any) => 
     console.error('❌ Error creating patient profile:', error);
     throw error
   }
-  
+
   console.log('✅ Patient profile created successfully:', data);
   return data
 }
@@ -2063,7 +2064,7 @@ export const getPatientProfile = async (userId: string) => {
       console.error('❌ Error fetching patient profile:', error);
       return null;
     }
-    
+
     console.log('✅ Patient profile fetched:', data ? 'Found' : 'Not found');
     return data
   } catch (error) {

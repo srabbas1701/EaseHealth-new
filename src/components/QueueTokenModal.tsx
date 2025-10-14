@@ -30,34 +30,34 @@ const QueueTokenModal: React.FC<QueueTokenModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[95vh] overflow-y-auto">
         {/* Header */}
-        <div className="relative p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="relative p-4 border-b border-gray-200 dark:border-gray-700">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
+            className="absolute top-3 right-3 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
-          
+
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-white" />
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">
+            <h2 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">
               Booking Confirmed!
             </h2>
-            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">
               Your appointment has been confirmed. Your token number is <span className="font-bold text-[#0A2647] dark:text-blue-400">{queueToken}</span>
             </p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-4">
           {/* Queue Token */}
-          <div className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-xl p-6 text-white mb-6">
+          <div className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-xl p-4 text-white mb-4">
             <div className="text-center">
               <h3 className="text-lg font-semibold mb-2">Your Queue Token</h3>
               <div className="flex items-center justify-center space-x-3">
@@ -77,11 +77,11 @@ const QueueTokenModal: React.FC<QueueTokenModalProps> = ({
           </div>
 
           {/* Appointment Details */}
-          <div className="space-y-4 mb-6">
-            <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-3">
+          <div className="space-y-3 mb-4">
+            <h4 className="text-base font-semibold text-[#0A2647] dark:text-gray-100 mb-2">
               Appointment Details
             </h4>
-            
+
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -127,11 +127,11 @@ const QueueTokenModal: React.FC<QueueTokenModalProps> = ({
           </div>
 
           {/* Important Notes */}
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 border border-yellow-200 dark:border-yellow-800">
-            <h5 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-3 border border-yellow-200 dark:border-yellow-800">
+            <h5 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-1 text-sm">
               Important Reminders
             </h5>
-            <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+            <ul className="text-xs text-yellow-700 dark:text-yellow-300 space-y-0.5">
               <li>• Arrive 15 minutes before your appointment time</li>
               <li>• Bring a valid ID and your queue token</li>
               <li>• You'll receive SMS reminders before your appointment</li>
@@ -141,7 +141,7 @@ const QueueTokenModal: React.FC<QueueTokenModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
           <button
             onClick={() => {
               onClose();
