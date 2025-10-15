@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { useDarkMode } from '../hooks/useDarkMode';
-import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon, X, AlertCircle } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon, X, AlertCircle, Edit3, Upload, Brain, Pill, Thermometer, Scale, Gauge } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHistory } from '../utils/patientProfileUtils';
+import { getFreshSignedUrls } from '../utils/patientFileUploadUtils';
 // Temporarily commented out recharts imports to fix loading issue
 // import { 
 //   LineChart, 
@@ -37,10 +38,11 @@ interface AuthProps {
 }
 
 function PatientDashboardPage({ user, session, profile, userState, isAuthenticated, handleLogout }: AuthProps) {
-  const { isDarkMode } = useDarkMode();
+
   const { language } = useLanguage();
   const { t } = useTranslations(language);
   const location = useLocation();
+  const navigate = useNavigate();
   const [announcement, setAnnouncement] = useState('');
   const [patientProfile, setPatientProfile] = useState<any>(null);
   const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
@@ -56,6 +58,13 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     profileCompletion: 0
   });
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'pre-registration' | 'prescriptions' | 'uploaded-files' | 'ai-analytics'>('pre-registration');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null);
+  const [freshLabReportUrls, setFreshLabReportUrls] = useState<string[]>([]);
+  const [freshIdProofUrls, setFreshIdProofUrls] = useState<string[]>([]);
+
   // Chart data
   const appointmentTrendData = [
     { month: 'Jan', appointments: 2 },
@@ -67,17 +76,17 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   ];
 
   const healthMetricsData = [
-    { name: 'Blood Pressure', value: 120, unit: 'mmHg', status: 'Normal' },
-    { name: 'Heart Rate', value: 72, unit: 'bpm', status: 'Normal' },
-    { name: 'Weight', value: 65, unit: 'kg', status: 'Normal' },
-    { name: 'BMI', value: 22.5, unit: '', status: 'Normal' },
+    { name: 'Blood Pressure', value: 120, unit: 'mmHg', status: 'Normal', icon: Thermometer },
+    { name: 'Heart Rate', value: 72, unit: 'bpm', status: 'Normal', icon: Heart },
+    { name: 'Weight', value: 65, unit: 'kg', status: 'Normal', icon: Scale },
+    { name: 'BMI', value: 22.5, unit: '', status: 'Normal', icon: Gauge },
   ];
 
   const appointmentTypeData = [
     { name: 'General Checkup', value: 45, color: '#0075A2' },
     { name: 'Specialist', value: 30, color: '#0A2647' },
     { name: 'Emergency', value: 15, color: '#E53E3E' },
-    { name: 'Follow-up', value: 10, color: '#38A169' },
+    ,
   ];
 
   const COLORS = ['#0075A2', '#0A2647', '#E53E3E', '#38A169'];
@@ -98,18 +107,30 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     }
   }, [location.state]);
 
-  // Load patient data
+  // Load patient data with caching
   useEffect(() => {
     const loadPatientData = async () => {
       if (!user) return;
 
+      // Check if we already have data for this user (prevent re-loading on tab focus)
+      if (patientProfile && patientProfile.user_id === user.id) {
+        console.log('📦 Using cached patient data');
+        return;
+      }
+
       try {
         setIsLoading(true);
+        console.log('🔄 Loading patient data...');
 
         // Load patient profile and stats
         const { profile, stats } = await getPatientProfileWithStats(user.id);
         setPatientProfile(profile);
         setStats(stats);
+
+        // Refresh signed URLs for documents
+        if (profile) {
+          await refreshSignedUrls(profile);
+        }
 
         // Load upcoming appointments
         if (profile?.id) {
@@ -117,6 +138,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           setUpcomingAppointments(appointments);
         }
 
+        console.log('✅ Patient data loaded successfully');
       } catch (error) {
         console.error('Error loading patient data:', error);
         setAnnouncement('Failed to load patient data. Please refresh the page.');
@@ -126,7 +148,131 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     };
 
     loadPatientData();
-  }, [user]);
+  }, [user, patientProfile]);
+
+  // Manual refresh function
+  const refreshPatientData = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      console.log('🔄 Manually refreshing patient data...');
+
+      // Load patient profile and stats
+      const { profile, stats } = await getPatientProfileWithStats(user.id);
+      setPatientProfile(profile);
+      setStats(stats);
+
+      // Refresh signed URLs for documents
+      if (profile) {
+        await refreshSignedUrls(profile);
+      }
+
+      // Load upcoming appointments
+      if (profile?.id) {
+        const appointments = await getUpcomingAppointments(profile.id);
+        setUpcomingAppointments(appointments);
+      }
+
+      console.log('✅ Patient data refreshed successfully');
+      setAnnouncement('Dashboard data refreshed');
+    } catch (error) {
+      console.error('Error refreshing patient data:', error);
+      setAnnouncement('Failed to refresh data. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Cancel appointment functionality
+  const handleCancelAppointment = (appointmentId: string, appointmentData: any) => {
+    setAppointmentToCancel({ id: appointmentId, data: appointmentData });
+    setShowCancelModal(true);
+  };
+
+  const confirmCancelAppointment = async () => {
+    if (!appointmentToCancel) return;
+
+    try {
+      console.log('🔄 Cancelling appointment:', appointmentToCancel.id);
+
+      // Import the cancelAppointment function
+      const { cancelAppointment } = await import('../utils/supabase');
+
+      // Cancel the appointment
+      await cancelAppointment(appointmentToCancel.id);
+
+      // Refresh the appointments list
+      if (patientProfile?.id) {
+        const appointments = await getUpcomingAppointments(patientProfile.id);
+        setUpcomingAppointments(appointments);
+      }
+
+      // Refresh stats
+      if (user?.id) {
+        const { stats } = await getPatientProfileWithStats(user.id);
+        setStats(stats);
+      }
+
+      setAnnouncement(`Appointment with ${appointmentToCancel.data.doctor} cancelled successfully`);
+      console.log('✅ Appointment cancelled successfully');
+
+      // Close modal
+      setShowCancelModal(false);
+      setAppointmentToCancel(null);
+
+    } catch (error) {
+      console.error('❌ Error cancelling appointment:', error);
+      setAnnouncement('Failed to cancel appointment. Please try again.');
+    }
+  };
+
+  // Reschedule appointment functionality
+  const handleRescheduleAppointment = (appointmentData: any) => {
+    console.log('🔄 Rescheduling appointment:', appointmentData);
+
+    // Convert date string back to Date object for proper handling
+    const appointmentDate = new Date(appointmentData.date.split('/').reverse().join('-'));
+
+    // Navigate to booking page with pre-filled data
+    navigate('/smart-appointment-booking', {
+      state: {
+        reschedule: true,
+        appointmentData: appointmentData,
+        selectedDoctor: appointmentData.doctor,
+        selectedDate: appointmentDate,
+        selectedTime: appointmentData.time
+      }
+    });
+
+    setAnnouncement(`Redirecting to reschedule appointment with ${appointmentData.doctor}`);
+  };
+
+  // Function to refresh signed URLs for documents
+  const refreshSignedUrls = async (patientProfile: any) => {
+    try {
+      console.log('🔄 Refreshing signed URLs for documents...');
+
+      // Refresh lab report URLs
+      if (patientProfile.lab_report_urls && patientProfile.lab_report_urls.length > 0) {
+        const freshLabUrls = await getFreshSignedUrls(patientProfile.lab_report_urls, 'lab_reports');
+        setFreshLabReportUrls(freshLabUrls);
+        console.log('✅ Refreshed lab report URLs:', freshLabUrls.length);
+      }
+
+      // Refresh ID proof URLs
+      if (patientProfile.id_proof_urls && patientProfile.id_proof_urls.length > 0) {
+        const freshIdUrls = await getFreshSignedUrls(patientProfile.id_proof_urls, 'aadhaar_documents');
+        setFreshIdProofUrls(freshIdUrls);
+        console.log('✅ Refreshed ID proof URLs:', freshIdUrls.length);
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing signed URLs:', error);
+      // Fallback to original URLs
+      setFreshLabReportUrls(patientProfile.lab_report_urls || []);
+      setFreshIdProofUrls(patientProfile.id_proof_urls || []);
+    }
+  };
 
   // Get user display name
   const getUserDisplayName = () => {
@@ -146,6 +292,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
+        <AccessibilityAnnouncer message={announcement} />
         <Navigation
           user={user}
           session={session}
@@ -154,18 +301,12 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           isAuthenticated={isAuthenticated}
           handleLogout={handleLogout}
         />
-
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center py-16">
-            <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
-              <Activity className="w-8 h-8 text-white" />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#0075A2] border-t-transparent mx-auto mb-4"></div>
+              <p className="text-lg text-gray-600 dark:text-gray-300">Loading your dashboard...</p>
             </div>
-            <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">
-              Loading Your Dashboard
-            </h2>
-            <p className="text-gray-600 dark:text-gray-300">
-              Please wait while we fetch your medical information...
-            </p>
           </div>
         </main>
       </div>
@@ -184,7 +325,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
         handleLogout={handleLogout}
       />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back Button */}
         <Link
           to="/"
@@ -256,521 +397,576 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           </div>
         )}
 
-        {/* Header Section */}
-        <div className="mb-8">
-          {/* Profile Image and Last Login */}
-          <div className="flex items-center justify-center mb-6">
-            <div className="relative">
-              {patientProfile?.profile_image_url ? (
-                <img
-                  src={patientProfile.profile_image_url}
-                  alt={patientProfile.full_name}
-                  className="w-24 h-24 rounded-full object-cover border-4 border-[#0075A2] dark:border-[#0EA5E9]"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] flex items-center justify-center">
+        {/* Patient Dashboard Header - Identical to Doctor Dashboard */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-[#E8E8E8] dark:border-gray-600 mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="w-24 h-24 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-3xl overflow-hidden">
+                {patientProfile?.profile_image_url ? (
+                  <img
+                    src={patientProfile.profile_image_url}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                ) : (
                   <User className="w-12 h-12 text-white" />
-                </div>
-              )}
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center border-4 border-white dark:border-gray-900">
-                <CheckCircle className="w-4 h-4 text-white" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100">
+                  <span className="text-[#0075A2] dark:text-[#0EA5E9]">{getUserDisplayName()}</span> Dashboard
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300 text-lg">Patient Portal</p>
+                {patientProfile?.email && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{patientProfile.email}</p>
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500 dark:text-gray-400">Last login</p>
+              <p className="text-lg font-semibold text-[#0A2647] dark:text-gray-100">
+                {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'}
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleTimeString('en-GB', { hour12: false }) : ''}
+              </p>
+              <div className="mt-4">
+                <Link
+                  to="/patient-profile-update"
+                  className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center inline-flex"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Update Profile
+                </Link>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Last Login Info */}
-          <div className="text-center mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Last login: {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'}
-            </p>
-          </div>
-
-          {/* Welcome Message */}
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-              {t('patientDashboard.welcome')},{' '}
-              <span className="bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] bg-clip-text text-transparent">
-                {getUserDisplayName()}
-              </span>
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              {t('patientDashboard.tagline')}
-            </p>
+        {/* Dashboard Overview Section */}
+        <div className="space-y-6 mb-8">
+          {/* Health Overview Stats */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-2 flex items-center">
+                <Activity className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                Health Overview
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">Your health status and recent activity</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {healthMetricsData.map((metric, index) => {
+                const MetricIcon = metric.icon;
+                return (
+                  <div key={metric.name} className="text-center">
+                    <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-3">
+                      <MetricIcon className="w-8 h-8 text-white" />
+                    </div>
+                    <h4 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">{metric.value} {metric.unit}</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{metric.name}</p>
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">{metric.status}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Quick Stats */}
-          <div className="flex flex-wrap justify-center gap-8 mb-12">
-            <div className="flex items-center text-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.upcomingAppointments}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Upcoming Appointments</p>
-              </div>
-            </div>
-            <div className="flex items-center text-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.profileCompletion}%</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Profile Complete</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center">
+                <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl">
+                  <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Upcoming Appointments</p>
+                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.upcomingAppointments}</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center text-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                <Activity className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.totalAppointments}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Total Visits</p>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl">
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Profile Complete</p>
+                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.profileCompletion}%</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-center text-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                <Shield className="w-6 h-6 text-white" />
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center">
+                <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl">
+                  <Activity className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Visits</p>
+                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.totalAppointments}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold">Secure</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">Data Protected</p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center">
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
+                  <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Secure Data</p>
+                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Protected</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Analytics Dashboard - Temporarily Simplified */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-          {/* Appointment Trends Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                <TrendingUp className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Appointment Trends
+          {/* Upcoming Appointments */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                Upcoming Appointments
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Your healthcare visits over the past 6 months</p>
+              <Link
+                to="/smart-appointment-booking"
+                className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
+              >
+                Book New Appointment
+              </Link>
             </div>
-            <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <p className="text-gray-500 dark:text-gray-400">Chart will be loaded here</p>
-            </div>
-          </div>
-
-          {/* Health Metrics Chart */}
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Health Metrics
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Your latest health measurements</p>
-            </div>
-            <div className="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-xl">
-              <p className="text-gray-500 dark:text-gray-400">Chart will be loaded here</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Health Overview Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                  Health Overview
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">Your health status and recent activity</p>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {healthMetricsData.map((metric, index) => (
-                  <div key={metric.name} className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-3">
-                      <Heart className="w-8 h-8 text-white" />
-                    </div>
-                    <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100">{metric.value}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{metric.unit}</p>
-                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">{metric.status}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dashboard Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Appointments & Pre-Registration (2/3 width) */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Upcoming Appointments */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                  <Calendar className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                  {t('patientDashboard.upcomingAppointments')}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Your scheduled appointments and medical consultations
-                </p>
-              </div>
-
-              {upcomingAppointments.length > 0 ? (
-                <div className="space-y-6">
-                  {upcomingAppointments.map(appointment => (
-                    <div key={appointment.id} className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-3">
-                            <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-4">
-                              <User className="w-6 h-6 text-white" />
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">{appointment.doctor}</h3>
-                              <p className="text-sm text-[#0075A2] dark:text-[#0EA5E9] font-medium">{appointment.specialty}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center text-gray-600 dark:text-gray-300 mb-2">
-                            <Clock className="w-4 h-4 mr-2" />
-                            <span className="font-medium">{appointment.date} at {appointment.time}</span>
-                          </div>
-                          <div className="flex items-center text-gray-600 dark:text-gray-300">
-                            <MapPin className="w-4 h-4 mr-2" />
-                            <span>EaseHealth Medical Center</span>
-                          </div>
-                          {appointment.queue_token && (
-                            <div className="mt-2 flex items-center text-[#0075A2] dark:text-[#0EA5E9]">
-                              <Bell className="w-4 h-4 mr-2" />
-                              <span className="font-medium">Queue Token: {appointment.queue_token}</span>
-                            </div>
-                          )}
-                          {appointment.payment_status && (
-                            <div className="mt-2 flex items-center text-gray-600 dark:text-gray-300">
-                              <Shield className="w-4 h-4 mr-2" />
-                              <span className="font-medium">Payment: {appointment.payment_status.charAt(0).toUpperCase() + appointment.payment_status.slice(1)}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className={`px-4 py-2 rounded-full text-sm font-semibold mb-3 ${appointment.status === 'confirmed' || appointment.status === 'booked'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : appointment.status === 'cancelled'
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            <div className="overflow-x-auto max-h-96 overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Time</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Doctor</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Queue #</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {upcomingAppointments.length > 0 ? (
+                    upcomingAppointments.map((appointment, index) => (
+                      <tr key={index} className="border-b border-gray-100 dark:border-gray-700">
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
+                          {appointment.date}
+                        </td>
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
+                          {appointment.time}
+                        </td>
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
+                          {appointment.doctor || 'Doctor'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${appointment.status === 'BOOKED'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                            : appointment.status === 'CANCELLED'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                             }`}>
-                            {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)}
+                            {appointment.status}
                           </span>
-                          <Link
-                            to={`/appointments/${appointment.id}`}
-                            className="text-[#0075A2] dark:text-[#0EA5E9] text-sm font-medium hover:underline"
-                          >
-                            View Details
-                          </Link>
-                        </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
+                          {appointment.queue_token || 'N/A'}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleCancelAppointment(appointment.id, appointment)}
+                              disabled={appointment.status === 'CANCELLED'}
+                              className={`text-sm font-medium transition-colors ${appointment.status === 'CANCELLED'
+                                ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:underline'
+                                }`}
+                              title={appointment.status === 'CANCELLED' ? 'Appointment already cancelled' : 'Cancel this appointment'}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => handleRescheduleAppointment(appointment)}
+                              disabled={appointment.status === 'CANCELLED'}
+                              className={`text-sm font-medium transition-colors ${appointment.status === 'CANCELLED'
+                                ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline'
+                                }`}
+                              title={appointment.status === 'CANCELLED' ? 'Cannot reschedule cancelled appointment' : 'Reschedule this appointment'}
+                            >
+                              Reschedule
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        No upcoming appointments
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8 border border-[#E8E8E8] dark:border-gray-600">
+          <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            {[
+              { id: 'pre-registration', label: 'Pre-Registration Details', icon: FileText },
+              { id: 'prescriptions', label: 'Prescriptions', icon: Pill },
+              { id: 'uploaded-files', label: 'Uploaded Files', icon: Upload },
+              { id: 'ai-analytics', label: 'AI Analytics', icon: Brain }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${activeTab === tab.id
+                    ? 'bg-white dark:bg-gray-600 text-[#0075A2] dark:text-[#0EA5E9] shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9]'
+                    }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'pre-registration' && (
+          <div className="space-y-6">
+            {/* Pre-Registration Details Tab */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                  Pre-Registration Details
+                </h3>
+                <Link
+                  to="/patient-profile-update"
+                  className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center"
+                >
+                  <Edit3 className="w-4 h-4 mr-2" />
+                  Update Profile
+                </Link>
+              </div>
+
+              {patientProfile && (
+                <div className="space-y-6">
+                  {/* Personal Information */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
+                      <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                      Personal Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Patient Name</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.full_name || 'N/A'}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Phone Number</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.phone_number || 'N/A'}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Age/Gender</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">
+                          {patientProfile.age ? `${patientProfile.age} years` : 'N/A'} / {patientProfile.gender || 'N/A'}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">
+                          {patientProfile.city || 'N/A'} {patientProfile.state || ''}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <div className="w-24 h-24 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Calendar className="w-12 h-12 text-gray-400" />
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">No Upcoming Appointments</h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6">You don't have any scheduled appointments yet.</p>
+
+                  {/* Medical Information */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
+                      <Heart className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                      Medical Information
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Medical History</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.medical_history || 'N/A'}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Allergies</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.allergies || 'N/A'}</p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Current Medications</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.current_medications || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Insurance and Blood Type Information */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
+                      <Shield className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                      Insurance & Blood Type
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Insurance Provider</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.insurance_provider || 'N/A'}</p>
+                        {patientProfile.insurance_number && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Policy: {patientProfile.insurance_number}</p>
+                        )}
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Blood Type</p>
+                        <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.blood_type || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Lab Reports Section */}
+                  <div>
+                    <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
+                      <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                      Lab Reports
+                    </h4>
+                    {freshLabReportUrls && freshLabReportUrls.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {freshLabReportUrls.map((url: string, index: number) => (
+                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">Click to view document</p>
+                              </div>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-[#0075A2] dark:bg-[#0EA5E9] text-white px-3 py-2 rounded-lg hover:bg-[#0A2647] dark:hover:bg-[#0284C7] transition-colors text-sm font-medium"
+                              >
+                                View Report
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 text-center">
+                        <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400">No lab reports uploaded yet</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
-
-              <div className="mt-8 text-center">
-                <Link
-                  to={{
-                    pathname: "/smart-appointment-booking",
-                    search: `?patientId=${patientProfile?.id || ''}&userId=${user?.id || ''}`
-                  }}
-                  state={{
-                    fromDashboard: true,
-                    patientProfile: patientProfile,
-                    user: user
-                  }}
-                  className="inline-flex items-center bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-200 transform hover:scale-105 focus-ring"
-                >
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Book New Appointment
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Link>
-              </div>
-            </div>
-
-            {/* My Pre-Registration Details */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center">
-                  <FileText className="w-6 h-6 mr-3 text-[#0075A2] dark:text-[#0EA5E9]" />
-                  {t('patientDashboard.preRegDetails')}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-300">
-                  Your complete medical profile and registration information
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                {/* Personal Information */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
-                    <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Personal Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.fullName')}</p>
-                      <p className="text-[#0A2647] dark:text-gray-100 font-medium">
-                        {patientProfile?.full_name || user?.user_metadata?.full_name || 'Not provided'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.ageGender')}</p>
-                      <p className="text-[#0A2647] dark:text-gray-100 font-medium">
-                        {patientProfile?.date_of_birth ?
-                          `${new Date().getFullYear() - new Date(patientProfile.date_of_birth).getFullYear()} years` :
-                          'Not provided'
-                        } / {patientProfile?.gender || 'Not specified'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.phoneNumber')}</p>
-                      <p className="text-[#0A2647] dark:text-gray-100 font-medium flex items-center">
-                        <Phone className="w-4 h-4 mr-2" />
-                        {patientProfile?.phone_number || user?.user_metadata?.phone || 'Not provided'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.fields.location')}</p>
-                      <p className="text-[#0A2647] dark:text-gray-100 font-medium flex items-center">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {patientProfile?.address || 'Not provided'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Medical Information */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
-                    <Heart className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Medical Information
-                  </h3>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Medical History</p>
-                    <p className="text-[#0A2647] dark:text-gray-100 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      {patientProfile?.medical_history || 'No medical history recorded'}
-                    </p>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Allergies</p>
-                    <p className="text-[#0A2647] dark:text-gray-100 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      {patientProfile?.allergies || 'No known allergies'}
-                    </p>
-                  </div>
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Current Medications</p>
-                    <p className="text-[#0A2647] dark:text-gray-100 bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      {patientProfile?.current_medications || 'No current medications'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Documents */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
-                    <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Documents
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mr-3">
-                          <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <span className="text-[#0A2647] dark:text-gray-100 font-medium">Insurance Information</span>
-                      </div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {patientProfile?.insurance_provider || 'Not provided'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mr-3">
-                          <Heart className="w-4 h-4 text-green-600 dark:text-green-400" />
-                        </div>
-                        <span className="text-[#0A2647] dark:text-gray-100 font-medium">Blood Type</span>
-                      </div>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {patientProfile?.blood_type || 'Not specified'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Consent Status */}
-                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 rounded-2xl p-6">
-                  <h3 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
-                    <Shield className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                    Consent & Privacy
-                  </h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Profile Status</p>
-                      <p className="text-[#0A2647] dark:text-gray-100">Medical profile completion and data consent</p>
-                    </div>
-                    <span className={`px-4 py-2 rounded-full text-sm font-semibold ${patientProfile?.is_active
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                      }`}>
-                      {patientProfile?.is_active ? 'Active' : 'Incomplete'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 text-center">
-                <Link
-                  to="/patient-pre-registration"
-                  className="inline-flex items-center bg-white dark:bg-gray-800 text-[#0075A2] dark:text-[#0EA5E9] border-2 border-[#0075A2] dark:border-[#0EA5E9] px-8 py-4 rounded-xl font-semibold hover:bg-[#0075A2] dark:hover:bg-[#0EA5E9] hover:text-white transition-all duration-200 focus-ring"
-                >
-                  <FileText className="w-5 h-5 mr-2" />
-                  Update Profile
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </Link>
-              </div>
             </div>
           </div>
+        )}
 
-          {/* Right Column - Health Tips (1/3 width) */}
-          <div className="lg:col-span-1 space-y-8">
-            {/* Health Tips */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-              <div className="text-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {t('patientDashboard.healthTipsTitle')}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  Tips for maintaining good health
-                </p>
-              </div>
-
-              <div className="space-y-6">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 mb-1">Stay Hydrated</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientDashboard.tips.tip1')}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 mb-1">Regular Exercise</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientDashboard.tips.tip2')}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-2xl p-4">
-                  <div className="flex items-start">
-                    <div className="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 mb-1">Balanced Diet</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientDashboard.tips.tip3')}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Support Section */}
-            <div className="bg-gradient-to-br from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl shadow-2xl p-8 text-white">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Need Help?</h3>
-                <p className="text-white/80 text-sm mb-6">Our support team is here to assist you with any questions or concerns.</p>
-                <div className="space-y-3">
-                  <button className="w-full bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-xl font-medium transition-colors focus-ring">
-                    <Phone className="w-4 h-4 inline mr-2" />
-                    Call Support
-                  </button>
-                  <button className="w-full bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-xl font-medium transition-colors focus-ring">
-                    <Mail className="w-4 h-4 inline mr-2" />
-                    Email Support
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions Section - Moved to Bottom */}
-        <div className="mt-12">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                {t('patientDashboard.quickActions')}
+        {activeTab === 'prescriptions' && (
+          <div className="space-y-6">
+            {/* Prescriptions Tab */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                <Pill className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                Prescriptions
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
-                Quick access to your most used features
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Link
-                to={{
-                  pathname: "/smart-appointment-booking",
-                  search: `?patientId=${patientProfile?.id || ''}&userId=${user?.id || ''}`
-                }}
-                state={{
-                  fromDashboard: true,
-                  patientProfile: patientProfile,
-                  user: user
-                }}
-                className="flex items-center justify-center px-6 py-4 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] text-white rounded-2xl font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 focus-ring group"
-              >
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                {t('patientDashboard.bookNew')}
-                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-
-              <Link
-                to="/patient-pre-registration"
-                className="flex items-center justify-center px-6 py-4 border-2 border-[#0075A2] dark:border-[#0EA5E9] text-[#0075A2] dark:text-[#0EA5E9] rounded-2xl font-semibold hover:bg-[#0075A2] dark:hover:bg-[#0EA5E9] hover:text-white transition-all duration-200 focus-ring group"
-              >
-                <div className="w-10 h-10 bg-[#0075A2]/10 dark:bg-[#0EA5E9]/10 rounded-full flex items-center justify-center mr-3 group-hover:bg-white/20 transition-colors">
-                  <FileText className="w-5 h-5" />
-                </div>
-                {t('patientDashboard.updatePreRegistration')}
-                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
-
-              <button className="flex items-center justify-center px-6 py-4 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-2xl font-semibold hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 focus-ring group">
-                <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
-                  <Bell className="w-5 h-5" />
-                </div>
-                {t('patientDashboard.manageReminders')}
-                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </button>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Date</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Doctor</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Link</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-gray-500 dark:text-gray-400">
+                        No prescriptions available
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === 'uploaded-files' && (
+          <div className="space-y-6">
+            {/* Uploaded Files Tab */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                <Upload className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                Uploaded Files
+              </h3>
+              {patientProfile && (
+                <div className="space-y-6">
+                  {/* ID Proof Documents */}
+                  {freshIdProofUrls && freshIdProofUrls.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">ID Proof Documents</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {freshIdProofUrls.map((url: string, index: number) => (
+                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-[#0A2647] dark:text-gray-100">ID Proof {index + 1}</span>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
+                              >
+                                View
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lab Reports */}
+                  {freshLabReportUrls && freshLabReportUrls.length > 0 && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">Lab Reports</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {freshLabReportUrls.map((url: string, index: number) => (
+                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</span>
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
+                              >
+                                View
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Profile Image */}
+                  {patientProfile.profile_image_url && (
+                    <div>
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">Profile Image</h4>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-[#0A2647] dark:text-gray-100">Profile Picture</span>
+                          <a
+                            href={patientProfile.profile_image_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No files message */}
+                  {freshIdProofUrls.length === 0 &&
+                    freshLabReportUrls.length === 0 &&
+                    !patientProfile.profile_image_url && (
+                      <div className="text-center py-8">
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">No files uploaded yet</p>
+                      </div>
+                    )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'ai-analytics' && (
+          <div className="space-y-6">
+            {/* AI Analytics Tab */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
+                <Brain className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                AI Analytics
+              </h3>
+              <div className="text-center py-12">
+                <Brain className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-2">Generate AI Analytics</h4>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">Select prescriptions from the Prescriptions tab to generate AI-driven health analytics</p>
+                <button className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-6 py-3 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
+                  Generate Analytics
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Cancel Confirmation Modal */}
+        {showCancelModal && appointmentToCancel && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 border border-[#E8E8E8] dark:border-gray-600">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100">Cancel Appointment</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-700 dark:text-gray-300 mb-2">
+                  Are you sure you want to cancel your appointment with:
+                </p>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                  <p className="font-medium text-[#0A2647] dark:text-gray-100">
+                    {appointmentToCancel.data.doctor}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {appointmentToCancel.data.date} at {appointmentToCancel.data.time}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowCancelModal(false);
+                    setAppointmentToCancel(null);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  onClick={confirmCancelAppointment}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

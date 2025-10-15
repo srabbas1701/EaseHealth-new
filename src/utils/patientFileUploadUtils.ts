@@ -184,6 +184,78 @@ export const downloadPatientDocument = async (
 };
 
 /**
+ * Gets a fresh signed URL for a patient document
+ */
+export const getPatientSignedUrl = async (
+    filePath: string,
+    documentType: PatientDocumentType,
+    expiresIn: number = 3600 // 1 hour default
+): Promise<string> => {
+    try {
+        const bucketName = getPatientBucketName(documentType);
+
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .createSignedUrl(filePath, expiresIn);
+
+        if (error) {
+            console.error('❌ Signed URL error:', error);
+            throw error;
+        }
+
+        console.log('🔗 Generated fresh signed URL for:', filePath);
+        return data.signedUrl;
+    } catch (error) {
+        console.error('Signed URL error:', error);
+        throw new Error(`Failed to get signed URL for ${documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+};
+
+/**
+ * Extracts file path from a signed URL
+ */
+export const extractFilePathFromUrl = (signedUrl: string): string | null => {
+    try {
+        // Extract path from signed URL
+        // Format: https://[domain]/storage/v1/object/sign/[bucket]/[path]?token=[token]
+        const url = new URL(signedUrl);
+        const pathMatch = url.pathname.match(/\/object\/sign\/[^/]+\/(.+)$/);
+        return pathMatch ? decodeURIComponent(pathMatch[1]) : null;
+    } catch (error) {
+        console.error('Error extracting file path from URL:', error);
+        return null;
+    }
+};
+
+/**
+ * Gets fresh signed URLs for multiple documents
+ */
+export const getFreshSignedUrls = async (
+    urls: string[],
+    documentType: PatientDocumentType
+): Promise<string[]> => {
+    try {
+        const freshUrls: string[] = [];
+
+        for (const url of urls) {
+            const filePath = extractFilePathFromUrl(url);
+            if (filePath) {
+                const freshUrl = await getPatientSignedUrl(filePath, documentType);
+                freshUrls.push(freshUrl);
+            } else {
+                console.warn('⚠️ Could not extract file path from URL:', url);
+                freshUrls.push(url); // Fallback to original URL
+            }
+        }
+
+        return freshUrls;
+    } catch (error) {
+        console.error('Error getting fresh signed URLs:', error);
+        return urls; // Fallback to original URLs
+    }
+};
+
+/**
  * Deletes a patient document from Supabase Storage
  */
 export const deletePatientDocument = async (

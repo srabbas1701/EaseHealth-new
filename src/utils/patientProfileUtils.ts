@@ -93,12 +93,13 @@ export const getPatientProfileWithStats = async (userId: string): Promise<{ prof
         }
         console.log('✅ Found patient profile:', profile);
 
-        // Get appointments for stats
+        // Get appointments for stats (optimized - only get necessary fields)
         const now = new Date().toISOString();
         const { data: appointments, error: appointmentsError } = await supabase
             .from('appointments')
-            .select('*')
-            .eq('patient_id', profile.id);
+            .select('id, status, schedule_date, start_time')
+            .eq('patient_id', profile.id)
+            .limit(100); // Limit to prevent loading too many records
 
         if (appointmentsError) {
             console.error('❌ Error getting appointments:', appointmentsError);
@@ -147,8 +148,7 @@ export const getUpcomingAppointments = async (patientId: string) => {
             .eq('patient_id', patientId)
             .gte('schedule_date', dateString)
             .order('schedule_date', { ascending: true })
-            .order('start_time', { ascending: true })
-            .limit(5);
+            .order('start_time', { ascending: true });
 
         if (error) {
             console.error('❌ Error getting appointments:', error);
@@ -161,8 +161,15 @@ export const getUpcomingAppointments = async (patientId: string) => {
             doctor: appointment.doctor.full_name,
             specialty: appointment.doctor.specialty,
             date: new Date(appointment.schedule_date).toLocaleDateString(),
-            time: appointment.start_time.slice(0, 5),
-            status: appointment.status,
+            time: (() => {
+                const timeStr = appointment.start_time.slice(0, 5);
+                const [hours, minutes] = timeStr.split(':');
+                const hour24 = parseInt(hours);
+                const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                return `${hour12}:${minutes} ${ampm}`;
+            })(),
+            status: appointment.status.toUpperCase(), // Show status in CAPS
             queue_token: appointment.queue_token,
             notes: appointment.notes,
             duration_minutes: appointment.duration_minutes,

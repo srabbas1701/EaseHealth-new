@@ -1,15 +1,38 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import { Eye, EyeOff, Mail, Lock, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, AlertCircle, Phone, CheckCircle, X, RefreshCw } from 'lucide-react';
 import Navigation from '../components/Navigation';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { useTheme } from '../contexts/ThemeContext';
 import { createAppointment, generateQueueToken, getPatientProfile, createPatientProfile } from '../utils/supabase';
 import QueueTokenModal from '../components/QueueTokenModal';
+import {
+  generateOTP,
+  storeOTP,
+  getStoredOTP,
+  verifyOTP,
+  clearStoredOTP,
+  sendOTPViaEmail,
+  sendOTPViaSMS,
+  updateUserPassword,
+  updateUserPasswordByPhone,
+  formatPhoneNumber,
+  isValidEmail,
+  isValidPhoneNumber
+} from '../utils/otpUtils';
 
-const LoginPage: React.FC = () => {
+interface LoginPageProps {
+  user: any;
+  session: any;
+  profile: any;
+  userState: 'new' | 'returning' | 'authenticated';
+  isAuthenticated: boolean;
+  handleLogout: () => Promise<void>;
+}
+
+const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { language } = useLanguage();
@@ -18,7 +41,8 @@ const LoginPage: React.FC = () => {
 
   // Get booking details and redirect info from location state
   const bookingDetails = location.state?.bookingDetails || null;
-  const redirectTo = location.state?.redirectTo || '/doctor-dashboard';
+  const dashboardType = location.state?.dashboardType || 'patient';
+  const redirectTo = location.state?.redirectTo || (dashboardType === 'admin' ? '/admin-dashboard' : dashboardType === 'doctor' ? '/doctor-dashboard' : '/patient-dashboard');
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -30,6 +54,28 @@ const LoginPage: React.FC = () => {
   const [showQueueTokenModal, setShowQueueTokenModal] = useState(false);
   const [queueToken, setQueueToken] = useState<string>('');
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+
+  // OTP Reset states
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetStep, setResetStep] = useState<'method' | 'send' | 'verify' | 'password'>('method');
+  const [resetMethod, setResetMethod] = useState<'email' | 'phone'>('email');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetPhone, setResetPhone] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 User already authenticated, redirecting to:', redirectTo);
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isAuthenticated, navigate, redirectTo]);
 
   // Handle form input changes
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -131,7 +177,7 @@ const LoginPage: React.FC = () => {
           // Use the proper createAppointment function
           const appointment = await createAppointment(
             bookingDetails.selectedDoctor.id,
-            patientProfile.user_id,  // Fixed: Use user_id (auth.users.id) not patient profile id
+            patientProfile.id,  // CORRECT: Use patient profile id (patients.id) not user_id (auth.users.id)
             dateString,
             timeString,
             30, // Default duration
@@ -198,6 +244,195 @@ const LoginPage: React.FC = () => {
     }
   }, [formData, navigate, t]);
 
+  // OTP Reset Functions
+  const handleForgotPasswordClick = useCallback(() => {
+    setShowResetModal(true);
+    setResetStep('method');
+    setResetMethod('email');
+    setResetEmail('');
+    setResetPhone('');
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setAuthError('');
+    setErrors({});
+  }, []);
+
+  const handleResetMethodSelect = useCallback((method: 'email' | 'phone') => {
+    setResetMethod(method);
+    setResetStep('send');
+    setAuthError('');
+    setErrors({});
+  }, []);
+
+  const handleSendOTP = useCallback(async () => {
+    setIsResetting(true);
+    setAuthError('');
+
+    try {
+      let contactValue = '';
+
+      if (resetMethod === 'email') {
+        if (!resetEmail || !isValidEmail(resetEmail)) {
+          setErrors({ resetContact: 'Please enter a valid email address' });
+          return;
+        }
+        contactValue = resetEmail;
+      } else {
+        if (!resetPhone || !isValidPhoneNumber(resetPhone)) {
+          setErrors({ resetContact: 'Please enter a valid 10-digit phone number' });
+          return;
+        }
+        contactValue = resetPhone;
+      }
+
+      const otp = generateOTP();
+      storeOTP(resetMethod === 'email' ? contactValue : null, resetMethod === 'phone' ? contactValue : null, otp);
+
+      let result;
+      if (resetMethod === 'email') {
+        result = await sendOTPViaEmail(contactValue, otp);
+      } else {
+        result = await sendOTPViaSMS(contactValue, otp);
+      }
+
+      if (result.success) {
+        setResetStep('verify');
+        setAuthError('');
+      } else {
+        setAuthError(result.error || 'Failed to send OTP');
+      }
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      setAuthError('Failed to send OTP. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [resetMethod, resetEmail, resetPhone]);
+
+  const handleVerifyOTP = useCallback(async () => {
+    setIsResetting(true);
+    setAuthError('');
+
+    try {
+      if (!otpCode || otpCode.length !== 6) {
+        setErrors({ otpCode: 'Please enter a valid 6-digit OTP' });
+        return;
+      }
+
+      const result = verifyOTP(otpCode);
+
+      if (result.isValid) {
+        setResetStep('password');
+        setAuthError('');
+        setErrors({});
+      } else {
+        setAuthError(result.error || 'Invalid OTP');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      setAuthError('Failed to verify OTP. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [otpCode]);
+
+  const handleResetPassword = useCallback(async () => {
+    setIsResetting(true);
+    setAuthError('');
+
+    try {
+      if (!newPassword || newPassword.length < 6) {
+        setErrors({ newPassword: 'Password must be at least 6 characters long' });
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        setErrors({ confirmPassword: 'Passwords do not match' });
+        return;
+      }
+
+      let result;
+      if (resetMethod === 'email') {
+        result = await updateUserPassword(resetEmail, newPassword);
+      } else {
+        result = await updateUserPasswordByPhone(resetPhone, newPassword);
+      }
+
+      if (result.success) {
+        setResetSuccess(true);
+        clearStoredOTP();
+        setTimeout(() => {
+          setShowResetModal(false);
+          setResetSuccess(false);
+          setResetStep('method');
+          setNewPassword('');
+          setConfirmPassword('');
+        }, 2000);
+      } else {
+        setAuthError(result.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      setAuthError('Failed to reset password. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [newPassword, confirmPassword, resetMethod, resetEmail, resetPhone]);
+
+  const handleResendOTP = useCallback(async () => {
+    setIsResetting(true);
+    setAuthError('');
+
+    try {
+      const storedOTP = getStoredOTP();
+      if (!storedOTP) {
+        setAuthError('No OTP found. Please start over.');
+        return;
+      }
+
+      const newOTP = generateOTP();
+      storeOTP(storedOTP.email, storedOTP.phone, newOTP);
+
+      let result;
+      if (resetMethod === 'email' && storedOTP.email) {
+        result = await sendOTPViaEmail(storedOTP.email, newOTP);
+      } else if (resetMethod === 'phone' && storedOTP.phone) {
+        result = await sendOTPViaSMS(storedOTP.phone, newOTP);
+      } else {
+        setAuthError('Invalid reset method');
+        return;
+      }
+
+      if (result.success) {
+        setAuthError('');
+        setOtpCode('');
+      } else {
+        setAuthError(result.error || 'Failed to resend OTP');
+      }
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+      setAuthError('Failed to resend OTP. Please try again.');
+    } finally {
+      setIsResetting(false);
+    }
+  }, [resetMethod]);
+
+  const handleCloseResetModal = useCallback(() => {
+    setShowResetModal(false);
+    setResetStep('method');
+    setResetMethod('email');
+    setResetEmail('');
+    setResetPhone('');
+    setOtpCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setAuthError('');
+    setErrors({});
+    setResetSuccess(false);
+    clearStoredOTP();
+  }, []);
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-100'}`}>
       <Navigation />
@@ -212,10 +447,16 @@ const LoginPage: React.FC = () => {
                 <div className="text-center mb-8">
                   <div className="text-center mb-4">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                      {bookingDetails ? 'Patient Login' : 'Doctor Login'}
+                      {dashboardType === 'admin' ? 'Admin Login' :
+                        dashboardType === 'doctor' ? 'Doctor Login' :
+                          'Patient Login'}
                     </h1>
                   </div>
-                  <p className="text-gray-600 dark:text-gray-300">{t('login.accessPortal')}</p>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {dashboardType === 'admin' ? 'Access Admin Dashboard' :
+                      dashboardType === 'doctor' ? 'Access Doctor Dashboard' :
+                        'Access Patient Dashboard'}
+                  </p>
                 </div>
 
                 {/* Booking Summary - Show when coming from appointment booking */}
@@ -333,32 +574,23 @@ const LoginPage: React.FC = () => {
                       >
                         {t('login.signUp')}
                       </Link>
-                    ) : (
+                    ) : dashboardType === 'admin' ? (
+                      <span className="text-gray-500 dark:text-gray-400">
+                        Contact administrator for access
+                      </span>
+                    ) : dashboardType === 'doctor' ? (
                       <Link to="/doctor-registration" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
+                        {t('login.signUp')}
+                      </Link>
+                    ) : (
+                      <Link to="/patient-pre-registration" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
                         {t('login.signUp')}
                       </Link>
                     )}
                   </p>
 
                   <button
-                    onClick={async () => {
-                      if (!formData.email) {
-                        setAuthError(t('login.emailRequiredForReset'));
-                        return;
-                      }
-                      setIsLoading(true);
-                      try {
-                        const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-                          redirectTo: window.location.origin + '/reset-password'
-                        });
-                        if (error) throw error;
-                        alert(t('login.resetLinkSent'));
-                      } catch (error) {
-                        setAuthError(error.message || t('login.failedToSendResetLink'));
-                      } finally {
-                        setIsLoading(false);
-                      }
-                    }}
+                    onClick={handleForgotPasswordClick}
                     className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium underline"
                   >
                     {t('login.forgotPassword')}
@@ -382,7 +614,7 @@ const LoginPage: React.FC = () => {
               <div className="w-full h-full rounded-r-2xl relative overflow-hidden bg-gray-200">
                 {/* Login Image */}
                 <img
-                  src="/login Image.png?v=3"
+                  src="/login Image.png"
                   alt="Login"
                   className="w-full h-full object-cover"
                   style={{ objectPosition: 'top center' }}
@@ -414,6 +646,318 @@ const LoginPage: React.FC = () => {
           queueToken={queueToken}
           appointmentDetails={appointmentDetails}
         />
+      )}
+
+      {/* OTP Reset Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 border border-[#E8E8E8] dark:border-gray-600">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-[#0A2647] dark:text-gray-100">
+                {t('login.resetPassword')}
+              </h3>
+              <button
+                onClick={handleCloseResetModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Success Message */}
+            {resetSuccess && (
+              <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center">
+                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mr-2" />
+                  <p className="text-green-700 dark:text-green-300 text-sm">
+                    {t('login.passwordResetSuccess')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Demo Mode Notice */}
+            <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-center">
+                <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mr-2" />
+                <div>
+                  <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">
+                    Demo Mode Active
+                  </p>
+                  <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">
+                    OTPs are shown in browser console (F12). Check console for the 6-digit code.
+                  </p>
+                  <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">
+                    🔒 Security: Only registered users can reset passwords.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {authError && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-center">
+                  <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-2" />
+                  <p className="text-red-700 dark:text-red-300 text-sm">{authError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Select Method */}
+            {resetStep === 'method' && (
+              <div className="space-y-4">
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                  {t('login.selectResetMethod')}
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleResetMethodSelect('email')}
+                    className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center"
+                  >
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-[#0A2647] dark:text-gray-100">
+                        {t('login.emailReset')}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('login.emailAddress')}
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => handleResetMethodSelect('phone')}
+                    className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-lg hover:border-blue-500 dark:hover:border-blue-400 transition-colors flex items-center"
+                  >
+                    <Phone className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-[#0A2647] dark:text-gray-100">
+                        {t('login.phoneReset')}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t('login.phoneNumber')}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Enter Contact Info */}
+            {resetStep === 'send' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {resetMethod === 'email' ? t('login.emailAddress') : t('login.phoneNumber')}
+                  </label>
+                  <div className="relative">
+                    {resetMethod === 'email' ? (
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    ) : (
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    )}
+                    <input
+                      type={resetMethod === 'email' ? 'email' : 'tel'}
+                      value={resetMethod === 'email' ? resetEmail : resetPhone}
+                      onChange={(e) => {
+                        if (resetMethod === 'email') {
+                          setResetEmail(e.target.value);
+                        } else {
+                          setResetPhone(e.target.value);
+                        }
+                        if (errors.resetContact) {
+                          setErrors(prev => ({ ...prev, resetContact: undefined }));
+                        }
+                      }}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.resetContact ? 'border-red-500 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                      placeholder={resetMethod === 'email' ? t('login.enterEmail') : t('login.enterPhoneNumber')}
+                    />
+                  </div>
+                  {errors.resetContact && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.resetContact}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleSendOTP}
+                  disabled={isResetting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResetting ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <span>{t('login.sendingOTP')}</span>
+                    </div>
+                  ) : (
+                    t('login.sendOTP')
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Step 3: Verify OTP */}
+            {resetStep === 'verify' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.enterOTP')}
+                  </label>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    {t('login.enterOTPSentTo')} {resetMethod === 'email' ? resetEmail : formatPhoneNumber(resetPhone)}
+                  </p>
+                  <input
+                    type="text"
+                    value={otpCode}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                      setOtpCode(value);
+                      if (errors.otpCode) {
+                        setErrors(prev => ({ ...prev, otpCode: undefined }));
+                      }
+                    }}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-lg tracking-widest ${errors.otpCode ? 'border-red-500 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                    placeholder="000000"
+                    maxLength={6}
+                  />
+                  {errors.otpCode && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.otpCode}
+                    </p>
+                  )}
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleResendOTP}
+                    disabled={isResetting}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 mx-auto ${isResetting ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={handleVerifyOTP}
+                    disabled={isResetting || otpCode.length !== 6}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isResetting ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        <span>{t('login.verifyingOTP')}</span>
+                      </div>
+                    ) : (
+                      t('login.verifyOTP')
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Set New Password */}
+            {resetStep === 'password' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.newPassword')}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        if (errors.newPassword) {
+                          setErrors(prev => ({ ...prev, newPassword: undefined }));
+                        }
+                      }}
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.newPassword ? 'border-red-500 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                      placeholder="Enter new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {errors.newPassword && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.newPassword}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {t('login.confirmPassword')}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (errors.confirmPassword) {
+                          setErrors(prev => ({ ...prev, confirmPassword: undefined }));
+                        }
+                      }}
+                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.confirmPassword ? 'border-red-500 dark:border-red-800' : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleResetPassword}
+                  disabled={isResetting || !newPassword || !confirmPassword}
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-lg font-semibold hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isResetting ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                      <span>{t('login.resettingPassword')}</span>
+                    </div>
+                  ) : (
+                    t('login.resetPassword')
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Back to Login Button */}
+            {resetStep !== 'method' && !resetSuccess && (
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleCloseResetModal}
+                  className="w-full text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium underline"
+                >
+                  {t('login.backToLogin')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

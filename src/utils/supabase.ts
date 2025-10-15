@@ -569,17 +569,17 @@ export const getProfile = async (userId: string) => {
   try {
     console.log('🔍 Attempting to fetch profile for user:', userId)
 
-    // Create a timeout promise
+    // Create a timeout promise with much shorter timeout
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error('Profile fetch timeout'))
-      }, 60000) // 60 second timeout
+      }, 10000) // 10 second timeout instead of 60
     })
 
-    // Create the profile fetch promise
+    // Create the profile fetch promise with optimized query
     const profilePromise = supabase
       .from('profiles')
-      .select('*')
+      .select('id, full_name, email, avatar_url, role, created_at, updated_at')
       .eq('id', userId)
       .maybeSingle()
 
@@ -596,7 +596,7 @@ export const getProfile = async (userId: string) => {
     return data
   } catch (error) {
     if (error instanceof Error && error.message === 'Profile fetch timeout') {
-      console.error('⏰ Profile fetch timed out after 60 seconds')
+      console.error('⏰ Profile fetch timed out after 10 seconds')
     } else {
       console.error('❌ Unexpected error in getProfile:', error)
     }
@@ -1155,13 +1155,15 @@ export const createAppointment = async (
       id: appointmentId,
       doctor_id: doctorId,
       patient_id: patientId,
-      schedule_date: date,  // Fixed: Changed from appointment_date to schedule_date
+      schedule_date: date,  // CORRECT: Database field is schedule_date (consistent with time_slots)
       start_time: startTime,
       end_time: existingSlot.end_time,
       duration_minutes: durationMinutes,
-      status: 'booked',  // Fixed: Changed from 'scheduled' to 'booked' to match database constraint
+      status: 'booked',  // CORRECT: Database default is 'booked'
       notes: notes || `Appointment booked by patient ${patientId}`,
-      queue_token: queueToken
+      consultation_fee: null,  // Add required field
+      payment_status: 'pending',  // Add required field with default value
+      queue_token: queueToken  // CORRECT: queue_token field exists in appointments table
     })
     .select()
     .single();
@@ -1209,13 +1211,15 @@ export const createAppointment = async (
     id: appointmentId,
     doctor_id: doctorId,
     patient_id: patientId,
-    schedule_date: date,  // Fixed: Changed from appointment_date to schedule_date
+    schedule_date: date,  // CORRECT: Database field is schedule_date (consistent with time_slots)
     start_time: startTime,
     end_time: existingSlot.end_time,
     duration_minutes: durationMinutes,
-    status: 'booked',  // Fixed: Changed from 'scheduled' to 'booked' to match database constraint
+    status: 'booked',  // CORRECT: Database default is 'booked'
     notes: notes || `Appointment booked by patient ${patientId}`,
-    queue_token: queueToken,
+    consultation_fee: null,
+    payment_status: 'pending',
+    queue_token: queueToken,  // Keep for compatibility with existing code
     time_slot_id: existingSlot.id
   };
 }
@@ -1257,8 +1261,24 @@ export const cancelAppointment = async (appointmentId: string) => {
     throw error;
   }
 
-  console.log('✅ Appointment cancelled successfully:', data);
-  return data;
+  // Update the appointment status to cancelled
+  const { data: appointmentData, error: appointmentError } = await supabase
+    .from('appointments')
+    .update({
+      status: 'cancelled',
+      notes: 'Appointment cancelled by patient'
+    })
+    .eq('id', appointmentId)
+    .select()
+    .single()
+
+  if (appointmentError) {
+    console.error('❌ Error updating appointment status:', appointmentError);
+    throw appointmentError;
+  }
+
+  console.log('✅ Appointment cancelled successfully:', { timeSlot: data, appointment: appointmentData });
+  return { timeSlot: data, appointment: appointmentData };
 }
 
 // Get all appointments for a doctor

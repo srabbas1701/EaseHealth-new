@@ -64,6 +64,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [specialtiesLoaded, setSpecialtiesLoaded] = useState(false);
   const [isLoadingSpecialties, setIsLoadingSpecialties] = useState(false);
+  const [rescheduleProcessed, setRescheduleProcessed] = useState(false);
 
   // Queue token modal state
   const [showQueueTokenModal, setShowQueueTokenModal] = useState(false);
@@ -218,6 +219,24 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
         availableSlots: availableSlots
       });
 
+      // Handle reschedule logic
+      if (location.state?.reschedule && location.state?.appointmentData) {
+        console.log('🔄 Reschedule detected - cancelling old appointment first');
+        const oldAppointmentId = location.state.appointmentData.id;
+
+        try {
+          // Import and call cancelAppointment function
+          const { cancelAppointment } = await import('../utils/supabase');
+          await cancelAppointment(oldAppointmentId);
+          console.log('✅ Old appointment cancelled successfully:', oldAppointmentId);
+          setAnnouncement('Previous appointment cancelled. Creating new appointment...');
+        } catch (error) {
+          console.error('❌ Error cancelling old appointment:', error);
+          setAnnouncement(`Failed to cancel previous appointment: ${error.message}. Please try again.`);
+          return;
+        }
+      }
+
       // Create the appointment in the database
       console.log('🔍 Creating appointment for real slot:', {
         doctorId: doctor.id,
@@ -229,11 +248,13 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
       const appointment = await createAppointment(
         doctor.id,
-        patientProfile.user_id, // Fixed: Use user_id (auth.users.id) not patient profile id
+        patientProfile.id, // CORRECT: Use patient profile id (patients.id) not user_id (auth.users.id)
         dateString,
         timeString,
         durationMinutes, // Use actual slot duration
-        `Appointment booked through EaseHealth platform`
+        location.state?.reschedule
+          ? `Appointment rescheduled through EaseHealth platform`
+          : `Appointment booked through EaseHealth platform`
       );
 
       console.log('Appointment created:', appointment);
@@ -241,7 +262,10 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       // Only set booking confirmed if appointment was actually created
       if (appointment && appointment.id) {
         setBookingConfirmed(true);
-        setAnnouncement(`Appointment confirmed with ${doctor.full_name} on ${date.toLocaleDateString()} at ${time}. Your appointment has been saved.`);
+
+        const isReschedule = location.state?.reschedule;
+        const actionText = isReschedule ? 'rescheduled' : 'confirmed';
+        setAnnouncement(`Appointment ${actionText} with ${doctor.full_name} on ${date.toLocaleDateString()} at ${time}. Your appointment has been saved.`);
 
         // Set queue token and appointment details for modal
         setQueueToken(appointment.queue_token || 'QT-2024-0001');
@@ -249,7 +273,8 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
           doctorName: doctor.full_name,
           date: date.toLocaleDateString(),
           time: time,
-          specialty: selectedSpecialty?.name
+          specialty: selectedSpecialty?.name,
+          action: isReschedule ? 'rescheduled' : 'booked'
         });
 
         // Show queue token modal
@@ -268,7 +293,77 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       setAnnouncement(`Failed to create appointment: ${error.message || 'Unknown error occurred'}. Please try again.`);
       // Don't reopen modal - user is already authenticated, just show error
     }
-  }, [user, selectedDoctor, selectedDate, selectedTime, selectedSpecialty, availableSlots, setAnnouncement, setBookingConfirmed, setQueueToken, setAppointmentDetails, setShowQueueTokenModal]);
+  }, [user, selectedDoctor, selectedDate, selectedTime, selectedSpecialty, availableSlots, setAnnouncement, setBookingConfirmed, setQueueToken, setAppointmentDetails, setShowQueueTokenModal, location.state]);
+
+  // Handle reschedule from patient dashboard
+  useEffect(() => {
+    if (location.state?.reschedule && location.state?.appointmentData && doctors.length > 0 && specialties.length > 0 && !rescheduleProcessed) {
+      console.log('🔄 Reschedule mode detected:', location.state.appointmentData);
+      setRescheduleProcessed(true); // Prevent multiple runs
+
+      const appointmentData = location.state.appointmentData;
+
+      // First, set the specialty (this will trigger doctor filtering)
+      if (appointmentData.specialty) {
+        const specialty = specialties.find(s => s.name === appointmentData.specialty);
+        if (specialty) {
+          setSelectedSpecialty(specialty);
+          console.log('✅ Set specialty for reschedule:', specialty);
+        }
+      }
+
+      // Set the date
+      if (location.state.selectedDate) {
+        const rescheduleDate = new Date(location.state.selectedDate);
+        setSelectedDate(rescheduleDate);
+        setCurrentMonth(rescheduleDate); // Set calendar to show the reschedule month
+        console.log('✅ Set date for reschedule:', location.state.selectedDate);
+        console.log('✅ Set current month to:', rescheduleDate.toLocaleDateString());
+      }
+
+      // Set the time (convert from AM/PM back to 24-hour format if needed)
+      if (appointmentData.time) {
+        let timeToSet = appointmentData.time;
+
+        // Convert from AM/PM to 24-hour format if needed
+        if (appointmentData.time.includes('AM') || appointmentData.time.includes('PM')) {
+          const timeStr = appointmentData.time.replace(' AM', '').replace(' PM', '');
+          const [hours, minutes] = timeStr.split(':');
+          let hour24 = parseInt(hours);
+
+          if (appointmentData.time.includes('PM') && hour24 !== 12) {
+            hour24 += 12;
+          } else if (appointmentData.time.includes('AM') && hour24 === 12) {
+            hour24 = 0;
+          }
+
+          timeToSet = `${hour24.toString().padStart(2, '0')}:${minutes}`;
+          console.log('✅ Converted time from', appointmentData.time, 'to', timeToSet);
+        }
+
+        setSelectedTime(timeToSet);
+        console.log('✅ Set time for reschedule:', timeToSet);
+      }
+
+      setAnnouncement(`Rescheduling appointment with ${appointmentData.doctor}`);
+    }
+  }, [location.state, doctors, specialties, rescheduleProcessed]);
+
+  // Handle setting the doctor after specialty filtering is complete (for reschedule)
+  useEffect(() => {
+    if (location.state?.reschedule && location.state?.appointmentData && filteredDoctors.length > 0 && rescheduleProcessed) {
+      const appointmentData = location.state.appointmentData;
+
+      // Find the doctor in the filtered doctors list by name
+      if (appointmentData.doctor) {
+        const doctor = filteredDoctors.find(d => d.full_name === appointmentData.doctor);
+        if (doctor) {
+          setSelectedDoctor(doctor);
+          console.log('✅ Found doctor for reschedule after filtering:', doctor);
+        }
+      }
+    }
+  }, [filteredDoctors, location.state, rescheduleProcessed]);
 
   // Handle auth success from login page
   useEffect(() => {
@@ -332,24 +427,32 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
       console.log('Filtered doctors:', filtered);
 
       setFilteredDoctors(filtered);
-      setSelectedDoctor(null); // Reset doctor selection
-      setSelectedDate(null);
-      setSelectedTime('');
-      setAvailableSlots([]);
+
+      // Only reset doctor selection if not in reschedule mode
+      if (!location.state?.reschedule) {
+        setSelectedDoctor(null); // Reset doctor selection
+        setSelectedDate(null);
+        setSelectedTime('');
+        setAvailableSlots([]);
+      }
     } else {
       setFilteredDoctors(doctors);
     }
-  }, [selectedSpecialty, doctors]);
+  }, [selectedSpecialty, doctors, location.state]);
 
   // Load doctor schedules when doctor is selected
   React.useEffect(() => {
     if (selectedDoctor) {
       loadDoctorSchedules();
-      setSelectedDate(null);
-      setSelectedTime('');
-      setAvailableSlots([]);
+
+      // Only reset date and time if not in reschedule mode
+      if (!location.state?.reschedule) {
+        setSelectedDate(null);
+        setSelectedTime('');
+        setAvailableSlots([]);
+      }
     }
-  }, [selectedDoctor]);
+  }, [selectedDoctor, location.state]);
 
   // Load time slots when date is selected
   React.useEffect(() => {

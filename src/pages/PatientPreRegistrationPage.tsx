@@ -632,7 +632,7 @@ const PatientPreRegistrationPage: React.FC = () => {
           const appointmentData = {
             doctor_id: doctorToUse.id,
             patient_id: patientResult.id, // Use patients table ID for foreign key constraint
-            schedule_date: dateString,
+            schedule_date: dateString, // CORRECT: Database field is schedule_date (consistent with time_slots)
             start_time: timeString,
             end_time: (() => {
               const start = new Date(`2000-01-01T${timeString}`);
@@ -640,9 +640,11 @@ const PatientPreRegistrationPage: React.FC = () => {
               return end.toTimeString().slice(0, 8);
             })(),
             duration_minutes: 30,
-            status: 'booked', // Changed to 'booked' to match the time_slots status values
+            status: 'booked', // CORRECT: Database default is 'booked'
             notes: `Appointment booked during patient registration`,
-            queue_token: queueToken
+            consultation_fee: null, // Add required field
+            payment_status: 'pending', // Add required field
+            queue_token: queueToken // CORRECT: queue_token field exists in appointments table
           };
 
           console.log('📅 Creating appointment with data:', appointmentData);

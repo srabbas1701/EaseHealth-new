@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ChevronDown, 
-  Menu, 
-  X, 
-  Calendar, 
-  FileText, 
+import {
+  ChevronDown,
+  Menu,
+  X,
+  Calendar,
+  FileText,
   ArrowRight,
   Phone,
   Search,
@@ -41,15 +41,15 @@ interface NavigationProps extends AuthProps {
   onMenuToggle?: (isOpen: boolean) => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ 
-  user, 
-  session, 
-  profile, 
-  userState, 
-  isAuthenticated, 
-  handleLogout, 
+const Navigation: React.FC<NavigationProps> = ({
+  user,
+  session,
+  profile,
+  userState,
+  isAuthenticated,
+  handleLogout,
   onMenuToggle,
-  doctor 
+  doctor
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -111,16 +111,16 @@ const Navigation: React.FC<NavigationProps> = ({
             }
             return;
           }
-          
+
           // Check if user email or name suggests they are a doctor
           const userEmail = user.email?.toLowerCase() || '';
           const userName = (profile?.full_name || user?.user_metadata?.full_name || '').toLowerCase();
-          const isDoctorByPattern = userEmail.includes('doctor') || userEmail.includes('dr.') || userEmail.includes('drnishit') || 
-                                   userName.includes('doctor') || userName.includes('dr.') ||
-                                   userEmail.includes('admin') || userName.includes('admin');
-          
+          const isDoctorByPattern = userEmail.includes('doctor') || userEmail.includes('dr.') || userEmail.includes('drnishit') ||
+            userName.includes('doctor') || userName.includes('dr.') ||
+            userEmail.includes('admin') || userName.includes('admin');
+
           console.log('🔍 Mock mode - user check:', { userEmail, userName, isDoctorByPattern });
-          
+
           if (isMounted) {
             setIsDoctor(isDoctorByPattern);
             setDoctorChecked(true);
@@ -132,13 +132,13 @@ const Navigation: React.FC<NavigationProps> = ({
         if (isMounted) {
           const value = !!doctor;
           setIsDoctor(value);
-          try { localStorage.setItem('isDoctor', value ? 'true' : 'false'); } catch {}
+          try { localStorage.setItem('isDoctor', value ? 'true' : 'false'); } catch { }
           setDoctorChecked(true);
         }
       } catch {
         if (isMounted) {
           setIsDoctor(false);
-          try { localStorage.setItem('isDoctor', 'false'); } catch {}
+          try { localStorage.setItem('isDoctor', 'false'); } catch { }
           setDoctorChecked(true);
         }
       }
@@ -196,7 +196,7 @@ const Navigation: React.FC<NavigationProps> = ({
     const newState = !isMenuOpen;
     setIsMenuOpen(newState);
     onMenuToggle?.(newState);
-    
+
     // Focus management for mobile menu
     if (newState) {
       setTimeout(() => {
@@ -218,24 +218,24 @@ const Navigation: React.FC<NavigationProps> = ({
   const handleLogoutClick = async () => {
     try {
       console.log('🔄 Starting logout process...');
-      
+
       // Close any open dropdowns/menus first
       setActiveDropdown(null);
       setIsMenuOpen(false);
-      
+
       // Call the logout function
       await handleLogout();
       console.log('✅ Logout completed successfully');
-      
+
       // Navigate to home page after logout
       navigate('/');
     } catch (error) {
       console.error('❌ Error signing out:', error);
-      
+
       // Try to force logout by clearing local state and redirecting
       try {
         console.log('🔄 Attempting force logout...');
-        
+
         // Try direct Supabase logout as fallback
         try {
           await supabase.auth.signOut();
@@ -243,15 +243,15 @@ const Navigation: React.FC<NavigationProps> = ({
         } catch (supabaseError) {
           console.warn('⚠️ Direct Supabase logout failed:', supabaseError);
         }
-        
+
         // Clear localStorage
         localStorage.removeItem('isDoctor');
         localStorage.removeItem('userRole');
         localStorage.clear();
-        
+
         // Clear session storage
         sessionStorage.clear();
-        
+
         // Force redirect to home page
         window.location.href = '/';
       } catch (forceLogoutError) {
@@ -327,7 +327,7 @@ const Navigation: React.FC<NavigationProps> = ({
     switch (userState) {
       case 'returning':
         return (
-          <button 
+          <button
             className="bg-white text-[#0075A2] px-6 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-all duration-200 border border-[#E8E8E8] hover:border-[#0075A2] hover:shadow-md"
             aria-label="Log in to your account"
           >
@@ -392,7 +392,7 @@ const Navigation: React.FC<NavigationProps> = ({
     },
     {
       icon: FileText,
-      title: t('features.patientPreRegistration.title'), 
+      title: t('features.patientPreRegistration.title'),
       description: t('features.patientPreRegistration.description'),
       to: "/patient-pre-registration",
       forPatients: true
@@ -401,27 +401,30 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: FileText,
       title: t('features.adminDashboard.title'),
       description: t('features.adminDashboard.description'),
-      to: "/admin-dashboard",
-      forPatients: false
+      to: "/login-page",
+      forPatients: false,
+      dashboardType: "admin"
     },
     {
       icon: User,
       title: t('features.patientDashboard.title'),
       description: t('features.patientDashboard.description'),
-      to: "/patient-dashboard",
-      forPatients: true
+      to: "/login-page",
+      forPatients: true,
+      dashboardType: "patient"
     },
     {
       icon: Calendar,
       title: t('features.doctorDashboard.title'),
       description: t('features.doctorDashboard.description'),
-      to: "/doctor-dashboard",
-      forPatients: false
+      to: "/login-page",
+      forPatients: false,
+      dashboardType: "doctor"
     }
   ];
 
   // Filter features based on user type
-  const featuresMenuItems = isDoctor 
+  const featuresMenuItems = isDoctor
     ? allFeaturesMenuItems.filter(item => !item.forPatients)
     : allFeaturesMenuItems;
 
@@ -432,28 +435,27 @@ const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <header 
-      className={`sticky top-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-[#E8E8E8]/50 dark:border-gray-700/50' 
+    <header
+      className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-[#E8E8E8]/50 dark:border-gray-700/50'
           : 'bg-white dark:bg-gray-900 shadow-sm'
-      }`}
+        }`}
       role="banner"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo - New Design */}
           <div className="logo-section space-x-3">
-            <Link 
+            <Link
               to="/"
               className="flex items-center space-x-3 cursor-pointer focus-ring group"
               tabIndex={0}
               role="button"
               aria-label="EaseHealth AI - Your Health Simplified"
             >
-              <img 
-                src="/Logo.png" 
-                alt="EaseHealth AI Logo" 
+              <img
+                src="/Logo.png"
+                alt="EaseHealth AI Logo"
                 className="h-12 w-auto object-contain"
                 style={{ backgroundColor: 'transparent' }}
                 onError={(e) => {
@@ -481,7 +483,7 @@ const Navigation: React.FC<NavigationProps> = ({
                 to={item.to} // Changed to 'to'
                 className={`px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
                 aria-label={item.description}
-                // onFocus removed as Link handles navigation
+              // onFocus removed as Link handles navigation
               >
                 {item.label}
               </Link>
@@ -489,71 +491,71 @@ const Navigation: React.FC<NavigationProps> = ({
 
             {/* Features Dropdown */}
             {featuresMenuItems.length > 0 && (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                className="flex items-center px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
-                onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
-                onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
-                aria-expanded={activeDropdown === 'features'}
-                aria-haspopup="true"
-                aria-label="Features menu"
-                aria-controls="features-dropdown"
-                id="features-trigger"
-              >
-                {t('nav.features')} 
-                <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${
-                  activeDropdown === 'features' ? 'rotate-180' : ''
-                }`} />
-              </button>
-              
-              {activeDropdown === 'features' && (
-                <div 
-                  id="features-dropdown"
-                  className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-[#E8E8E8] dark:border-gray-700 opacity-100 visible transition-all duration-200 overflow-hidden z-50"
-                  role="menu"
-                  aria-labelledby="features-trigger"
-                  onKeyDown={handleDropdownKeyDown}
-                  tabIndex={-1}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  className="flex items-center px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                  onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
+                  onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
+                  aria-expanded={activeDropdown === 'features'}
+                  aria-haspopup="true"
+                  aria-label="Features menu"
+                  aria-controls="features-dropdown"
+                  id="features-trigger"
                 >
-                  <div className="p-2">
-                    {featuresMenuItems.map((item, index) => (
+                  {t('nav.features')}
+                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${activeDropdown === 'features' ? 'rotate-180' : ''
+                    }`} />
+                </button>
+
+                {activeDropdown === 'features' && (
+                  <div
+                    id="features-dropdown"
+                    className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-[#E8E8E8] dark:border-gray-700 opacity-100 visible transition-all duration-200 overflow-hidden z-50"
+                    role="menu"
+                    aria-labelledby="features-trigger"
+                    onKeyDown={handleDropdownKeyDown}
+                    tabIndex={-1}
+                  >
+                    <div className="p-2">
+                      {featuresMenuItems.map((item, index) => (
+                        <Link // Changed to Link
+                          key={index}
+                          to={item.to || '#'} // Changed to 'to'
+                          state={item.dashboardType ? { dashboardType: item.dashboardType } : undefined}
+                          className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring"
+                          onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
+                          role="menuitem"
+                          tabIndex={0}
+                        >
+                          <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
+                            <item.icon className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-1 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors">
+                              {item.title}
+                            </h4>
+                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                              {item.description}
+                            </p>
+                          </div>
+                          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors" />
+                        </Link>
+                      ))}
+                    </div>
+                    <div className="border-t border-[#E8E8E8] dark:border-gray-700 p-3 bg-[#F6F6F6] dark:bg-gray-700">
                       <Link // Changed to Link
-                        key={index}
-                        to={item.to || '#'} // Changed to 'to'
-                        className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring"
+                        to="/#features" // Changed to 'to'
+                        className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
                         onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                         role="menuitem"
                         tabIndex={0}
                       >
-                        <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
-                          <item.icon className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-1 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors">
-                            {item.title}
-                          </h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                            {item.description}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors" />
+                        {t('features.viewAllFeatures')}
                       </Link>
-                    ))}
+                    </div>
                   </div>
-                  <div className="border-t border-[#E8E8E8] dark:border-gray-700 p-3 bg-[#F6F6F6] dark:bg-gray-700">
-                    <Link // Changed to Link
-                      to="/#features" // Changed to 'to'
-                      className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
-                      onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
-                      role="menuitem"
-                      tabIndex={0}
-                    >
-                      {t('features.viewAllFeatures')}
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
 
             {navigationItems.slice(1).map((item) => (
@@ -573,7 +575,7 @@ const Navigation: React.FC<NavigationProps> = ({
           {/* Search and CTA */}
           <div className="cta-section hidden lg:flex items-center space-x-3">
             <div className="relative" ref={searchRef}>
-              <button 
+              <button
                 className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
                 aria-label={t('nav.search')}
                 aria-expanded={isSearchOpen}
@@ -603,7 +605,7 @@ const Navigation: React.FC<NavigationProps> = ({
           </div>
 
           {/* Mobile menu button */}
-          <button 
+          <button
             className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
             onClick={handleMenuToggle}
             onKeyDown={(e) => handleKeyDown(e, handleMenuToggle)}
@@ -620,7 +622,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
         {/* Enhanced Mobile Navigation */}
         {isMenuOpen && (
-          <div 
+          <div
             className="lg:hidden bg-white border-t border-[#E8E8E8] animate-in slide-in-from-top duration-200"
             data-mobile-menu
             role="navigation"
