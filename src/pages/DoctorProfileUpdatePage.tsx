@@ -236,14 +236,16 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
         setUploadingFile('profile_image');
         const uploadResult = await uploadDoctorDocument(
           profileImage,
-          'profile_image',
-          doctorProfile.id
+          doctorProfile.id,
+          'profile_image'
         );
 
-        if (uploadResult.success && uploadResult.path) {
+        if (uploadResult.publicUrl) {
+          profileImageUrl = uploadResult.publicUrl;
+        } else if (uploadResult.path) {
           profileImageUrl = uploadResult.path;
         } else {
-          throw new Error(uploadResult.error || 'Failed to upload profile image');
+          throw new Error('Failed to upload profile image');
         }
         setUploadingFile(null);
       }
@@ -384,12 +386,40 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
           Back to Dashboard
         </Link>
 
-        {/* Page Header */}
+        {/* Page Header - Matching Dashboard Design */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border border-[#E8E8E8] dark:border-gray-600 mb-8">
-          <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">Update Your Profile</h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Update your professional information and practice details
-          </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="w-24 h-24 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-2xl flex items-center justify-center text-white font-bold text-3xl overflow-hidden">
+                {profileImagePreview ? (
+                  <img
+                    src={profileImagePreview}
+                    alt="Profile"
+                    className="w-full h-full object-cover rounded-2xl"
+                  />
+                ) : (
+                  <User className="w-12 h-12" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-1">
+                  Dr. {doctorProfile.full_name}
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-300">
+                  {doctorProfile.specialty}{doctorProfile.super_specialization ? ` - ${doctorProfile.super_specialization}` : ''}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Update your professional information and practice details
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/doctor-dashboard"
+              className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors text-sm font-medium"
+            >
+              View Dashboard
+            </Link>
+          </div>
         </div>
 
         {/* Success/Error Messages */}
