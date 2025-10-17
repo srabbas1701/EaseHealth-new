@@ -22,20 +22,20 @@ const generateTimeSlots = (
   const slots = [];
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);
-  const [breakStartHour, breakStartMin] = breakStart.split(':').map(Number);
-  const [breakEndHour, breakEndMin] = breakEnd.split(':').map(Number);
+
+  const hasBreak = breakStart && breakEnd && breakStart.trim() !== '' && breakEnd.trim() !== '';
+  const breakStartMinutes = hasBreak ? breakStart.split(':').map(Number).reduce((h, m) => h * 60 + m) : -1;
+  const breakEndMinutes = hasBreak ? breakEnd.split(':').map(Number).reduce((h, m) => h * 60 + m) : -1;
 
   let currentMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
-  const breakStartMinutes = breakStartHour * 60 + breakStartMin;
-  const breakEndMinutes = breakEndHour * 60 + breakEndMin;
 
   while (currentMinutes + slotDuration <= endMinutes) {
     const slotStart = `${String(Math.floor(currentMinutes / 60)).padStart(2, '0')}:${String(currentMinutes % 60).padStart(2, '0')}`;
     const slotEndMinutes = currentMinutes + slotDuration;
     const slotEnd = `${String(Math.floor(slotEndMinutes / 60)).padStart(2, '0')}:${String(slotEndMinutes % 60).padStart(2, '0')}`;
 
-    const isBreakTime = currentMinutes >= breakStartMinutes && currentMinutes < breakEndMinutes;
+    const isBreakTime = hasBreak && currentMinutes >= breakStartMinutes && currentMinutes < breakEndMinutes;
 
     slots.push({
       doctor_id: doctorId,
@@ -69,8 +69,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
         start_time: schedule.startTime,
         end_time: schedule.endTime,
         slot_duration_minutes: schedule.slotDuration,
-        break_start_time: schedule.breakStartTime,
-        break_end_time: schedule.breakEndTime,
+        break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
+        break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
         is_available: schedule.isAvailable,
         status: schedule.isAvailable ? 'active' : 'blocked',
       }));
@@ -138,8 +138,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
             start_time: schedule.startTime,
             end_time: schedule.endTime,
             slot_duration_minutes: schedule.slotDuration,
-            break_start_time: schedule.breakStartTime,
-            break_end_time: schedule.breakEndTime,
+            break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
+            break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
             is_available: schedule.isAvailable,
             status: schedule.isAvailable ? 'active' : 'blocked',
           })
@@ -253,8 +253,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
         start_time: schedule.startTime,
         end_time: schedule.endTime,
         slot_duration_minutes: schedule.slotDuration,
-        break_start_time: schedule.breakStartTime,
-        break_end_time: schedule.breakEndTime,
+        break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
+        break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
         is_available: schedule.isAvailable,
         status: schedule.isAvailable ? 'active' : 'blocked',
       }));
