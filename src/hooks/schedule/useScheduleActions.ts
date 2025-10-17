@@ -124,7 +124,14 @@ export function useScheduleActions(): UseScheduleActionsResult {
 
     try {
       for (const schedule of schedules) {
+        console.log(`Processing schedule for ${schedule.date}:`, {
+          hasExisting: schedule.hasExistingSchedule,
+          scheduleId: schedule.scheduleId,
+          isAvailable: schedule.isAvailable
+        });
+
         if (schedule.hasExistingSchedule && schedule.scheduleId) {
+          console.log(`Updating existing schedule for ${schedule.date}`);
           const { error: updateError } = await supabase
             .from('doctor_schedules')
             .update({
@@ -138,7 +145,10 @@ export function useScheduleActions(): UseScheduleActionsResult {
             })
             .eq('id', schedule.scheduleId);
 
-          if (updateError) throw updateError;
+          if (updateError) {
+            console.error(`Update error for ${schedule.date}:`, updateError);
+            throw updateError;
+          }
 
           if (!schedule.isAvailable) {
             const { error: slotsError } = await supabase
@@ -174,6 +184,7 @@ export function useScheduleActions(): UseScheduleActionsResult {
             if (insertError) throw insertError;
           }
         } else if (schedule.isAvailable) {
+          console.log(`Creating new schedule for ${schedule.date}`);
           const { data: newSchedule, error: insertScheduleError } = await supabase
             .from('doctor_schedules')
             .insert({
@@ -191,8 +202,12 @@ export function useScheduleActions(): UseScheduleActionsResult {
             .select()
             .single();
 
-          if (insertScheduleError) throw insertScheduleError;
+          if (insertScheduleError) {
+            console.error(`Insert schedule error for ${schedule.date}:`, insertScheduleError);
+            throw insertScheduleError;
+          }
 
+          console.log(`Generating time slots for ${schedule.date}`);
           const newSlots = generateTimeSlots(
             doctorId,
             schedule.date,
@@ -203,11 +218,17 @@ export function useScheduleActions(): UseScheduleActionsResult {
             schedule.breakEndTime
           );
 
+          console.log(`Inserting ${newSlots.length} time slots for ${schedule.date}`);
           const { error: insertSlotsError } = await supabase
             .from('time_slots')
             .insert(newSlots);
 
-          if (insertSlotsError) throw insertSlotsError;
+          if (insertSlotsError) {
+            console.error(`Insert slots error for ${schedule.date}:`, insertSlotsError);
+            throw insertSlotsError;
+          }
+        } else {
+          console.log(`Skipping ${schedule.date} - not available and no existing schedule`);
         }
       }
 

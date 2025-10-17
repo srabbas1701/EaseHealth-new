@@ -98,6 +98,10 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
         const existingSchedule = scheduleMap.get(dateItem.date);
 
         if (existingSchedule) {
+          console.log(`Found existing schedule for ${dateItem.date}:`, {
+            id: existingSchedule.id,
+            isAvailable: existingSchedule.is_available
+          });
           return {
             ...dateItem,
             scheduleId: existingSchedule.id,
@@ -114,6 +118,9 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
 
         return dateItem;
       });
+
+      console.log(`Loaded ${existingSchedules?.length || 0} existing schedules from database`);
+      console.log(`Merged into ${mergedSchedules.length} total dates (4 weeks)`);
 
       setSchedules(mergedSchedules);
       setHasAnySchedules(existingSchedules && existingSchedules.length > 0);
