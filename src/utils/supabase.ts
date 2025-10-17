@@ -579,7 +579,7 @@ export const getProfile = async (userId: string) => {
     // Create the profile fetch promise with optimized query
     const profilePromise = supabase
       .from('profiles')
-      .select('id, full_name, email, avatar_url, role, created_at, updated_at')
+      .select('id, full_name, email, role, created_at, updated_at')
       .eq('id', userId)
       .maybeSingle()
 

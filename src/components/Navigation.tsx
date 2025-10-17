@@ -88,6 +88,55 @@ const Navigation: React.FC<NavigationProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Simple patient and doctor detection - add classes to body for CSS targeting
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Check if user is a patient
+      const checkPatient = async () => {
+        try {
+          const { data } = await supabase
+            .from('patients')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (data) {
+            document.body.classList.add('user-is-patient');
+          } else {
+            document.body.classList.remove('user-is-patient');
+          }
+        } catch (error) {
+          document.body.classList.remove('user-is-patient');
+        }
+      };
+
+      // Check if user is a doctor
+      const checkDoctor = async () => {
+        try {
+          const { data } = await supabase
+            .from('doctors')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (data) {
+            document.body.classList.add('user-is-doctor');
+          } else {
+            document.body.classList.remove('user-is-doctor');
+          }
+        } catch (error) {
+          document.body.classList.remove('user-is-doctor');
+        }
+      };
+
+      checkPatient();
+      checkDoctor();
+    } else {
+      document.body.classList.remove('user-is-patient');
+      document.body.classList.remove('user-is-doctor');
+    }
+  }, [isAuthenticated, user]);
+
   // Determine if the authenticated user is a doctor (has a doctor profile)
   useEffect(() => {
     let isMounted = true;
@@ -316,12 +365,6 @@ const Navigation: React.FC<NavigationProps> = ({
     navigate('/choose-service');
     setIsSearchOpen(false);
   };
-  const preventIfDoctor = (e: React.MouseEvent) => {
-    if (isDoctor) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
 
   const getDynamicCTA = () => {
     switch (userState) {
@@ -341,23 +384,13 @@ const Navigation: React.FC<NavigationProps> = ({
               <User className="w-4 h-4 text-[#0A2647] dark:text-white" />
               <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(doctor?.full_name || profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
             </div>
-            {(!isAuthenticated || doctorChecked) ? (
-              <Link
-                to={isDoctor ? '/doctor-dashboard' : '/patient-dashboard'}
-                className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
-                aria-label={isDoctor ? 'Go to Doctor Dashboard' : 'Go to Patient Dashboard'}
-              >
-                {t('nav.dashboard')}
-              </Link>
-            ) : (
-              <button
-                className="px-4 py-2.5 rounded-lg font-medium text-sm bg-gray-300 text-gray-600 cursor-not-allowed"
-                aria-disabled="true"
-                title="Loading..."
-              >
-                Loading...
-              </button>
-            )}
+            <Link
+              to="/patient-dashboard"
+              className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
+              aria-label="Go to Dashboard"
+            >
+              {t('nav.dashboard')}
+            </Link>
             <button
               onClick={handleLogoutClick}
               className="flex items-center px-4 py-2.5 text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium whitespace-nowrap"
@@ -425,7 +458,7 @@ const Navigation: React.FC<NavigationProps> = ({
 
   // Filter features based on user type
   const featuresMenuItems = isDoctor
-    ? allFeaturesMenuItems.filter(item => !item.forPatients)
+    ? allFeaturesMenuItems.filter(item => item.dashboardType === 'doctor')
     : allFeaturesMenuItems;
 
   const navigationItems = [
@@ -435,300 +468,307 @@ const Navigation: React.FC<NavigationProps> = ({
   ];
 
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
+    <>
+      <style>
+        {`
+          .user-is-patient .patient-hidden {
+            display: none !important;
+          }
+        `}
+      </style>
+      <header
+        className={`sticky top-0 z-50 transition-all duration-300 ${isScrolled
           ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-[#E8E8E8]/50 dark:border-gray-700/50'
           : 'bg-white dark:bg-gray-900 shadow-sm'
-        }`}
-      role="banner"
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo - New Design */}
-          <div className="logo-section space-x-3">
-            <Link
-              to="/"
-              className="flex items-center space-x-3 cursor-pointer focus-ring group"
-              tabIndex={0}
-              role="button"
-              aria-label="EaseHealth AI - Your Health Simplified"
-            >
-              <img
-                src="/Logo.png"
-                alt="EaseHealth AI Logo"
-                className="h-12 w-auto object-contain"
-                style={{ backgroundColor: 'transparent' }}
-                onError={(e) => {
-                  // Fallback to other formats if PNG doesn't exist
-                  const target = e.target as HTMLImageElement;
-                  if (target.src.includes('Logo.png')) {
-                    target.src = '/logo.png';
-                  } else if (target.src.includes('logo.png')) {
-                    target.src = '/logo.jpg';
-                  } else if (target.src.includes('logo.jpg')) {
-                    target.src = '/logo.webp';
-                  } else if (target.src.includes('logo.webp')) {
-                    target.src = '/logo.svg';
-                  }
-                }}
-              />
-            </Link>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="nav-section hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
-            {navigationItems.slice(0, 1).map((item) => (
-              <Link // Changed to Link
-                key={item.label}
-                to={item.to} // Changed to 'to'
-                className={`px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
-                aria-label={item.description}
-              // onFocus removed as Link handles navigation
+          }`}
+        role="banner"
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo - New Design */}
+            <div className="logo-section space-x-3">
+              <Link
+                to="/"
+                className="flex items-center space-x-3 cursor-pointer focus-ring group"
+                tabIndex={0}
+                role="button"
+                aria-label="EaseHealth AI - Your Health Simplified"
               >
-                {item.label}
+                <img
+                  src="/Logo.png"
+                  alt="EaseHealth AI Logo"
+                  className="h-12 w-auto object-contain"
+                  style={{ backgroundColor: 'transparent' }}
+                  onError={(e) => {
+                    // Fallback to other formats if PNG doesn't exist
+                    const target = e.target as HTMLImageElement;
+                    if (target.src.includes('Logo.png')) {
+                      target.src = '/logo.png';
+                    } else if (target.src.includes('logo.png')) {
+                      target.src = '/logo.jpg';
+                    } else if (target.src.includes('logo.jpg')) {
+                      target.src = '/logo.webp';
+                    } else if (target.src.includes('logo.webp')) {
+                      target.src = '/logo.svg';
+                    }
+                  }}
+                />
               </Link>
-            ))}
+            </div>
 
-            {/* Features Dropdown */}
-            {featuresMenuItems.length > 0 && (
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  className="flex items-center px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
-                  onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
-                  onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
-                  aria-expanded={activeDropdown === 'features'}
-                  aria-haspopup="true"
-                  aria-label="Features menu"
-                  aria-controls="features-dropdown"
-                  id="features-trigger"
+            {/* Desktop Navigation */}
+            <nav className="nav-section hidden lg:flex items-center space-x-1" role="navigation" aria-label="Main navigation">
+              {navigationItems.slice(0, 1).map((item) => (
+                <Link // Changed to Link
+                  key={item.label}
+                  to={item.to} // Changed to 'to'
+                  className="px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                  aria-label={item.description}
+                // onFocus removed as Link handles navigation
                 >
-                  {t('nav.features')}
-                  <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${activeDropdown === 'features' ? 'rotate-180' : ''
-                    }`} />
-                </button>
+                  {item.label}
+                </Link>
+              ))}
 
-                {activeDropdown === 'features' && (
-                  <div
-                    id="features-dropdown"
-                    className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-[#E8E8E8] dark:border-gray-700 opacity-100 visible transition-all duration-200 overflow-hidden z-50"
-                    role="menu"
-                    aria-labelledby="features-trigger"
-                    onKeyDown={handleDropdownKeyDown}
-                    tabIndex={-1}
+              {/* Features Dropdown */}
+              {featuresMenuItems.length > 0 && (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    className="flex items-center px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                    onClick={() => setActiveDropdown(activeDropdown === 'features' ? null : 'features')}
+                    onKeyDown={(e) => handleKeyDown(e, () => setActiveDropdown(activeDropdown === 'features' ? null : 'features'))}
+                    aria-expanded={activeDropdown === 'features'}
+                    aria-haspopup="true"
+                    aria-label="Features menu"
+                    aria-controls="features-dropdown"
+                    id="features-trigger"
                   >
-                    <div className="p-2">
-                      {featuresMenuItems.map((item, index) => (
+                    {t('nav.features')}
+                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform duration-200 ${activeDropdown === 'features' ? 'rotate-180' : ''
+                      }`} />
+                  </button>
+
+                  {activeDropdown === 'features' && (
+                    <div
+                      id="features-dropdown"
+                      className="absolute top-full left-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-[#E8E8E8] dark:border-gray-700 opacity-100 visible transition-all duration-200 overflow-hidden z-50"
+                      role="menu"
+                      aria-labelledby="features-trigger"
+                      onKeyDown={handleDropdownKeyDown}
+                      tabIndex={-1}
+                    >
+                      <div className="p-2">
+                        {featuresMenuItems.map((item, index) => (
+                          <Link // Changed to Link
+                            key={index}
+                            to={item.to || '#'} // Changed to 'to'
+                            state={item.dashboardType ? { dashboardType: item.dashboardType } : undefined}
+                            className={`flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring ${item.dashboardType === 'doctor' || item.dashboardType === 'admin' ? 'patient-hidden' : ''}`}
+                            onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
+                            role="menuitem"
+                            tabIndex={0}
+                          >
+                            <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
+                              <item.icon className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-1 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors">
+                                {item.title}
+                              </h4>
+                              <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                                {item.description}
+                              </p>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors" />
+                          </Link>
+                        ))}
+                      </div>
+                      <div className="border-t border-[#E8E8E8] dark:border-gray-700 p-3 bg-[#F6F6F6] dark:bg-gray-700">
                         <Link // Changed to Link
-                          key={index}
-                          to={item.to || '#'} // Changed to 'to'
-                          state={item.dashboardType ? { dashboardType: item.dashboardType } : undefined}
-                          className="flex items-start p-3 rounded-lg hover:bg-[#F6F6F6] dark:hover:bg-gray-700 transition-colors duration-200 group focus-ring"
+                          to="/#features" // Changed to 'to'
+                          className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
                           onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
                           role="menuitem"
                           tabIndex={0}
                         >
-                          <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-lg flex items-center justify-center mr-3 group-hover:scale-105 transition-transform">
-                            <item.icon className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-[#0A2647] dark:text-gray-100 text-sm mb-1 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors">
-                              {item.title}
-                            </h4>
-                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#0075A2] dark:group-hover:text-[#0EA5E9] transition-colors" />
+                          {t('features.viewAllFeatures')}
                         </Link>
-                      ))}
-                    </div>
-                    <div className="border-t border-[#E8E8E8] dark:border-gray-700 p-3 bg-[#F6F6F6] dark:bg-gray-700">
-                      <Link // Changed to Link
-                        to="/#features" // Changed to 'to'
-                        className="text-sm text-[#0075A2] dark:text-[#0EA5E9] hover:text-[#0A2647] dark:hover:text-gray-100 font-medium transition-colors focus-ring"
-                        onClick={() => setActiveDropdown(null)} // Keep onClick to close dropdown
-                        role="menuitem"
-                        tabIndex={0}
-                      >
-                        {t('features.viewAllFeatures')}
-                      </Link>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {navigationItems.slice(1).map((item) => (
-              <a
-                key={item.label}
-                href={isDoctor ? '#' : item.href}
-                onClick={isDoctor ? preventIfDoctor : undefined}
-                aria-disabled={isDoctor}
-                className={`px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap ${isDoctor ? 'pointer-events-none opacity-60' : ''}`}
-                aria-label={item.description}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          {/* Search and CTA */}
-          <div className="cta-section hidden lg:flex items-center space-x-3">
-            <div className="relative" ref={searchRef}>
-              <button
-                className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
-                aria-label={t('nav.search')}
-                aria-expanded={isSearchOpen}
-                onClick={toggleSearch}
-              >
-                <Search className="w-5 h-5" />
-              </button>
-              {isSearchOpen && (
-                <form onSubmit={handleSearchSubmit} className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex items-center space-x-2">
-                  <input
-                    id="global-search-input"
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t('nav.searchPlaceholder')}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
-                    onKeyDown={(e) => { if (e.key === 'Escape') { setIsSearchOpen(false); } }}
-                    aria-label={t('nav.search')}
-                  />
-                  <button type="submit" className="px-3 py-2 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-md text-sm hover:opacity-90 transition-colors">Go</button>
-                </form>
-              )}
-            </div>
-            <LanguageToggle showDropdown={true} />
-            <DarkModeToggle showDropdown={true} />
-            {getDynamicCTA()}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
-            onClick={handleMenuToggle}
-            onKeyDown={(e) => handleKeyDown(e, handleMenuToggle)}
-            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-            aria-expanded={isMenuOpen}
-          >
-            {isMenuOpen ? (
-              <X className="w-6 h-6 text-[#0A2647]" />
-            ) : (
-              <Menu className="w-6 h-6 text-[#0A2647]" />
-            )}
-          </button>
-        </div>
-
-        {/* Enhanced Mobile Navigation */}
-        {isMenuOpen && (
-          <div
-            className="lg:hidden bg-white border-t border-[#E8E8E8] animate-in slide-in-from-top duration-200"
-            data-mobile-menu
-            role="navigation"
-            aria-label="Mobile navigation menu"
-          >
-            <div className="py-4 space-y-1">
-              {/* Search Bar */}
-              <div className="px-4 pb-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder={t('nav.searchPlaceholder')}
-                    className="w-full pl-10 pr-4 py-2 border border-[#E8E8E8] rounded-lg focus-ring transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Navigation Items */}
-              {navigationItems.map((item, index) => (
-                item.href ? (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <div>
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-gray-600">{item.description}</div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                  </a>
-                ) : (
-                  <Link
-                    key={item.label}
-                    to={item.to || '#'}
-                    className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    <div>
-                      <div className="font-medium">{item.label}</div>
-                      <div className="text-sm text-gray-600">{item.description}</div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                  </Link>
-                )
-              ))}
-
-              {/* Features Section */}
-              <div className="px-4 py-2">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('nav.features')}</h3>
-                <div className="space-y-1">
-                  {featuresMenuItems.slice(0, 3).map((item, index) => (
-                    <Link // Changed to Link
-                      key={index}
-                      to={item.to} // Changed to 'to'
-                      className="flex items-center p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
-                      onClick={() => setIsMenuOpen(false)} // Keep onClick to close menu
-                    >
-                      <div className="w-8 h-8 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3">
-                        <item.icon className="w-4 h-4 text-white" />
                       </div>
-                      <span className="text-sm font-medium text-[#0A2647]">{item.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="px-4 py-2 border-t border-[#E8E8E8] mt-4">
-                {userState === 'authenticated' && (
-                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="flex items-center text-sm text-[#0A2647] dark:text-white mb-2">
-                      <User className="w-4 h-4 mr-2 text-[#0A2647] dark:text-white" />
-                      <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
                     </div>
-                    <button
-                      onClick={handleLogoutClick}
-                      className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium whitespace-nowrap"
-                      title="Log out"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      {t('nav.signOut')}
-                    </button>
-                  </div>
-                )}
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <Phone className="w-4 h-4 mr-2" />
-                  <span>+91 80-EASEHEALTH</span>
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* CTA */}
-              <div className="px-4 pt-4 border-t border-[#E8E8E8]">
-                <div className="mb-4 flex items-center space-x-3">
-                  <LanguageToggle />
-                  <DarkModeToggle />
+              {navigationItems.slice(1).map((item) => (
+                <a
+                  key={item.label}
+                  href={item.href}
+                  className="px-3 py-2 text-[#0A2647] dark:text-white hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 font-medium focus-ring whitespace-nowrap"
+                  aria-label={item.description}
+                >
+                  {item.label}
+                </a>
+              ))}
+            </nav>
+
+            {/* Search and CTA */}
+            <div className="cta-section hidden lg:flex items-center space-x-3">
+              <div className="relative" ref={searchRef}>
+                <button
+                  className="p-2 text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9] hover:bg-[#F6F6F6] dark:hover:bg-gray-700 rounded-lg transition-all duration-200 focus-ring"
+                  aria-label={t('nav.search')}
+                  aria-expanded={isSearchOpen}
+                  onClick={toggleSearch}
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+                {isSearchOpen && (
+                  <form onSubmit={handleSearchSubmit} className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex items-center space-x-2">
+                    <input
+                      id="global-search-input"
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t('nav.searchPlaceholder')}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0075A2]"
+                      onKeyDown={(e) => { if (e.key === 'Escape') { setIsSearchOpen(false); } }}
+                      aria-label={t('nav.search')}
+                    />
+                    <button type="submit" className="px-3 py-2 bg-[#0075A2] dark:bg-[#0EA5E9] text-white rounded-md text-sm hover:opacity-90 transition-colors">Go</button>
+                  </form>
+                )}
+              </div>
+              <LanguageToggle showDropdown={true} />
+              <DarkModeToggle showDropdown={true} />
+              {getDynamicCTA()}
+            </div>
+
+            {/* Mobile menu button */}
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
+              onClick={handleMenuToggle}
+              onKeyDown={(e) => handleKeyDown(e, handleMenuToggle)}
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMenuOpen}
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6 text-[#0A2647]" />
+              ) : (
+                <Menu className="w-6 h-6 text-[#0A2647]" />
+              )}
+            </button>
+          </div>
+
+          {/* Enhanced Mobile Navigation */}
+          {isMenuOpen && (
+            <div
+              className="lg:hidden bg-white border-t border-[#E8E8E8] animate-in slide-in-from-top duration-200"
+              data-mobile-menu
+              role="navigation"
+              aria-label="Mobile navigation menu"
+            >
+              <div className="py-4 space-y-1">
+                {/* Search Bar */}
+                <div className="px-4 pb-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder={t('nav.searchPlaceholder')}
+                      className="w-full pl-10 pr-4 py-2 border border-[#E8E8E8] rounded-lg focus-ring transition-colors"
+                    />
+                  </div>
                 </div>
-                {getDynamicCTA()}
+
+                {/* Navigation Items */}
+                {navigationItems.map((item, index) => (
+                  item.href ? (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <div>
+                        <div className="font-medium">{item.label}</div>
+                        <div className="text-sm text-gray-600">{item.description}</div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                    </a>
+                  ) : (
+                    <Link
+                      key={item.label}
+                      to={item.to || '#'}
+                      className="flex items-center justify-between px-4 py-3 text-[#0A2647] hover:text-[#0075A2] hover:bg-[#F6F6F6] transition-all duration-200 font-medium focus-ring"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <div>
+                        <div className="font-medium">{item.label}</div>
+                        <div className="text-sm text-gray-600">{item.description}</div>
+                      </div>
+                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                    </Link>
+                  )
+                ))}
+
+                {/* Features Section */}
+                <div className="px-4 py-2">
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('nav.features')}</h3>
+                  <div className="space-y-1">
+                    {featuresMenuItems.slice(0, 3).map((item, index) => (
+                      <Link // Changed to Link
+                        key={index}
+                        to={item.to} // Changed to 'to'
+                        className="flex items-center p-2 rounded-lg hover:bg-[#F6F6F6] transition-colors duration-200 focus-ring"
+                        onClick={() => setIsMenuOpen(false)} // Keep onClick to close menu
+                      >
+                        <div className="w-8 h-8 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-lg flex items-center justify-center mr-3">
+                          <item.icon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-[#0A2647]">{item.title}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="px-4 py-2 border-t border-[#E8E8E8] mt-4">
+                  {userState === 'authenticated' && (
+                    <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div className="flex items-center text-sm text-[#0A2647] dark:text-white mb-2">
+                        <User className="w-4 h-4 mr-2 text-[#0A2647] dark:text-white" />
+                        <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
+                      </div>
+                      <button
+                        onClick={handleLogoutClick}
+                        className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:text-white dark:hover:text-white hover:bg-red-600 dark:hover:bg-red-600 rounded-lg transition-all duration-200 border border-red-200 dark:border-red-800 hover:border-red-600 dark:hover:border-red-600 font-medium whitespace-nowrap"
+                        title="Log out"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        {t('nav.signOut')}
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center text-sm text-gray-600 mb-2">
+                    <Phone className="w-4 h-4 mr-2" />
+                    <span>+91 80-EASEHEALTH</span>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div className="px-4 pt-4 border-t border-[#E8E8E8]">
+                  <div className="mb-4 flex items-center space-x-3">
+                    <LanguageToggle />
+                    <DarkModeToggle />
+                  </div>
+                  {getDynamicCTA()}
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-    </header>
+          )}
+        </div>
+      </header>
+    </>
   );
 };
 

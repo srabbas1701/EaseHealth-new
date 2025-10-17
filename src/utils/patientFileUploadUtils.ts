@@ -276,3 +276,40 @@ export const deletePatientDocument = async (
         throw new Error(`Failed to delete ${documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 };
+
+/**
+ * Updates patient file URLs after deletion
+ */
+export const updatePatientFileUrls = async (
+    patientId: string,
+    documentType: PatientDocumentType,
+    updatedUrls: string[]
+): Promise<void> => {
+    try {
+        let updateData: any = {};
+
+        switch (documentType) {
+            case 'aadhaar_documents':
+                updateData.id_proof_urls = updatedUrls;
+                break;
+            case 'lab_reports':
+                updateData.lab_report_urls = updatedUrls;
+                break;
+            case 'profile_image':
+                updateData.profile_image_url = updatedUrls.length > 0 ? updatedUrls[0] : null;
+                break;
+        }
+
+        const { error } = await supabase
+            .from('patients')
+            .update(updateData)
+            .eq('id', patientId);
+
+        if (error) {
+            throw error;
+        }
+    } catch (error) {
+        console.error('Error updating patient file URLs:', error);
+        throw new Error(`Failed to update patient file URLs: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+};

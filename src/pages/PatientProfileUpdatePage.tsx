@@ -495,20 +495,7 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
         setAnnouncement('Updating your profile...');
 
         try {
-            // Refresh session before updating to ensure valid JWT
-            console.log('🔄 Refreshing session before update...');
-            const { data: { session: updateSession }, error: updateRefreshError } = await supabase.auth.refreshSession();
-
-            if (updateRefreshError) {
-                console.error('Session refresh error before update:', updateRefreshError);
-                setAnnouncement('Session refresh failed. Please log in again.');
-                setTimeout(() => {
-                    handleLogout();
-                }, 2000);
-                return;
-            }
-
-            // Update patient record
+            // Update patient record (session refresh removed for performance)
             const updateData = {
                 address: formData.address,
                 city: formData.city,
@@ -546,23 +533,9 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
 
             console.log('✅ Successfully updated patient record');
 
-            // Upload new files if any
+            // Upload new files if any (session refresh removed for performance)
             if (formData.idProofFiles.length > 0 || formData.labReportFiles.length > 0 || formData.profileImageFile) {
                 console.log('📁 Uploading new files...');
-
-                // Refresh session before file operations
-                console.log('🔄 Refreshing session before file operations...');
-                const { data: { session: fileSession }, error: fileRefreshError } = await supabase.auth.refreshSession();
-
-                if (fileRefreshError) {
-                    console.error('Session refresh error before file operations:', fileRefreshError);
-                    setAnnouncement('Session refresh failed. Please log in again.');
-                    setTimeout(() => {
-                        handleLogout();
-                    }, 2000);
-                    return;
-                }
-
                 const uploadedFiles = await uploadFiles(formData.patientId);
 
                 // Update patient record with new file URLs

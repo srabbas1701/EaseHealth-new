@@ -13,7 +13,7 @@ export const useAuth = () => {
   // Session recovery function with retry logic
   const recoverSession = useCallback(async (maxRetries = 3) => {
     console.log(`🔄 Attempting session recovery (attempt ${sessionRecoveryAttempts + 1}/${maxRetries})...`)
-    
+
     try {
       // First try to validate current session
       const isValid = await validateSession(1)
@@ -27,7 +27,7 @@ export const useAuth = () => {
           return true
         }
       }
-      
+
       // If validation failed, try to refresh the session
       const refreshed = await refreshSession()
       if (refreshed) {
@@ -40,7 +40,7 @@ export const useAuth = () => {
           return true
         }
       }
-      
+
       console.log('❌ No valid session found during recovery')
       return false
     } catch (error) {
@@ -78,10 +78,10 @@ export const useAuth = () => {
     const getInitialSession = async () => {
       console.log('🔄 Starting initial session check...')
       setIsLoadingInitialAuth(true)
-      
+
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
+
         if (sessionError) {
           console.error('❌ Error getting session:', sessionError)
           setSession(null)
@@ -91,7 +91,7 @@ export const useAuth = () => {
           console.log('✅ Session fetched:', session ? 'User logged in' : 'No active session')
           setSession(session)
           setUser(session?.user ?? null)
-          
+
           if (session?.user) {
             console.log('👤 Fetching profile for user:', session.user.id)
             setIsProfileLoading(true)
@@ -99,6 +99,8 @@ export const useAuth = () => {
               const userProfile = await getProfile(session.user.id)
               console.log('✅ Profile fetched:', userProfile ? 'Profile found' : 'No profile')
               setProfile(userProfile)
+
+
             } catch (error) {
               console.error('❌ Error fetching profile:', error)
               setProfile(null)
@@ -124,7 +126,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔄 Auth state change:', event, session ? 'User session active' : 'No session')
-        
+
         // Handle PASSWORD_RECOVERY events - these are for password reset
         if (event === 'PASSWORD_RECOVERY') {
           console.log('🔄 Handling PASSWORD_RECOVERY event - preventing auto-login during password reset')
@@ -136,7 +138,7 @@ export const useAuth = () => {
 
         // Prevent ALL SIGNED_IN events during password recovery process
         if (event === 'SIGNED_IN' && (
-          window.location.pathname === '/reset-password' || 
+          window.location.pathname === '/reset-password' ||
           window.location.hash.includes('type=recovery') ||
           window.location.hash.includes('access_token') ||
           window.location.hash.includes('refresh_token')
@@ -149,7 +151,7 @@ export const useAuth = () => {
 
         // Also prevent USER_UPDATED events during password recovery process
         if (event === 'USER_UPDATED' && (
-          window.location.pathname === '/reset-password' || 
+          window.location.pathname === '/reset-password' ||
           window.location.hash.includes('type=recovery') ||
           window.location.hash.includes('access_token') ||
           window.location.hash.includes('refresh_token')
@@ -159,10 +161,10 @@ export const useAuth = () => {
           // This prevents auto-login on other windows/tabs
           return;
         }
-        
+
         setSession(session)
         setUser(session?.user ?? null)
-        
+
         if (session?.user) {
           console.log('👤 Fetching profile for user after auth change:', session.user.id)
           setIsProfileLoading(true)
@@ -170,6 +172,8 @@ export const useAuth = () => {
             const userProfile = await getProfile(session.user.id)
             console.log('✅ Profile fetched after auth change:', userProfile ? 'Profile found' : 'No profile')
             setProfile(userProfile)
+
+
           } catch (error) {
             console.error('❌ Error fetching profile after auth change:', error)
             setProfile(null)
@@ -211,16 +215,16 @@ export const useAuth = () => {
           console.error('❌ Error during logout:', error)
           throw error
         }
-        
+
         // Clear local state immediately
         setUser(null)
         setSession(null)
         setProfile(null)
-        
+
         // Clear localStorage items
         localStorage.removeItem('isDoctor')
         localStorage.removeItem('userRole')
-        
+
         console.log('✅ User logged out successfully')
       } catch (error) {
         console.error('❌ Critical error signing out:', error)

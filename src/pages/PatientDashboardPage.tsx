@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { useDarkMode } from '../hooks/useDarkMode';
-import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon, X, AlertCircle, Edit3, Upload, Brain, Pill, Thermometer, Scale, Gauge } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, User, Clock, CheckCircle, Bell, Shield, Activity, Heart, Zap, Star, MessageCircle, Phone, MapPin, Mail, Home, UserCheck, ChevronRight, ChevronLeft, TrendingUp, BarChart3, PieChart as PieChartIcon, X, AlertCircle, Edit3, Upload, Brain, Pill, Thermometer, Scale, Gauge, Eye } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useTranslations } from '../translations';
 import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHistory } from '../utils/patientProfileUtils';
-import { getFreshSignedUrls } from '../utils/patientFileUploadUtils';
+import { getFreshSignedUrls, deletePatientDocument, updatePatientFileUrls } from '../utils/patientFileUploadUtils';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 // Temporarily commented out recharts imports to fix loading issue
 // import { 
 //   LineChart, 
@@ -65,6 +66,15 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   const [freshLabReportUrls, setFreshLabReportUrls] = useState<string[]>([]);
   const [freshIdProofUrls, setFreshIdProofUrls] = useState<string[]>([]);
 
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [fileToDelete, setFileToDelete] = useState<{
+    type: 'idProof' | 'labReport' | 'profileImage';
+    index: number;
+    fileName: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Chart data
   const appointmentTrendData = [
     { month: 'Jan', appointments: 2 },
@@ -76,10 +86,10 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   ];
 
   const healthMetricsData = [
-    { name: 'Blood Pressure', value: 120, unit: 'mmHg', status: 'Normal', icon: Thermometer },
-    { name: 'Heart Rate', value: 72, unit: 'bpm', status: 'Normal', icon: Heart },
-    { name: 'Weight', value: 65, unit: 'kg', status: 'Normal', icon: Scale },
-    { name: 'BMI', value: 22.5, unit: '', status: 'Normal', icon: Gauge },
+    { name: t('patientDashboard.healthMetrics.bloodPressure'), value: 120, unit: 'mmHg', status: t('common.status.normal'), icon: Thermometer },
+    { name: t('patientDashboard.healthMetrics.heartRate'), value: 72, unit: 'bpm', status: t('common.status.normal'), icon: Heart },
+    { name: t('patientDashboard.healthMetrics.weight'), value: 65, unit: 'kg', status: t('common.status.normal'), icon: Scale },
+    { name: t('patientDashboard.healthMetrics.bmi'), value: 22.5, unit: '', status: t('common.status.normal'), icon: Gauge },
   ];
 
   const appointmentTypeData = [
@@ -274,6 +284,73 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     }
   };
 
+  // Handle file deletion
+  const handleDeleteFile = async () => {
+    if (!fileToDelete || !patientProfile) return;
+
+    setIsDeleting(true);
+    try {
+      console.log('🗑️ Deleting file:', fileToDelete);
+
+      // Get current URLs based on file type
+      let currentUrls: string[] = [];
+      let documentType: 'aadhaar_documents' | 'lab_reports' | 'profile_image';
+
+      switch (fileToDelete.type) {
+        case 'idProof':
+          currentUrls = [...freshIdProofUrls];
+          documentType = 'aadhaar_documents';
+          break;
+        case 'labReport':
+          currentUrls = [...freshLabReportUrls];
+          documentType = 'lab_reports';
+          break;
+        case 'profileImage':
+          currentUrls = patientProfile.profile_image_url ? [patientProfile.profile_image_url] : [];
+          documentType = 'profile_image';
+          break;
+        default:
+          throw new Error('Invalid file type');
+      }
+
+      // Remove the file from the array
+      const updatedUrls = currentUrls.filter((_, index) => index !== fileToDelete.index);
+
+      // Update the patient record with new URLs
+      await updatePatientFileUrls(patientProfile.id, documentType, updatedUrls);
+
+      // Update local state
+      switch (fileToDelete.type) {
+        case 'idProof':
+          setFreshIdProofUrls(updatedUrls);
+          break;
+        case 'labReport':
+          setFreshLabReportUrls(updatedUrls);
+          break;
+        case 'profileImage':
+          // Update patient profile state
+          setPatientProfile(prev => ({
+            ...prev,
+            profile_image_url: updatedUrls.length > 0 ? updatedUrls[0] : null
+          }));
+          break;
+      }
+
+      console.log('✅ File deleted successfully');
+      setAnnouncement('File deleted successfully');
+
+      // Close modal
+      setShowDeleteModal(false);
+      setFileToDelete(null);
+
+    } catch (error) {
+      console.error('❌ Error deleting file:', error);
+      setAnnouncement('Failed to delete file. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Get user display name
   const getUserDisplayName = () => {
     if (patientProfile?.full_name) {
@@ -414,16 +491,16 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100">
-                  <span className="text-[#0075A2] dark:text-[#0EA5E9]">{getUserDisplayName()}</span> Dashboard
+                  <span className="text-[#0075A2] dark:text-[#0EA5E9]">{getUserDisplayName()}</span> {t('patientDashboard.title')}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-300 text-lg">Patient Portal</p>
+                <p className="text-gray-600 dark:text-gray-300 text-lg">{t('patientDashboard.portal')}</p>
                 {patientProfile?.email && (
                   <p className="text-sm text-gray-500 dark:text-gray-400">{patientProfile.email}</p>
                 )}
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500 dark:text-gray-400">Last login</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('patientDashboard.lastLogin')}</p>
               <p className="text-lg font-semibold text-[#0A2647] dark:text-gray-100">
                 {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : 'Never'}
               </p>
@@ -436,7 +513,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center inline-flex"
                 >
                   <Edit3 className="w-4 h-4 mr-2" />
-                  Update Profile
+                  {t('patientDashboard.updateProfile')}
                 </Link>
               </div>
             </div>
@@ -450,21 +527,32 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="mb-6">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-2 flex items-center">
                 <Activity className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Health Overview
+                {t('patientDashboard.healthOverview')}
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">Your health status and recent activity</p>
+              <p className="text-gray-600 dark:text-gray-300 text-sm">{t('patientDashboard.healthStatus')}</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {healthMetricsData.map((metric, index) => {
                 const MetricIcon = metric.icon;
+                const colors = [
+                  { bg: 'bg-gradient-to-br from-red-500 to-pink-600', text: 'text-red-100' },
+                  { bg: 'bg-gradient-to-br from-blue-500 to-cyan-600', text: 'text-blue-100' },
+                  { bg: 'bg-gradient-to-br from-green-500 to-emerald-600', text: 'text-green-100' },
+                  { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600', text: 'text-purple-100' }
+                ];
+                const color = colors[index % colors.length];
                 return (
-                  <div key={metric.name} className="text-center">
-                    <div className="w-16 h-16 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mx-auto mb-3">
-                      <MetricIcon className="w-8 h-8 text-white" />
+                  <div key={metric.name} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+                    <div className="flex items-center">
+                      <div className={`p-3 ${color.bg} rounded-xl`}>
+                        <MetricIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{metric.name}</p>
+                        <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{metric.value}{metric.unit}</p>
+                        <p className="text-xs text-green-600 dark:text-green-400 font-medium">{metric.status}</p>
+                      </div>
                     </div>
-                    <h4 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">{metric.value} {metric.unit}</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{metric.name}</p>
-                    <p className="text-xs text-green-600 dark:text-green-400 font-medium">{metric.status}</p>
                   </div>
                 );
               })}
@@ -479,7 +567,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Upcoming Appointments</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.upcomingAppointments')}</p>
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.upcomingAppointments}</p>
                 </div>
               </div>
@@ -491,7 +579,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Profile Complete</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.profileComplete')}</p>
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.profileCompletion}%</p>
                 </div>
               </div>
@@ -503,7 +591,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <Activity className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Visits</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.totalVisits')}</p>
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{stats.totalAppointments}</p>
                 </div>
               </div>
@@ -515,8 +603,8 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Secure Data</p>
-                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Protected</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.secureData')}</p>
+                  <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('patientDashboard.protected')}</p>
                 </div>
               </div>
             </div>
@@ -527,25 +615,25 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
                 <Calendar className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Upcoming Appointments
+                {t('patientDashboard.upcomingAppointments')}
               </h3>
               <Link
                 to="/smart-appointment-booking"
                 className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
               >
-                Book New Appointment
+                {t('patientDashboard.bookNewAppointment')}
               </Link>
             </div>
             <div className="overflow-x-auto max-h-96 overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0 z-10 bg-gray-50 dark:bg-gray-700">
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Time</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Doctor</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Queue #</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.date')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.time')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.doctor')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.status')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.queueNumber')}</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-300">{t('patientDashboard.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -559,7 +647,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                           {appointment.time}
                         </td>
                         <td className="py-3 px-4 text-gray-900 dark:text-gray-100">
-                          {appointment.doctor || 'Doctor'}
+                          {appointment.doctor || t('patientDashboard.doctor')}
                         </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${appointment.status === 'BOOKED'
@@ -585,7 +673,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                 }`}
                               title={appointment.status === 'CANCELLED' ? 'Appointment already cancelled' : 'Cancel this appointment'}
                             >
-                              Cancel
+                              {t('patientDashboard.cancel')}
                             </button>
                             <button
                               onClick={() => handleRescheduleAppointment(appointment)}
@@ -596,7 +684,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                 }`}
                               title={appointment.status === 'CANCELLED' ? 'Cannot reschedule cancelled appointment' : 'Reschedule this appointment'}
                             >
-                              Reschedule
+                              {t('patientDashboard.reschedule')}
                             </button>
                           </div>
                         </td>
@@ -605,7 +693,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-8 text-center text-gray-500 dark:text-gray-400">
-                        No upcoming appointments
+                        {t('patientDashboard.noAppointments')}
                       </td>
                     </tr>
                   )}
@@ -616,25 +704,29 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
         </div>
 
         {/* Tab Navigation */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8 border border-[#E8E8E8] dark:border-gray-600">
-          <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg mb-8 border border-[#E8E8E8] dark:border-gray-600 overflow-hidden">
+          <div className="flex border-b-2 border-gray-200 dark:border-gray-700">
             {[
-              { id: 'pre-registration', label: 'Pre-Registration Details', icon: FileText },
-              { id: 'prescriptions', label: 'Prescriptions', icon: Pill },
-              { id: 'uploaded-files', label: 'Uploaded Files', icon: Upload },
-              { id: 'ai-analytics', label: 'AI Analytics', icon: Brain }
+              { id: 'pre-registration', label: t('patientDashboard.tabs.preRegistration'), icon: FileText, disabled: false },
+              { id: 'prescriptions', label: t('patientDashboard.tabs.prescriptions'), icon: Pill, disabled: true },
+              { id: 'uploaded-files', label: t('patientDashboard.tabs.uploadedFiles'), icon: Upload, disabled: false },
+              { id: 'ai-analytics', label: t('patientDashboard.tabs.aiAnalytics'), icon: Brain, disabled: true }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${activeTab === tab.id
-                    ? 'bg-white dark:bg-gray-600 text-[#0075A2] dark:text-[#0EA5E9] shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9]'
+                  onClick={() => !tab.disabled && setActiveTab(tab.id as any)}
+                  disabled={tab.disabled}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-6 py-4 font-semibold transition-all relative ${activeTab === tab.id
+                    ? 'bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white border-b-4 border-[#0075A2] shadow-lg'
+                    : tab.disabled
+                      ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed bg-gray-100 dark:bg-gray-900'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-[#0075A2] dark:hover:text-[#0EA5E9]'
                     }`}
+                  title={tab.disabled ? 'Coming in Phase 2' : ''}
                 >
-                  <Icon className="w-5 h-5" />
+                  <Icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : ''}`} />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </button>
               );
@@ -650,14 +742,14 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
                   <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                  Pre-Registration Details
+                  {t('patientDashboard.preRegistration.title')}
                 </h3>
                 <Link
                   to="/patient-profile-update"
                   className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center"
                 >
                   <Edit3 className="w-4 h-4 mr-2" />
-                  Update Profile
+                  {t('patientDashboard.updateProfile')}
                 </Link>
               </div>
 
@@ -667,25 +759,25 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <div>
                     <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
                       <User className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                      Personal Information
+                      {t('patientDashboard.preRegistration.personalInfo')}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Patient Name</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.patientName')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.full_name || 'N/A'}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Phone Number</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.phoneNumber')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.phone_number || 'N/A'}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Age/Gender</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.ageGender')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">
                           {patientProfile.age ? `${patientProfile.age} years` : 'N/A'} / {patientProfile.gender || 'N/A'}
                         </p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.location')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">
                           {patientProfile.city || 'N/A'} {patientProfile.state || ''}
                         </p>
@@ -697,19 +789,19 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <div>
                     <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
                       <Heart className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                      Medical Information
+                      {t('patientDashboard.preRegistration.medicalInfo')}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Medical History</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.medicalHistory')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.medical_history || 'N/A'}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Allergies</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.allergies')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.allergies || 'N/A'}</p>
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Current Medications</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.currentMedications')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.current_medications || 'N/A'}</p>
                       </div>
                     </div>
@@ -719,18 +811,18 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <div>
                     <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
                       <Shield className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                      Insurance & Blood Type
+                      {t('patientDashboard.preRegistration.insuranceBloodType')}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Insurance Provider</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.insuranceProvider')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.insurance_provider || 'N/A'}</p>
                         {patientProfile.insurance_number && (
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Policy: {patientProfile.insurance_number}</p>
                         )}
                       </div>
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Blood Type</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">{t('patientDashboard.preRegistration.bloodType')}</p>
                         <p className="font-semibold text-[#0A2647] dark:text-gray-100">{patientProfile.blood_type || 'N/A'}</p>
                       </div>
                     </div>
@@ -740,7 +832,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                   <div>
                     <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4 flex items-center">
                       <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                      Lab Reports
+                      {t('patientDashboard.preRegistration.labReports')}
                     </h4>
                     {freshLabReportUrls && freshLabReportUrls.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -748,7 +840,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                           <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</p>
+                                <p className="font-medium text-[#0A2647] dark:text-gray-100">{t('patientDashboard.uploadedFiles.labReport')} {index + 1}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">Click to view document</p>
                               </div>
                               <a
@@ -757,7 +849,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                 rel="noopener noreferrer"
                                 className="bg-[#0075A2] dark:bg-[#0EA5E9] text-white px-3 py-2 rounded-lg hover:bg-[#0A2647] dark:hover:bg-[#0284C7] transition-colors text-sm font-medium"
                               >
-                                View Report
+                                {t('patientDashboard.preRegistration.viewReport')}
                               </a>
                             </div>
                           </div>
@@ -766,7 +858,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                     ) : (
                       <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 text-center">
                         <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500 dark:text-gray-400">No lab reports uploaded yet</p>
+                        <p className="text-gray-500 dark:text-gray-400">{t('patientDashboard.preRegistration.noReports')}</p>
                       </div>
                     )}
                   </div>
@@ -812,85 +904,200 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
               <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-6 flex items-center">
                 <Upload className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-                Uploaded Files
+                {t('patientDashboard.uploadedFiles.title')}
               </h3>
               {patientProfile && (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* ID Proof Documents */}
-                  {freshIdProofUrls && freshIdProofUrls.length > 0 && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">ID Proof Documents</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 flex items-center">
+                        <FileText className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                        {t('patientDashboard.uploadedFiles.idProof')}
+                      </h4>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {freshIdProofUrls.length} {t('patientDashboard.uploadedFiles.files')}
+                      </span>
+                    </div>
+                    {freshIdProofUrls && freshIdProofUrls.length > 0 ? (
+                      <div className="space-y-3">
                         {freshIdProofUrls.map((url: string, index: number) => (
-                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <div key={index} className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-[#0A2647] dark:text-gray-100">ID Proof {index + 1}</span>
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
-                              >
-                                View
-                              </a>
+                              <div className="flex items-center flex-1">
+                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                                  <FileText className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#0A2647] dark:text-gray-100">ID Proof Document {index + 1}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Aadhaar / ID Card</p>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-[#0075A2] hover:bg-[#0A2647] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </a>
+                                <button
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                                  onClick={() => {
+                                    setFileToDelete({
+                                      type: 'idProof',
+                                      index: index,
+                                      fileName: `${t('patientDashboard.uploadedFiles.idProofDocument')} ${index + 1}`
+                                    });
+                                    setShowDeleteModal(true);
+                                  }}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">No ID proof documents uploaded</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Lab Reports */}
-                  {freshLabReportUrls && freshLabReportUrls.length > 0 && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">Lab Reports</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 flex items-center">
+                        <FileText className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
+                        {t('patientDashboard.uploadedFiles.labReports')}
+                      </h4>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {freshLabReportUrls.length} {t('patientDashboard.uploadedFiles.fileCount')}
+                      </span>
+                    </div>
+                    {freshLabReportUrls && freshLabReportUrls.length > 0 ? (
+                      <div className="space-y-3">
                         {freshLabReportUrls.map((url: string, index: number) => (
-                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                          <div key={index} className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</span>
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
-                              >
-                                View
-                              </a>
+                              <div className="flex items-center flex-1">
+                                <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-3">
+                                  <FileText className="w-5 h-5 text-white" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">Medical Test Results</p>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="bg-[#0075A2] hover:bg-[#0A2647] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  View
+                                </a>
+                                <button
+                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                                  onClick={() => {
+                                    setFileToDelete({
+                                      type: 'labReport',
+                                      index: index,
+                                      fileName: `Lab Report ${index + 1}`
+                                    });
+                                    setShowDeleteModal(true);
+                                  }}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Delete
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center">
+                        <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">No lab reports uploaded</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Profile Image */}
-                  {patientProfile.profile_image_url && (
-                    <div>
-                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 mb-4">Profile Image</h4>
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-semibold text-[#0A2647] dark:text-gray-100 flex items-center">
+                        <User className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
+                        {t('patientDashboard.uploadedFiles.profileImage')}
+                      </h4>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {patientProfile.profile_image_url ? 1 : 0} {t('patientDashboard.uploadedFiles.fileCount')}
+                      </span>
+                    </div>
+                    {patientProfile.profile_image_url ? (
+                      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 hover:shadow-md transition-shadow">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-[#0A2647] dark:text-gray-100">Profile Picture</span>
-                          <a
-                            href={patientProfile.profile_image_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline text-sm"
-                          >
-                            View
-                          </a>
+                          <div className="flex items-center flex-1">
+                            <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center mr-3">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-[#0A2647] dark:text-gray-100">Profile Picture</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Profile Image</p>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <a
+                              href={patientProfile.profile_image_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-[#0075A2] hover:bg-[#0A2647] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </a>
+                            <button
+                              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                              onClick={() => {
+                                setFileToDelete({
+                                  type: 'profileImage',
+                                  index: 0,
+                                  fileName: 'Profile Picture'
+                                });
+                                setShowDeleteModal(true);
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-8 text-center">
+                        <User className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">No profile image uploaded</p>
+                      </div>
+                    )}
+                  </div>
 
                   {/* No files message */}
                   {freshIdProofUrls.length === 0 &&
                     freshLabReportUrls.length === 0 &&
                     !patientProfile.profile_image_url && (
-                      <div className="text-center py-8">
-                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400">No files uploaded yet</p>
+                      <div className="text-center py-12">
+                        <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No Files Uploaded</h4>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm">Upload documents from your profile page</p>
                       </div>
                     )}
                 </div>
@@ -967,6 +1174,20 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             </div>
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setFileToDelete(null);
+          }}
+          onConfirm={handleDeleteFile}
+          title="Delete File"
+          message="Are you sure you want to delete this file? This action cannot be undone."
+          fileName={fileToDelete?.fileName}
+          isLoading={isDeleting}
+        />
       </main>
     </div>
   );

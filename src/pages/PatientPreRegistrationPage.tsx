@@ -33,6 +33,7 @@ import { supabase, generateQueueToken } from '../utils/supabase';
 import { uploadPatientDocument } from '../utils/patientFileUploadUtils';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import QueueTokenModal from '../components/QueueTokenModal';
+import ErrorModal from '../components/ErrorModal';
 
 interface FormData {
   // Personal Information
@@ -125,6 +126,8 @@ const PatientPreRegistrationPage: React.FC = () => {
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Simple translation function
   const getText = (key: string) => {
@@ -152,6 +155,47 @@ const PatientPreRegistrationPage: React.FC = () => {
     { value: 'Female', label: getText('preRegistration.gender.female') },
     { value: 'Other', label: getText('preRegistration.gender.other') },
     { value: 'Prefer not to say', label: getText('preRegistration.gender.preferNotToSay') }
+  ];
+
+  const indianStates = [
+    // States
+    { value: 'Andhra Pradesh', label: 'Andhra Pradesh' },
+    { value: 'Arunachal Pradesh', label: 'Arunachal Pradesh' },
+    { value: 'Assam', label: 'Assam' },
+    { value: 'Bihar', label: 'Bihar' },
+    { value: 'Chhattisgarh', label: 'Chhattisgarh' },
+    { value: 'Goa', label: 'Goa' },
+    { value: 'Gujarat', label: 'Gujarat' },
+    { value: 'Haryana', label: 'Haryana' },
+    { value: 'Himachal Pradesh', label: 'Himachal Pradesh' },
+    { value: 'Jharkhand', label: 'Jharkhand' },
+    { value: 'Karnataka', label: 'Karnataka' },
+    { value: 'Kerala', label: 'Kerala' },
+    { value: 'Madhya Pradesh', label: 'Madhya Pradesh' },
+    { value: 'Maharashtra', label: 'Maharashtra' },
+    { value: 'Manipur', label: 'Manipur' },
+    { value: 'Meghalaya', label: 'Meghalaya' },
+    { value: 'Mizoram', label: 'Mizoram' },
+    { value: 'Nagaland', label: 'Nagaland' },
+    { value: 'Odisha', label: 'Odisha' },
+    { value: 'Punjab', label: 'Punjab' },
+    { value: 'Rajasthan', label: 'Rajasthan' },
+    { value: 'Sikkim', label: 'Sikkim' },
+    { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+    { value: 'Telangana', label: 'Telangana' },
+    { value: 'Tripura', label: 'Tripura' },
+    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
+    { value: 'Uttarakhand', label: 'Uttarakhand' },
+    { value: 'West Bengal', label: 'West Bengal' },
+    // Union Territories
+    { value: 'Andaman and Nicobar Islands', label: 'Andaman and Nicobar Islands' },
+    { value: 'Chandigarh', label: 'Chandigarh' },
+    { value: 'Dadra and Nagar Haveli and Daman and Diu', label: 'Dadra and Nagar Haveli and Daman and Diu' },
+    { value: 'Delhi', label: 'Delhi' },
+    { value: 'Jammu and Kashmir', label: 'Jammu and Kashmir' },
+    { value: 'Ladakh', label: 'Ladakh' },
+    { value: 'Lakshadweep', label: 'Lakshadweep' },
+    { value: 'Puducherry', label: 'Puducherry' }
   ];
 
   const handleInputChange = (field: keyof FormData, value: string | boolean) => {
@@ -371,6 +415,14 @@ const PatientPreRegistrationPage: React.FC = () => {
     }
 
     setErrors(newErrors);
+
+    // Show custom error modal with all validation errors if any
+    if (Object.keys(newErrors).length > 0) {
+      const errorMessages = Object.values(newErrors).filter(Boolean) as string[];
+      setValidationErrors(errorMessages);
+      setShowErrorModal(true);
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -378,7 +430,8 @@ const PatientPreRegistrationPage: React.FC = () => {
     e.preventDefault();
     console.log('🔄 Starting form submission...');
 
-    if (!validateForm()) {
+    const validationResult = validateForm();
+    if (!validationResult) {
       console.log('❌ Form validation failed');
       return;
     }
@@ -665,7 +718,7 @@ const PatientPreRegistrationPage: React.FC = () => {
           // Set appointment details for modal
           setAppointmentDetails({
             doctorName: bookingDetails.selectedDoctor?.full_name || bookingDetails.doctorName || 'Doctor',
-            date: bookingDetails.selectedDate || bookingDetails.date,
+            date: (bookingDetails.selectedDate || bookingDetails.date).toLocaleDateString(),
             time: bookingDetails.selectedTime || bookingDetails.time,
             specialty: bookingDetails.selectedSpecialty?.name || bookingDetails.specialty
           });
@@ -682,19 +735,13 @@ const PatientPreRegistrationPage: React.FC = () => {
       setSubmitSuccess(true);
       setAnnouncement('Profile created successfully!');
 
-      // Redirect after 2 seconds - if booking details exist, redirect to appointment booking with auth success
-      setTimeout(() => {
-        if (bookingDetails) {
-          navigate('/smart-appointment-booking', {
-            state: {
-              bookingDetails,
-              authSuccess: true
-            }
-          });
-        } else {
+      // Only redirect if no booking details (no appointment was created)
+      if (!bookingDetails) {
+        setTimeout(() => {
           navigate('/smart-appointment-booking');
-        }
-      }, 2000);
+        }, 2000);
+      }
+      // If booking details exist, the QueueTokenModal will handle navigation
 
     } catch (error) {
       console.error('Error creating profile:', error);
@@ -741,6 +788,29 @@ const PatientPreRegistrationPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Queue Token Modal - Also rendered in success screen */}
+        {showQueueTokenModal && queueToken && appointmentDetails && (
+          <QueueTokenModal
+            isOpen={showQueueTokenModal}
+            onClose={() => setShowQueueTokenModal(false)}
+            onRedirect={() => {
+              setShowQueueTokenModal(false);
+              navigate('/patient-dashboard');
+            }}
+            queueToken={queueToken}
+            appointmentDetails={appointmentDetails}
+          />
+        )}
+
+        {/* Error Modal - Also rendered in success screen */}
+        <ErrorModal
+          isOpen={showErrorModal}
+          onClose={() => setShowErrorModal(false)}
+          title="Validation Errors"
+          errors={validationErrors}
+          type="error"
+        />
       </div>
     );
   }
@@ -1068,14 +1138,19 @@ const PatientPreRegistrationPage: React.FC = () => {
                     <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {getText('preRegistration.formLabels.state')}
                     </label>
-                    <input
-                      type="text"
+                    <select
                       id="state"
                       value={formData.state}
                       onChange={(e) => handleInputChange('state', e.target.value)}
                       className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder={getText('preRegistration.placeholders.state')}
-                    />
+                    >
+                      <option value="">{getText('preRegistration.placeholders.state')}</option>
+                      {indianStates.map(state => (
+                        <option key={state.value} value={state.value}>
+                          {state.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1469,6 +1544,15 @@ const PatientPreRegistrationPage: React.FC = () => {
           appointmentDetails={appointmentDetails}
         />
       )}
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Validation Errors"
+        errors={validationErrors}
+        type="error"
+      />
     </div>
   );
 };

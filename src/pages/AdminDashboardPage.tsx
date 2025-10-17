@@ -90,7 +90,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
 
   return (
     <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 text-[#0A2647] dark:text-gray-100 transition-colors duration-300">
-      <Navigation 
+      <Navigation
         user={user}
         session={session}
         profile={profile}
@@ -98,7 +98,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
         isAuthenticated={isAuthenticated}
         handleLogout={handleLogout}
       />
-      
+
       <div className="flex h-screen pt-16">
         {/* Sidebar */}
         <div className="w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700">
@@ -122,11 +122,10 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 <li key={item.id}>
                   <button
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] ${
-                      activeTab === item.id
-                        ? 'bg-[#E8F4F8] dark:bg-gray-700 text-[#0075A2] dark:text-[#0EA5E9] font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    className={`w-full flex items-center px-4 py-3 rounded-lg text-left transition-colors focus:outline-none focus:ring-2 focus:ring-[#0075A2] ${activeTab === item.id
+                      ? 'bg-[#E8F4F8] dark:bg-gray-700 text-[#0075A2] dark:text-[#0EA5E9] font-medium'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
                   >
                     <item.icon className="w-5 h-5 mr-3" />
                     {item.label}
@@ -143,7 +142,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 <h3 className="text-sm font-bold text-[#0A2647] dark:text-gray-100">Today's Overview</h3>
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2 mb-3">
                 <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-blue-100 dark:border-gray-600">
                   <div className="text-lg font-bold text-[#0075A2] dark:text-[#0EA5E9]">24</div>
@@ -154,7 +153,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                   <div className="text-xs text-gray-600 dark:text-gray-400">Completed</div>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-center p-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm border border-yellow-100 dark:border-gray-600">
                   <div className="text-lg font-bold text-yellow-600 dark:text-yellow-400">6</div>
@@ -165,7 +164,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                   <div className="text-xs text-gray-600 dark:text-gray-400">Pre-Registered</div>
                 </div>
               </div>
-              
+
               {/* Progress Bar */}
               <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
@@ -207,11 +206,11 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
               <div>
                 <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('admin.overviewTitle')}</h2>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  {`Today's appointments and patient management for `}{new Date(selectedDate).toLocaleDateString('en-IN', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {`Today's appointments and patient management for `}{new Date(selectedDate).toLocaleDateString('en-IN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </p>
               </div>
@@ -262,7 +261,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                       </button>
                     </div>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -300,7 +299,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                       {t('admin.sections.viewAll')}
                     </button>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -348,7 +347,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                     <Users className="w-4 h-4 mr-2" />
                     Generate Queue Token
                   </button>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                       <span className="text-sm font-medium text-[#0A2647] dark:text-gray-100">Current Queue</span>
@@ -373,7 +372,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                       <p className="text-xs text-gray-500 dark:text-gray-500">Triage Flags</p>
                     </div>
                   </div>
-                  
+
                   {/* Blurred content */}
                   <div className="filter blur-sm">
                     <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Triage Flags</h3>
@@ -415,7 +414,7 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                 {/* Daily Worklist */}
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
                   <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100 mb-4">Daily Worklist</h3>
-                  
+
                   <div className="space-y-3">
                     {worklistItems.map((item) => (
                       <div key={item.id} className="flex items-start space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -429,13 +428,12 @@ function AdminDashboardPage({ user, session, profile, userState, isAuthenticated
                           <p className={`text-sm ${item.completed ? 'line-through text-gray-500 dark:text-gray-400' : 'text-[#0A2647] dark:text-gray-100'}`}>
                             {item.task}
                           </p>
-                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                            item.priority === 'high' 
-                              ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                              : item.priority === 'normal'
+                          <span className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${item.priority === 'high'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : item.priority === 'normal'
                               ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                               : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          }`}>
+                            }`}>
                             {item.priority}
                           </span>
                         </div>
