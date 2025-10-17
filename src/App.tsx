@@ -69,6 +69,32 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
   const { t } = useTranslations(language);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [doctorProfile, setDoctorProfile] = useState<any>(null);
+
+  // Load doctor profile if user is authenticated
+  useEffect(() => {
+    const loadDoctorProfile = async () => {
+      if (isAuthenticated && user) {
+        try {
+          const { data } = await supabase
+            .from('doctors')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+          if (data) {
+            setDoctorProfile(data);
+          }
+        } catch (error) {
+          console.error('Error loading doctor profile:', error);
+        }
+      } else {
+        setDoctorProfile(null);
+      }
+    };
+
+    loadDoctorProfile();
+  }, [isAuthenticated, user]);
 
   // Simple patient and doctor detection - add classes to body for CSS targeting
   useEffect(() => {
@@ -358,6 +384,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
             userState={userState}
             isAuthenticated={isAuthenticated}
             handleLogout={handleLogout}
+            doctor={doctorProfile}
           />
         </div>
 

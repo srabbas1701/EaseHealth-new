@@ -378,14 +378,19 @@ const Navigation: React.FC<NavigationProps> = ({
           </button>
         );
       case 'authenticated':
+        // Determine dashboard link based on user role
+        const dashboardLink = isDoctor ? '/doctor-dashboard' : '/patient-dashboard';
+        // Get display name from doctor profile, patient profile, or user data
+        const displayName = doctor?.full_name || profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('common.user');
+
         return (
           <div className="flex items-center space-x-3">
             <div className="hidden md:flex items-center space-x-2 text-sm text-[#0A2647] dark:text-white">
               <User className="w-4 h-4 text-[#0A2647] dark:text-white" />
-              <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(doctor?.full_name || profile?.full_name || user?.user_metadata?.full_name || (user?.email?.split('@')[0] || t('common.user')))}</span></span>
+              <span className="text-[#0A2647] dark:text-white">{t('common.hi')}, <span className="font-bold text-[#0A2647] dark:text-white">{getFirstName(displayName)}</span></span>
             </div>
             <Link
-              to="/patient-dashboard"
+              to={dashboardLink}
               className="bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
               aria-label="Go to Dashboard"
             >
