@@ -20,6 +20,8 @@ interface UseScheduleDataResult {
   isLoading: boolean;
   error: string | null;
   hasAnySchedules: boolean;
+  hasMissingDates: boolean;
+  missingDatesCount: number;
   refetch: () => Promise<void>;
 }
 
@@ -62,6 +64,8 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasAnySchedules, setHasAnySchedules] = useState(false);
+  const [hasMissingDates, setHasMissingDates] = useState(false);
+  const [missingDatesCount, setMissingDatesCount] = useState(0);
 
   const fetchSchedules = useCallback(async () => {
     if (!doctorId) {
@@ -119,16 +123,23 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
         return dateItem;
       });
 
+      const missingCount = mergedSchedules.filter(s => !s.hasExistingSchedule).length;
+
       console.log(`Loaded ${existingSchedules?.length || 0} existing schedules from database`);
       console.log(`Merged into ${mergedSchedules.length} total dates (4 weeks)`);
+      console.log(`Missing dates: ${missingCount}`);
 
       setSchedules(mergedSchedules);
       setHasAnySchedules(existingSchedules && existingSchedules.length > 0);
+      setHasMissingDates(missingCount > 0 && existingSchedules && existingSchedules.length > 0);
+      setMissingDatesCount(missingCount);
     } catch (err) {
       console.error('Error fetching schedules:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch schedules');
       setSchedules([]);
       setHasAnySchedules(false);
+      setHasMissingDates(false);
+      setMissingDatesCount(0);
     } finally {
       setIsLoading(false);
     }
@@ -143,6 +154,8 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
     isLoading,
     error,
     hasAnySchedules,
+    hasMissingDates,
+    missingDatesCount,
     refetch: fetchSchedules,
   };
 }

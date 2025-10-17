@@ -11,8 +11,8 @@ interface ScheduleManagementProps {
 }
 
 const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }) => {
-  const { schedules, isLoading, error, hasAnySchedules, refetch } = useScheduleData(doctorId);
-  const { generateSchedules, modifySchedules, clearAllSchedules, isProcessing } = useScheduleActions();
+  const { schedules, isLoading, error, hasAnySchedules, hasMissingDates, missingDatesCount, refetch } = useScheduleData(doctorId);
+  const { generateSchedules, generateMissingWeek, modifySchedules, clearAllSchedules, isProcessing } = useScheduleActions();
 
   const [localSchedules, setLocalSchedules] = useState<ScheduleDay[]>([]);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
@@ -58,13 +58,26 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }
     const result = await generateSchedules(doctorId, localSchedules);
 
     if (result.success) {
-      setMessage({ type: 'success', text: 'Schedules and time slots generated successfully!' });
+      setMessage({ type: 'success', text: 'All 4-week schedules and time slots generated successfully!' });
       await refetch();
       setTimeout(() => setMessage(null), 5000);
     } else {
       setMessage({ type: 'error', text: result.error || 'Failed to generate schedules' });
     }
   }, [doctorId, localSchedules, generateSchedules, refetch]);
+
+  const handleGenerateMissing = useCallback(async () => {
+    setMessage(null);
+    const result = await generateMissingWeek(doctorId, localSchedules);
+
+    if (result.success) {
+      setMessage({ type: 'success', text: `New week generated successfully! (${missingDatesCount} dates added)` });
+      await refetch();
+      setTimeout(() => setMessage(null), 5000);
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Failed to generate missing week' });
+    }
+  }, [doctorId, localSchedules, generateMissingWeek, missingDatesCount, refetch]);
 
   const handleModify = useCallback(async () => {
     setMessage(null);
@@ -174,8 +187,10 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }
             </p>
             <p className="text-blue-600 dark:text-blue-400 text-sm">
               {hasAnySchedules
-                ? 'Check/uncheck dates to enable or disable availability. Update times as needed and click "Modify Schedule" to save changes.'
-                : 'Select the dates you want to be available and set your working hours. Click "Generate New Schedule & Time Slots" when ready.'}
+                ? hasMissingDates
+                  ? `You have ${missingDatesCount} missing date(s) in your 4-week schedule (likely new week). Check/uncheck dates and click "Generate New Week" to add them, or modify existing schedules.`
+                  : 'Check/uncheck dates to enable or disable availability. Update times as needed and click "Modify Schedule" to save changes.'
+                : 'Select the dates you want to be available for the next 4 weeks. All dates will be created - checked ones as available, unchecked ones as blocked. Click "Generate New Schedule & Time Slots" when ready.'}
             </p>
           </div>
         </div>
@@ -194,8 +209,11 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }
       {/* Action Buttons */}
       <ScheduleActions
         hasAnySchedules={hasAnySchedules}
+        hasMissingDates={hasMissingDates}
+        missingDatesCount={missingDatesCount}
         isProcessing={isProcessing}
         onGenerate={handleGenerate}
+        onGenerateMissing={handleGenerateMissing}
         onModify={handleModify}
         onClear={handleClear}
       />

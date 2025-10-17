@@ -4,6 +4,7 @@ import type { ScheduleDay } from './useScheduleData';
 
 interface UseScheduleActionsResult {
   generateSchedules: (doctorId: string, schedules: ScheduleDay[]) => Promise<{ success: boolean; error?: string }>;
+  generateMissingWeek: (doctorId: string, schedules: ScheduleDay[]) => Promise<{ success: boolean; error?: string }>;
   modifySchedules: (doctorId: string, schedules: ScheduleDay[]) => Promise<{ success: boolean; error?: string }>;
   clearAllSchedules: (doctorId: string) => Promise<{ success: boolean; error?: string }>;
   isProcessing: boolean;
@@ -61,13 +62,7 @@ export function useScheduleActions(): UseScheduleActionsResult {
     setIsProcessing(true);
 
     try {
-      const activeSchedules = schedules.filter(s => s.isAvailable);
-
-      if (activeSchedules.length === 0) {
-        return { success: false, error: 'Please select at least one day to generate schedules' };
-      }
-
-      const scheduleRecords = activeSchedules.map(schedule => ({
+      const scheduleRecords = schedules.map(schedule => ({
         doctor_id: doctorId,
         day_of_week: schedule.dayOfWeek,
         schedule_date: schedule.date,
@@ -76,8 +71,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
         slot_duration_minutes: schedule.slotDuration,
         break_start_time: schedule.breakStartTime,
         break_end_time: schedule.breakEndTime,
-        is_available: true,
-        status: 'active',
+        is_available: schedule.isAvailable,
+        status: schedule.isAvailable ? 'active' : 'blocked',
       }));
 
       const { error: scheduleError } = await supabase
@@ -86,8 +81,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
 
       if (scheduleError) throw scheduleError;
 
-      const allTimeSlots = activeSchedules.flatMap(schedule =>
-        generateTimeSlots(
+      const allTimeSlots = schedules.flatMap(schedule => {
+        const slots = generateTimeSlots(
           doctorId,
           schedule.date,
           schedule.startTime,
@@ -95,14 +90,22 @@ export function useScheduleActions(): UseScheduleActionsResult {
           schedule.slotDuration,
           schedule.breakStartTime,
           schedule.breakEndTime
-        )
-      );
+        );
 
-      const { error: slotsError } = await supabase
-        .from('time_slots')
-        .insert(allTimeSlots);
+        if (!schedule.isAvailable) {
+          return slots.map(slot => ({ ...slot, status: 'blocked' }));
+        }
 
-      if (slotsError) throw slotsError;
+        return slots;
+      });
+
+      if (allTimeSlots.length > 0) {
+        const { error: slotsError } = await supabase
+          .from('time_slots')
+          .insert(allTimeSlots);
+
+        if (slotsError) throw slotsError;
+      }
 
       return { success: true };
     } catch (err) {
@@ -124,111 +127,57 @@ export function useScheduleActions(): UseScheduleActionsResult {
 
     try {
       for (const schedule of schedules) {
-        console.log(`Processing schedule for ${schedule.date}:`, {
-          hasExisting: schedule.hasExistingSchedule,
-          scheduleId: schedule.scheduleId,
-          isAvailable: schedule.isAvailable
-        });
+        if (!schedule.hasExistingSchedule || !schedule.scheduleId) {
+          console.warn(`Schedule for ${schedule.date} has no existing record. This should not happen with the new system.`);
+          continue;
+        }
 
-        if (schedule.hasExistingSchedule && schedule.scheduleId) {
-          console.log(`Updating existing schedule for ${schedule.date}`);
-          const { error: updateError } = await supabase
-            .from('doctor_schedules')
-            .update({
-              start_time: schedule.startTime,
-              end_time: schedule.endTime,
-              slot_duration_minutes: schedule.slotDuration,
-              break_start_time: schedule.breakStartTime,
-              break_end_time: schedule.breakEndTime,
-              is_available: schedule.isAvailable,
-              status: schedule.isAvailable ? 'active' : 'inactive',
-            })
-            .eq('id', schedule.scheduleId);
+        const { error: updateError } = await supabase
+          .from('doctor_schedules')
+          .update({
+            start_time: schedule.startTime,
+            end_time: schedule.endTime,
+            slot_duration_minutes: schedule.slotDuration,
+            break_start_time: schedule.breakStartTime,
+            break_end_time: schedule.breakEndTime,
+            is_available: schedule.isAvailable,
+            status: schedule.isAvailable ? 'active' : 'blocked',
+          })
+          .eq('id', schedule.scheduleId);
 
-          if (updateError) {
-            console.error(`Update error for ${schedule.date}:`, updateError);
-            throw updateError;
-          }
+        if (updateError) {
+          console.error(`Update error for ${schedule.date}:`, updateError);
+          throw updateError;
+        }
 
-          if (!schedule.isAvailable) {
-            const { error: slotsError } = await supabase
-              .from('time_slots')
-              .update({ status: 'blocked' })
-              .eq('doctor_id', doctorId)
-              .eq('schedule_date', schedule.date);
+        const { error: deleteError } = await supabase
+          .from('time_slots')
+          .delete()
+          .eq('doctor_id', doctorId)
+          .eq('schedule_date', schedule.date);
 
-            if (slotsError) throw slotsError;
-          } else {
-            const { error: deleteError } = await supabase
-              .from('time_slots')
-              .delete()
-              .eq('doctor_id', doctorId)
-              .eq('schedule_date', schedule.date);
+        if (deleteError) throw deleteError;
 
-            if (deleteError) throw deleteError;
+        const newSlots = generateTimeSlots(
+          doctorId,
+          schedule.date,
+          schedule.startTime,
+          schedule.endTime,
+          schedule.slotDuration,
+          schedule.breakStartTime,
+          schedule.breakEndTime
+        );
 
-            const newSlots = generateTimeSlots(
-              doctorId,
-              schedule.date,
-              schedule.startTime,
-              schedule.endTime,
-              schedule.slotDuration,
-              schedule.breakStartTime,
-              schedule.breakEndTime
-            );
+        const slotsToInsert = schedule.isAvailable
+          ? newSlots
+          : newSlots.map(slot => ({ ...slot, status: 'blocked' }));
 
-            const { error: insertError } = await supabase
-              .from('time_slots')
-              .insert(newSlots);
-
-            if (insertError) throw insertError;
-          }
-        } else if (schedule.isAvailable) {
-          console.log(`Creating new schedule for ${schedule.date}`);
-          const { data: newSchedule, error: insertScheduleError } = await supabase
-            .from('doctor_schedules')
-            .insert({
-              doctor_id: doctorId,
-              day_of_week: schedule.dayOfWeek,
-              schedule_date: schedule.date,
-              start_time: schedule.startTime,
-              end_time: schedule.endTime,
-              slot_duration_minutes: schedule.slotDuration,
-              break_start_time: schedule.breakStartTime,
-              break_end_time: schedule.breakEndTime,
-              is_available: true,
-              status: 'active',
-            })
-            .select()
-            .single();
-
-          if (insertScheduleError) {
-            console.error(`Insert schedule error for ${schedule.date}:`, insertScheduleError);
-            throw insertScheduleError;
-          }
-
-          console.log(`Generating time slots for ${schedule.date}`);
-          const newSlots = generateTimeSlots(
-            doctorId,
-            schedule.date,
-            schedule.startTime,
-            schedule.endTime,
-            schedule.slotDuration,
-            schedule.breakStartTime,
-            schedule.breakEndTime
-          );
-
-          console.log(`Inserting ${newSlots.length} time slots for ${schedule.date}`);
-          const { error: insertSlotsError } = await supabase
+        if (slotsToInsert.length > 0) {
+          const { error: insertError } = await supabase
             .from('time_slots')
-            .insert(newSlots);
+            .insert(slotsToInsert);
 
-          if (insertSlotsError) {
-            console.error(`Insert slots error for ${schedule.date}:`, insertSlotsError);
-            throw insertSlotsError;
-          }
-        } else {
-          console.log(`Skipping ${schedule.date} - not available and no existing schedule`);
+          if (insertError) throw insertError;
         }
       }
 
@@ -284,8 +233,79 @@ export function useScheduleActions(): UseScheduleActionsResult {
     }
   }, []);
 
+  const generateMissingWeek = useCallback(async (
+    doctorId: string,
+    schedules: ScheduleDay[]
+  ): Promise<{ success: boolean; error?: string }> => {
+    setIsProcessing(true);
+
+    try {
+      const missingSchedules = schedules.filter(s => !s.hasExistingSchedule);
+
+      if (missingSchedules.length === 0) {
+        return { success: false, error: 'No missing schedules to generate' };
+      }
+
+      const scheduleRecords = missingSchedules.map(schedule => ({
+        doctor_id: doctorId,
+        day_of_week: schedule.dayOfWeek,
+        schedule_date: schedule.date,
+        start_time: schedule.startTime,
+        end_time: schedule.endTime,
+        slot_duration_minutes: schedule.slotDuration,
+        break_start_time: schedule.breakStartTime,
+        break_end_time: schedule.breakEndTime,
+        is_available: schedule.isAvailable,
+        status: schedule.isAvailable ? 'active' : 'blocked',
+      }));
+
+      const { error: scheduleError } = await supabase
+        .from('doctor_schedules')
+        .insert(scheduleRecords);
+
+      if (scheduleError) throw scheduleError;
+
+      const allTimeSlots = missingSchedules.flatMap(schedule => {
+        const slots = generateTimeSlots(
+          doctorId,
+          schedule.date,
+          schedule.startTime,
+          schedule.endTime,
+          schedule.slotDuration,
+          schedule.breakStartTime,
+          schedule.breakEndTime
+        );
+
+        if (!schedule.isAvailable) {
+          return slots.map(slot => ({ ...slot, status: 'blocked' }));
+        }
+
+        return slots;
+      });
+
+      if (allTimeSlots.length > 0) {
+        const { error: slotsError } = await supabase
+          .from('time_slots')
+          .insert(allTimeSlots);
+
+        if (slotsError) throw slotsError;
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Error generating missing week:', err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to generate missing week',
+      };
+    } finally {
+      setIsProcessing(false);
+    }
+  }, []);
+
   return {
     generateSchedules,
+    generateMissingWeek,
     modifySchedules,
     clearAllSchedules,
     isProcessing,
