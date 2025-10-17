@@ -145,14 +145,22 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
 
           // Load profile image if exists
           if (doctorData.profile_image_url) {
-            const signedUrl = await getDoctorSignedUrl(
-              doctorData.profile_image_url,
-              'profile_image'
-            );
-            if (signedUrl) {
-              setProfileImagePreview(signedUrl);
+            try {
+              const imageUrl = await getDoctorSignedUrl(
+                doctorData.profile_image_url,
+                'profile_image'
+              );
+              if (imageUrl) {
+                setProfileImagePreview(imageUrl);
+              }
+            } catch (error) {
+              console.error('Error loading profile image:', error);
+              // Continue without profile image
             }
           }
+        } else if (doctorError) {
+          console.error('Database error:', doctorError);
+          setSaveError(`Failed to load doctor profile: ${doctorError.message}`);
         } else {
           setSaveError('Doctor profile not found. Please complete registration first.');
         }
@@ -234,20 +242,26 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
 
       if (profileImage) {
         setUploadingFile('profile_image');
-        const uploadResult = await uploadDoctorDocument(
-          profileImage,
-          doctorProfile.id,
-          'profile_image'
-        );
+        try {
+          const uploadResult = await uploadDoctorDocument(
+            profileImage,
+            doctorProfile.id,
+            'profile_image'
+          );
 
-        if (uploadResult.publicUrl) {
-          profileImageUrl = uploadResult.publicUrl;
-        } else if (uploadResult.path) {
-          profileImageUrl = uploadResult.path;
-        } else {
-          throw new Error('Failed to upload profile image');
+          if (uploadResult.publicUrl) {
+            profileImageUrl = uploadResult.publicUrl;
+          } else if (uploadResult.path) {
+            profileImageUrl = uploadResult.path;
+          } else {
+            throw new Error('Failed to upload profile image');
+          }
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(uploadError instanceof Error ? uploadError.message : 'Failed to upload profile image');
+        } finally {
+          setUploadingFile(null);
         }
-        setUploadingFile(null);
       }
 
       // Update doctor profile

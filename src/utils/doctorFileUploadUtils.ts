@@ -226,11 +226,11 @@ export const downloadDoctorDocument = async (
 };
 
 /**
- * Gets a signed URL for private doctor document access
+ * Gets a public URL for profile images or signed URL for private documents
  * @param filePath - Path to the file in storage
  * @param documentType - Type of document
- * @param expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
- * @returns Promise with signed URL
+ * @param expiresIn - URL expiration time in seconds for signed URLs (default: 3600 = 1 hour)
+ * @returns Promise with URL
  */
 export const getDoctorSignedUrl = async (
   filePath: string,
@@ -239,7 +239,16 @@ export const getDoctorSignedUrl = async (
 ): Promise<string> => {
   try {
     const bucketName = getDoctorBucketName(documentType);
-    
+
+    // Profile images use public URLs
+    if (documentType === 'profile_image') {
+      const { data } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      return data.publicUrl;
+    }
+
+    // Other documents use signed URLs
     const { data, error } = await supabase.storage
       .from(bucketName)
       .createSignedUrl(filePath, expiresIn);
@@ -250,8 +259,8 @@ export const getDoctorSignedUrl = async (
 
     return data.signedUrl;
   } catch (error) {
-    console.error('Signed URL error:', error);
-    throw new Error(`Failed to get signed URL for ${documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    console.error('URL error:', error);
+    throw new Error(`Failed to get URL for ${documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
