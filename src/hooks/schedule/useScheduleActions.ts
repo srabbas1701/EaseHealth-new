@@ -72,7 +72,7 @@ export function useScheduleActions(): UseScheduleActionsResult {
         break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
         break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
         is_available: schedule.isAvailable,
-        status: schedule.isAvailable ? 'active' : 'blocked',
+        status: schedule.isAvailable ? 'active' : 'inactive',
       }));
 
       const { error: scheduleError } = await supabase
@@ -141,7 +141,7 @@ export function useScheduleActions(): UseScheduleActionsResult {
             break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
             break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
             is_available: schedule.isAvailable,
-            status: schedule.isAvailable ? 'active' : 'blocked',
+            status: schedule.isAvailable ? 'active' : 'inactive',
           })
           .eq('id', schedule.scheduleId);
 
@@ -256,7 +256,7 @@ export function useScheduleActions(): UseScheduleActionsResult {
         break_start_time: schedule.breakStartTime && schedule.breakStartTime.trim() !== '' ? schedule.breakStartTime : null,
         break_end_time: schedule.breakEndTime && schedule.breakEndTime.trim() !== '' ? schedule.breakEndTime : null,
         is_available: schedule.isAvailable,
-        status: schedule.isAvailable ? 'active' : 'blocked',
+        status: schedule.isAvailable ? 'active' : 'inactive',
       }));
 
       const { error: scheduleError } = await supabase
@@ -316,10 +316,11 @@ const getNext4WeeksDateRange = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const startDate = new Date(today);
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
 
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 27);
+  const endDate = new Date(startOfWeek);
+  endDate.setDate(startOfWeek.getDate() + 27);
 
-  return { startDate, endDate };
+  return { startDate: startOfWeek, endDate };
 };

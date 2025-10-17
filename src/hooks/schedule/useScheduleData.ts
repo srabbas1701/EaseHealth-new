@@ -29,19 +29,23 @@ const getNext4WeeksDateRange = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const startDate = new Date(today);
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
 
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 27);
+  const endDate = new Date(startOfWeek);
+  endDate.setDate(startOfWeek.getDate() + 27);
 
-  return { startDate, endDate };
+  return { startDate: startOfWeek, endDate };
 };
 
 const generateDateArray = (startDate: Date, endDate: Date): ScheduleDay[] => {
   const dates: ScheduleDay[] = [];
   const current = new Date(startDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   while (current <= endDate) {
+    const isPast = current < today;
     dates.push({
       date: current.toISOString().split('T')[0],
       dayOfWeek: current.getDay(),
