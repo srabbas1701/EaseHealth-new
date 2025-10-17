@@ -33,7 +33,7 @@ const ScheduleDayCard: React.FC<ScheduleDayCardProps> = memo(({
       } ${isPastDate ? 'opacity-50' : ''} p-4`}
     >
       {/* Header with Checkbox */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
           <input
             type="checkbox"
@@ -43,10 +43,10 @@ const ScheduleDayCard: React.FC<ScheduleDayCardProps> = memo(({
             className="w-5 h-5 text-teal-600 rounded focus:ring-2 focus:ring-teal-500 cursor-pointer disabled:cursor-not-allowed"
           />
           <div>
-            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+            <p className="text-base font-bold text-gray-900 dark:text-gray-100">
               {dayNames[schedule.dayOfWeek]}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               {formatDate(schedule.date)}
             </p>
           </div>
@@ -58,61 +58,87 @@ const ScheduleDayCard: React.FC<ScheduleDayCardProps> = memo(({
         )}
       </div>
 
-      {/* Time Inputs - Only show when available */}
+      {/* Time Inputs - Stacked Vertically */}
       {schedule.isAvailable && (
-        <div className="space-y-3">
-          {/* Working Hours */}
-          <div className="flex items-center space-x-2">
-            <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400 flex-shrink-0" />
-            <div className="flex items-center space-x-2 flex-1">
-              <input
-                type="time"
-                value={schedule.startTime}
-                onChange={(e) => isEditable && onTimeChange(schedule.date, 'startTime', e.target.value)}
-                disabled={!isEditable || isPastDate}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-              />
-              <span className="text-gray-500 dark:text-gray-400">-</span>
-              <input
-                type="time"
-                value={schedule.endTime}
-                onChange={(e) => isEditable && onTimeChange(schedule.date, 'endTime', e.target.value)}
-                disabled={!isEditable || isPastDate}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-              />
+        <div className="space-y-4">
+          {/* Start Time */}
+          <div>
+            <div className="flex items-center space-x-2 mb-1.5">
+              <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Start Time
+              </label>
             </div>
+            <input
+              type="time"
+              value={schedule.startTime}
+              onChange={(e) => isEditable && onTimeChange(schedule.date, 'startTime', e.target.value)}
+              disabled={!isEditable || isPastDate}
+              className="w-full px-3 py-2 text-base font-medium border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+            />
           </div>
 
-          {/* Break Time */}
-          <div className="flex items-center space-x-2">
-            <Coffee className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-            <div className="flex items-center space-x-2 flex-1">
-              <input
-                type="time"
-                value={schedule.breakStartTime}
-                onChange={(e) => isEditable && onTimeChange(schedule.date, 'breakStartTime', e.target.value)}
-                disabled={!isEditable || isPastDate}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-              />
-              <span className="text-gray-500 dark:text-gray-400">-</span>
-              <input
-                type="time"
-                value={schedule.breakEndTime}
-                onChange={(e) => isEditable && onTimeChange(schedule.date, 'breakEndTime', e.target.value)}
-                disabled={!isEditable || isPastDate}
-                className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
-              />
+          {/* End Time */}
+          <div>
+            <div className="flex items-center space-x-2 mb-1.5">
+              <Clock className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                End Time
+              </label>
             </div>
+            <input
+              type="time"
+              value={schedule.endTime}
+              onChange={(e) => isEditable && onTimeChange(schedule.date, 'endTime', e.target.value)}
+              disabled={!isEditable || isPastDate}
+              className="w-full px-3 py-2 text-base font-medium border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+            />
+          </div>
+
+          {/* Break Start Time */}
+          <div>
+            <div className="flex items-center space-x-2 mb-1.5">
+              <Coffee className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Break Start
+              </label>
+            </div>
+            <input
+              type="time"
+              value={schedule.breakStartTime}
+              onChange={(e) => isEditable && onTimeChange(schedule.date, 'breakStartTime', e.target.value)}
+              disabled={!isEditable || isPastDate}
+              className="w-full px-3 py-2 text-base font-medium border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+            />
+          </div>
+
+          {/* Break End Time */}
+          <div>
+            <div className="flex items-center space-x-2 mb-1.5">
+              <Coffee className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                Break End
+              </label>
+            </div>
+            <input
+              type="time"
+              value={schedule.breakEndTime}
+              onChange={(e) => isEditable && onTimeChange(schedule.date, 'breakEndTime', e.target.value)}
+              disabled={!isEditable || isPastDate}
+              className="w-full px-3 py-2 text-base font-medium border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+            />
           </div>
 
           {/* Slot Duration */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-gray-600 dark:text-gray-400 flex-shrink-0">Slot:</span>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+              Slot Duration
+            </label>
             <select
               value={schedule.slotDuration}
               onChange={(e) => isEditable && onTimeChange(schedule.date, 'slotDuration', parseInt(e.target.value))}
               disabled={!isEditable || isPastDate}
-              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
+              className="w-full px-3 py-2 text-base font-medium border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:opacity-50"
             >
               <option value={15}>15 min</option>
               <option value={20}>20 min</option>
@@ -126,8 +152,8 @@ const ScheduleDayCard: React.FC<ScheduleDayCardProps> = memo(({
 
       {/* Unavailable Message */}
       {!schedule.isAvailable && (
-        <div className="mt-2 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+        <div className="mt-2 text-center py-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
             {isPastDate ? 'Past date' : 'Not available'}
           </p>
         </div>
