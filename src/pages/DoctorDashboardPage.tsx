@@ -46,6 +46,7 @@ interface Appointment {
   notes?: string;
   patient_name?: string;
   patient_phone?: string;
+  patient_profile_image?: string;
 }
 
 // Today's overview stats interface
@@ -246,7 +247,8 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           notes,
           patients!inner(
             full_name,
-            phone_number
+            phone_number,
+            profile_image_url
           )
         `)
         .eq('doctor_id', doctor.id)
@@ -264,7 +266,8 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           queue_token: apt.queue_token,
           notes: apt.notes,
           patient_name: apt.patients?.full_name || 'Unknown Patient',
-          patient_phone: apt.patients?.phone_number
+          patient_phone: apt.patients?.phone_number,
+          patient_profile_image: apt.patients?.profile_image_url
         }));
 
         setTodayAppointments(formattedAppointments);
@@ -887,8 +890,20 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="w-10 h-10 bg-gradient-to-r from-[#0075A2] to-[#0A2647] rounded-full flex items-center justify-center text-white font-medium text-sm mr-3">
-                            {appointment.patient_name?.charAt(0) || 'P'}
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-medium text-sm mr-3 overflow-hidden bg-gradient-to-r from-[#0075A2] to-[#0A2647]">
+                            {appointment.patient_profile_image ? (
+                              <img
+                                src={appointment.patient_profile_image}
+                                alt={appointment.patient_name || 'Patient'}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  e.currentTarget.parentElement!.textContent = appointment.patient_name?.charAt(0) || 'P';
+                                }}
+                              />
+                            ) : (
+                              appointment.patient_name?.charAt(0) || 'P'
+                            )}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-[#0A2647] dark:text-gray-100">
