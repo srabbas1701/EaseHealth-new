@@ -632,34 +632,39 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     return matchesSearch;
   });
 
-  // Map status to display label
+  // Map status to display label (in CAPS)
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'in_room': return 'In Room';
-      case 'scheduled': return 'Scheduled';
-      case 'completed': return 'Done';
-      case 'cancelled': return 'Cancelled';
-      case 'arrived': return 'Arrived';
-      case 'confirmed': return 'Confirmed';
-      default: return status;
+      case 'in_room': return 'IN ROOM';
+      case 'scheduled': return 'SCHEDULED';
+      case 'completed': return 'COMPLETED';
+      case 'cancelled': return 'CANCELLED';
+      case 'arrived': return 'ARRIVED';
+      case 'confirmed': return 'CONFIRMED';
+      case 'no_show': return 'NO SHOW';
+      default: return status.toUpperCase();
     }
   };
 
-  // Get status badge color
+  // Get status badge color with distinct colors
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'in_room':
+        return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-700';
       case 'completed':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+        return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700';
       case 'scheduled':
+        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700';
       case 'confirmed':
-        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+        return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700';
       case 'cancelled':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+        return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-300 dark:border-red-700';
       case 'arrived':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700';
+      case 'no_show':
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600';
       default:
-        return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+        return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600';
     }
   };
 
