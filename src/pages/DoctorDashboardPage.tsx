@@ -156,11 +156,16 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
 
   // Load doctor data
   const loadDoctorData = useCallback(async () => {
-    if (!isAuthenticated || !user || !profile) return;
+    if (!isAuthenticated || !user || !profile) {
+      console.log('❌ Cannot load doctor data - missing auth:', { isAuthenticated, hasUser: !!user, hasProfile: !!profile });
+      return;
+    }
 
     setIsLoadingDoctor(true);
     try {
+      console.log('🔍 Loading doctor data for user:', user.id);
       const doctorId = await getDoctorIdByUserId(user.id);
+      console.log('📋 Doctor ID:', doctorId);
 
       if (doctorId) {
         const { data: doctorData, error: doctorError } = await supabase
@@ -169,25 +174,38 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           .eq('id', doctorId)
           .single();
 
-        if (!doctorError && doctorData) {
-          // If profile_image_url exists, get signed URL from storage
-          let profileImageUrl = doctorData.profile_image_url;
-          if (profileImageUrl && profileImageUrl.startsWith('doctor-profile-images/')) {
-            const { data: signedUrlData } = await supabase.storage
-              .from('doctor-profile-images')
-              .createSignedUrl(profileImageUrl.replace('doctor-profile-images/', ''), 3600);
+        console.log('📊 Doctor query result:', { data: doctorData, error: doctorError });
 
-            if (signedUrlData?.signedUrl) {
-              profileImageUrl = signedUrlData.signedUrl;
+        if (!doctorError && doctorData) {
+          // Handle profile_image_url - could be full URL or path
+          let profileImageUrl = doctorData.profile_image_url;
+
+          // If URL is a path (not a full URL), generate signed URL
+          if (profileImageUrl && !profileImageUrl.startsWith('http')) {
+            try {
+              const cleanPath = profileImageUrl.replace('doctor-profile-images/', '');
+              const { data: signedUrlData } = await supabase.storage
+                .from('doctor-profile-images')
+                .createSignedUrl(cleanPath, 3600);
+
+              if (signedUrlData?.signedUrl) {
+                profileImageUrl = signedUrlData.signedUrl;
+              }
+            } catch (err) {
+              console.error('Error generating signed URL:', err);
             }
           }
 
-          setDoctor({
+          const doctorInfo = {
             ...doctorData,
             profile_image_url: profileImageUrl,
             last_login: new Date().toISOString()
-          });
+          };
+
+          console.log('✅ Setting doctor data:', doctorInfo);
+          setDoctor(doctorInfo);
         } else {
+          console.log('⚠️ No doctor data found or error, using fallback');
           // Fallback data
           setDoctor({
             id: doctorId,
@@ -198,9 +216,11 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
             last_login: new Date().toISOString()
           });
         }
+      } else {
+        console.log('❌ No doctor ID found for user');
       }
     } catch (error) {
-      console.error('Error loading doctor data:', error);
+      console.error('❌ Error loading doctor data:', error);
       setAnnouncement('Failed to load doctor profile');
     } finally {
       setIsLoadingDoctor(false);
