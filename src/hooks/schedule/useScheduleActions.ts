@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../../utils/supabase';
 import type { ScheduleDay } from './useScheduleData';
+import { toISTDateString, getStartOfWeekIST, addDaysIST } from '../../utils/timezoneUtils';
 
 interface UseScheduleActionsResult {
   generateSchedules: (doctorId: string, schedules: ScheduleDay[]) => Promise<{ success: boolean; error?: string }>;
@@ -200,8 +201,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
 
     try {
       const { startDate, endDate } = getNext4WeeksDateRange();
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = toISTDateString(startDate);
+      const endDateStr = toISTDateString(endDate);
 
       const { error: deleteSchedulesError } = await supabase
         .from('doctor_schedules')
@@ -313,14 +314,8 @@ export function useScheduleActions(): UseScheduleActionsResult {
 }
 
 const getNext4WeeksDateRange = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-
-  const endDate = new Date(startOfWeek);
-  endDate.setDate(startOfWeek.getDate() + 27);
+  const startOfWeek = getStartOfWeekIST();
+  const endDate = addDaysIST(startOfWeek, 27);
 
   return { startDate: startOfWeek, endDate };
 };

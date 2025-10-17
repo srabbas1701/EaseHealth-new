@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Clock, Coffee } from 'lucide-react';
 import type { ScheduleDay } from '../../hooks/schedule/useScheduleData';
+import { isPastDateIST } from '../../utils/timezoneUtils';
 
 interface ScheduleDayCardProps {
   schedule: ScheduleDay;
@@ -22,7 +23,7 @@ const ScheduleDayCard: React.FC<ScheduleDayCardProps> = memo(({
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const isPastDate = new Date(schedule.date) < new Date(new Date().toISOString().split('T')[0]);
+  const isPastDate = isPastDateIST(schedule.date);
 
   return (
     <div

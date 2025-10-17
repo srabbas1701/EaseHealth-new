@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../utils/supabase';
+import { toISTDateString, getStartOfWeekIST, addDaysIST, getTodayIST } from '../../utils/timezoneUtils';
 
 export interface ScheduleDay {
   date: string;
@@ -26,14 +27,8 @@ interface UseScheduleDataResult {
 }
 
 const getNext4WeeksDateRange = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-
-  const endDate = new Date(startOfWeek);
-  endDate.setDate(startOfWeek.getDate() + 27);
+  const startOfWeek = getStartOfWeekIST();
+  const endDate = addDaysIST(startOfWeek, 27);
 
   return { startDate: startOfWeek, endDate };
 };
@@ -41,20 +36,24 @@ const getNext4WeeksDateRange = () => {
 const generateDateArray = (startDate: Date, endDate: Date): ScheduleDay[] => {
   const dates: ScheduleDay[] = [];
   const current = new Date(startDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = getTodayIST();
 
   while (current <= endDate) {
-    const isPast = current < today;
+    const dateStr = toISTDateString(current);
+    const currentDateOnly = new Date(current);
+    currentDateOnly.setHours(0, 0, 0, 0);
+    const todayDateOnly = new Date(today);
+    todayDateOnly.setHours(0, 0, 0, 0);
+
     dates.push({
-      date: current.toISOString().split('T')[0],
+      date: dateStr,
       dayOfWeek: current.getDay(),
       isAvailable: false,
       startTime: '09:00',
       endTime: '17:00',
       slotDuration: 15,
-      breakStartTime: '13:00',
-      breakEndTime: '14:00',
+      breakStartTime: '',
+      breakEndTime: '',
       status: 'inactive',
       hasExistingSchedule: false,
     });
@@ -84,8 +83,8 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
 
     try {
       const { startDate, endDate } = getNext4WeeksDateRange();
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = toISTDateString(startDate);
+      const endDateStr = toISTDateString(endDate);
 
       const { data: existingSchedules, error: fetchError } = await supabase
         .from('doctor_schedules')
@@ -109,17 +108,19 @@ export function useScheduleData(doctorId: string | null): UseScheduleDataResult 
         if (existingSchedule) {
           console.log(`Found existing schedule for ${dateItem.date}:`, {
             id: existingSchedule.id,
-            isAvailable: existingSchedule.is_available
+            isAvailable: existingSchedule.is_available,
+            schedule_date: existingSchedule.schedule_date
           });
           return {
             ...dateItem,
+            date: existingSchedule.schedule_date,
             scheduleId: existingSchedule.id,
             isAvailable: existingSchedule.is_available || false,
             startTime: existingSchedule.start_time || '09:00',
             endTime: existingSchedule.end_time || '17:00',
             slotDuration: existingSchedule.slot_duration_minutes || 15,
-            breakStartTime: existingSchedule.break_start_time || '13:00',
-            breakEndTime: existingSchedule.break_end_time || '14:00',
+            breakStartTime: existingSchedule.break_start_time || '',
+            breakEndTime: existingSchedule.break_end_time || '',
             status: (existingSchedule.status as 'active' | 'inactive') || 'inactive',
             hasExistingSchedule: true,
           };
