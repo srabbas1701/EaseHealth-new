@@ -999,7 +999,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">Schedule Management</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                Manage your availability for the next 4 weeks (current week + next 3 weeks)
+                Manage your availability for the next 28 days (starting today)
               </p>
             </div>
 

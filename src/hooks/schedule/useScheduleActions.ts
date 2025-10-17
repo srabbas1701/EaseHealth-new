@@ -314,11 +314,12 @@ export function useScheduleActions(): UseScheduleActionsResult {
 
 const getNext4WeeksDateRange = () => {
   const today = new Date();
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
+  today.setHours(0, 0, 0, 0);
 
-  const endDate = new Date(startOfWeek);
-  endDate.setDate(startOfWeek.getDate() + 27);
+  const startDate = new Date(today);
 
-  return { startDate: startOfWeek, endDate };
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 27);
+
+  return { startDate, endDate };
 };

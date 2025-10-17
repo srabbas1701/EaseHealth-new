@@ -95,7 +95,7 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }
   const handleClear = useCallback(async () => {
     if (hasAnySchedules) {
       const confirmed = window.confirm(
-        'Are you sure you want to clear all schedules? This will delete all schedule and time slot records for the next 4 weeks.'
+        'Are you sure you want to clear all schedules? This will delete all schedule and time slot records for the next 28 days.'
       );
 
       if (!confirmed) return;
@@ -188,9 +188,9 @@ const ScheduleManagement: React.FC<ScheduleManagementProps> = memo(({ doctorId }
             <p className="text-blue-600 dark:text-blue-400 text-sm">
               {hasAnySchedules
                 ? hasMissingDates
-                  ? `You have ${missingDatesCount} missing date(s) in your 4-week schedule (likely new week). Check/uncheck dates and click "Generate New Week" to add them, or modify existing schedules.`
+                  ? `You have ${missingDatesCount} missing date(s) in your rolling 28-day schedule. Check/uncheck these dates and click "Generate New Week" to add them, or modify existing schedules.`
                   : 'Check/uncheck dates to enable or disable availability. Update times as needed and click "Modify Schedule" to save changes.'
-                : 'Select the dates you want to be available for the next 4 weeks. All dates will be created - checked ones as available, unchecked ones as blocked. Click "Generate New Schedule & Time Slots" when ready.'}
+                : 'Select the dates you want to be available for the next 28 days. All dates will be created - checked ones as available, unchecked ones as blocked. Click "Generate New Schedule & Time Slots" when ready.'}
             </p>
           </div>
         </div>
