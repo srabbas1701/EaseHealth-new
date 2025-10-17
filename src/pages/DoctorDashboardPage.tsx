@@ -9,6 +9,7 @@ import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, getDoctorIdByUserId, createDoctorSchedulesForNext4Weeks, generateTimeSlotsForNext4Weeks } from '../utils/supabase';
+import PatientTabContent from '../components/PatientTab';
 
 // Auth props interface
 interface AuthProps {
@@ -93,6 +94,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
 
   // Tab management
   const [activeTab, setActiveTab] = useState<'overview' | 'maintain-schedule' | 'patients' | 'reports'>('overview');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -552,9 +554,14 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
 
   // Handle row click to view patient details
   const handleRowClick = (patientId: string) => {
+    setSelectedPatientId(patientId);
     setActiveTab('patients');
-    // TODO: Implement patient detail view with patientId
     setAnnouncement('Switched to Patient Management tab');
+  };
+
+  // Handle back from patient detail view
+  const handleBackFromPatient = () => {
+    setSelectedPatientId(null);
   };
 
   // Load data on component mount and when doctor changes
@@ -1221,19 +1228,11 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
         )}
 
         {activeTab === 'patients' && (
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
-              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">Patient Management</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Manage your patient records, view patient history, and access patient information.
-              </p>
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Patient management features will be implemented here. Click on any row in Today's Schedule to view patient details.
-                </p>
-              </div>
-            </div>
-          </div>
+          <PatientTabContent
+            patientId={selectedPatientId}
+            doctorId={doctor?.id || ''}
+            onBack={handleBackFromPatient}
+          />
         )}
 
         {activeTab === 'reports' && (
