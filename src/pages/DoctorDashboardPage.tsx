@@ -807,13 +807,26 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           </div>
         </div>
 
-        {/* Today's Schedule Table */}
+        {/* Appointments Schedule Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600 mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
-              Today's Schedule (Summary)
-            </h3>
+            <div>
+              <h3 className="text-xl font-bold text-[#0A2647] dark:text-gray-100 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
+                Appointments Summary
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 ml-7">
+                Showing appointments for{' '}
+                <span className="font-semibold text-[#0075A2] dark:text-[#0EA5E9]">
+                  {new Date(selectedDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </span>
+              </p>
+            </div>
             <div className="flex items-center space-x-3">
               <input
                 type="date"
