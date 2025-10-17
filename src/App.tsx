@@ -45,6 +45,7 @@ const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage')
 const PatientDashboardPage = React.lazy(() => import('./pages/PatientDashboardPage'));
 const ChooseServicePage = React.lazy(() => import('./pages/ChooseServicePage'));
 const DoctorDashboardPage = React.lazy(() => import('./pages/DoctorDashboardPage'));
+const DoctorProfileUpdatePage = React.lazy(() => import('./pages/DoctorProfileUpdatePage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
 const DoctorRegistrationPage = React.lazy(() => import('./pages/DoctorRegistrationPage'));
@@ -945,6 +946,18 @@ function App() {
             <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
             <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
             <Route path="/doctor-dashboard" element={<DoctorDashboardPage {...authData} />} />
+            <Route
+              path="/doctor-profile-update"
+              element={
+                <ProtectedRoute
+                  isAuthenticated={authData.isAuthenticated}
+                  isLoading={authData.isLoadingInitialAuth}
+                  user={authData.user}
+                >
+                  <DoctorProfileUpdatePage {...authData} />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/login-page" element={<LoginPage {...authData} />} />
             <Route path="/doctor-registration" element={<DoctorRegistrationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
