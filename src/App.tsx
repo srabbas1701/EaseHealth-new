@@ -213,7 +213,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
       icon: FileText,
       title: t('features.patientPreRegistration.title'),
       description: t('features.patientPreRegistration.description'),
-      image: "digital pre-registration.png",
+      image: "digital pre-registration.2.png",
       to: "/patient-pre-registration"
     },
     {

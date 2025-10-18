@@ -54,6 +54,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
   const [showQueueTokenModal, setShowQueueTokenModal] = useState(false);
   const [queueToken, setQueueToken] = useState<string>('');
   const [appointmentDetails, setAppointmentDetails] = useState<any>(null);
+  const [isProcessingBooking, setIsProcessingBooking] = useState(false);
 
   // OTP Reset states
   const [showResetModal, setShowResetModal] = useState(false);
@@ -69,13 +70,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but not when coming from booking or processing booking)
   React.useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !bookingDetails && !isProcessingBooking) {
       console.log('🔄 User already authenticated, redirecting to:', redirectTo);
       navigate(redirectTo, { replace: true });
     }
-  }, [isAuthenticated, navigate, redirectTo]);
+  }, [isAuthenticated, navigate, redirectTo, bookingDetails, isProcessingBooking]);
 
   // Handle form input changes
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -136,6 +137,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
 
       // If coming from appointment booking, create appointment immediately
       if (bookingDetails && authData.user) {
+        setIsProcessingBooking(true);
         try {
           console.log('📋 Creating appointment for user after login...');
 
@@ -204,6 +206,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
 
         } catch (error) {
           console.error('❌ Error creating appointment:', error);
+          setIsProcessingBooking(false);
           // Still redirect to patient dashboard but with error message
           navigate('/patient-dashboard', {
             state: {
@@ -213,9 +216,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
           });
         }
       } else {
-        // Default redirect based on redirectTo
-        console.log('🔄 Redirecting to:', redirectTo);
-        navigate(redirectTo);
+        // Default redirect based on redirectTo (only if not processing booking)
+        if (!isProcessingBooking) {
+          console.log('🔄 Redirecting to:', redirectTo);
+          navigate(redirectTo);
+        }
       }
 
     } catch (error) {
@@ -638,9 +643,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
       {showQueueTokenModal && queueToken && appointmentDetails && (
         <QueueTokenModal
           isOpen={showQueueTokenModal}
-          onClose={() => setShowQueueTokenModal(false)}
+          onClose={() => {
+            setShowQueueTokenModal(false);
+            setIsProcessingBooking(false);
+          }}
           onRedirect={() => {
             setShowQueueTokenModal(false);
+            setIsProcessingBooking(false);
             navigate('/patient-dashboard');
           }}
           queueToken={queueToken}

@@ -9,6 +9,7 @@ import { useTranslations } from '../translations';
 import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHistory } from '../utils/patientProfileUtils';
 import { getFreshSignedUrls, deletePatientDocument, updatePatientFileUrls } from '../utils/patientFileUploadUtils';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import { usePatientVitals } from '../hooks/patient/usePatientVitals';
 // Temporarily commented out recharts imports to fix loading issue
 // import { 
 //   LineChart, 
@@ -75,6 +76,13 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Loading states for appointment actions
+  const [isCancellingAppointment, setIsCancellingAppointment] = useState(false);
+  const [isReschedulingAppointment, setIsReschedulingAppointment] = useState(false);
+
+  // Patient vitals hook
+  const { vitals, isLoading: isLoadingVitals } = usePatientVitals(patientProfile?.id);
+
   // Chart data
   const appointmentTrendData = [
     { month: 'Jan', appointments: 2 },
@@ -85,11 +93,36 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     { month: 'Jun', appointments: 3 },
   ];
 
+  // Dynamic health metrics data from patient_vitals table
   const healthMetricsData = [
-    { name: t('patientDashboard.healthMetrics.bloodPressure'), value: 120, unit: 'mmHg', status: t('common.status.normal'), icon: Thermometer },
-    { name: t('patientDashboard.healthMetrics.heartRate'), value: 72, unit: 'bpm', status: t('common.status.normal'), icon: Heart },
-    { name: t('patientDashboard.healthMetrics.weight'), value: 65, unit: 'kg', status: t('common.status.normal'), icon: Scale },
-    { name: t('patientDashboard.healthMetrics.bmi'), value: 22.5, unit: '', status: t('common.status.normal'), icon: Gauge },
+    {
+      name: t('patientDashboard.healthMetrics.bloodPressure'),
+      value: vitals?.blood_pressure || '--',
+      unit: 'mmHg',
+      status: vitals?.blood_pressure ? t('common.status.normal') : '--',
+      icon: Thermometer
+    },
+    {
+      name: t('patientDashboard.healthMetrics.heartRate'),
+      value: vitals?.heart_rate || '--',
+      unit: 'bpm',
+      status: vitals?.heart_rate ? t('common.status.normal') : '--',
+      icon: Heart
+    },
+    {
+      name: t('patientDashboard.healthMetrics.weight'),
+      value: vitals?.weight ? vitals.weight.toFixed(1) : '--',
+      unit: 'kg',
+      status: vitals?.weight ? t('common.status.normal') : '--',
+      icon: Scale
+    },
+    {
+      name: t('patientDashboard.healthMetrics.bmi'),
+      value: vitals?.bmi ? vitals.bmi.toFixed(1) : '--',
+      unit: '',
+      status: vitals?.bmi ? t('common.status.normal') : '--',
+      icon: Gauge
+    },
   ];
 
   const appointmentTypeData = [
@@ -203,6 +236,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   const confirmCancelAppointment = async () => {
     if (!appointmentToCancel) return;
 
+    setIsCancellingAppointment(true);
     try {
       console.log('🔄 Cancelling appointment:', appointmentToCancel.id);
 
@@ -234,28 +268,38 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     } catch (error) {
       console.error('❌ Error cancelling appointment:', error);
       setAnnouncement('Failed to cancel appointment. Please try again.');
+    } finally {
+      setIsCancellingAppointment(false);
     }
   };
 
   // Reschedule appointment functionality
-  const handleRescheduleAppointment = (appointmentData: any) => {
-    console.log('🔄 Rescheduling appointment:', appointmentData);
+  const handleRescheduleAppointment = async (appointmentData: any) => {
+    setIsReschedulingAppointment(true);
+    try {
+      console.log('🔄 Rescheduling appointment:', appointmentData);
 
-    // Convert date string back to Date object for proper handling
-    const appointmentDate = new Date(appointmentData.date.split('/').reverse().join('-'));
+      // Convert date string back to Date object for proper handling
+      const appointmentDate = new Date(appointmentData.date.split('/').reverse().join('-'));
 
-    // Navigate to booking page with pre-filled data
-    navigate('/smart-appointment-booking', {
-      state: {
-        reschedule: true,
-        appointmentData: appointmentData,
-        selectedDoctor: appointmentData.doctor,
-        selectedDate: appointmentDate,
-        selectedTime: appointmentData.time
-      }
-    });
+      // Navigate to booking page with pre-filled data
+      navigate('/smart-appointment-booking', {
+        state: {
+          reschedule: true,
+          appointmentData: appointmentData,
+          selectedDoctor: appointmentData.doctor,
+          selectedDate: appointmentDate,
+          selectedTime: appointmentData.time
+        }
+      });
 
-    setAnnouncement(`Redirecting to reschedule appointment with ${appointmentData.doctor}`);
+      setAnnouncement(`Redirecting to reschedule appointment with ${appointmentData.doctor}`);
+    } catch (error) {
+      console.error('❌ Error rescheduling appointment:', error);
+      setAnnouncement('Failed to reschedule appointment. Please try again.');
+    } finally {
+      setIsReschedulingAppointment(false);
+    }
   };
 
   // Function to refresh signed URLs for documents
@@ -531,32 +575,53 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
               </h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm">{t('patientDashboard.healthStatus')}</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {healthMetricsData.map((metric, index) => {
-                const MetricIcon = metric.icon;
-                const colors = [
-                  { bg: 'bg-gradient-to-br from-red-500 to-pink-600', text: 'text-red-100' },
-                  { bg: 'bg-gradient-to-br from-blue-500 to-cyan-600', text: 'text-blue-100' },
-                  { bg: 'bg-gradient-to-br from-green-500 to-emerald-600', text: 'text-green-100' },
-                  { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600', text: 'text-purple-100' }
-                ];
-                const color = colors[index % colors.length];
-                return (
-                  <div key={metric.name} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
-                    <div className="flex items-center">
-                      <div className={`p-3 ${color.bg} rounded-xl`}>
-                        <MetricIcon className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{metric.name}</p>
-                        <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{metric.value}{metric.unit}</p>
-                        <p className="text-xs text-green-600 dark:text-green-400 font-medium">{metric.status}</p>
+            {isLoadingVitals ? (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+                    <div className="animate-pulse">
+                      <div className="flex items-center">
+                        <div className="p-3 bg-gray-200 dark:bg-gray-700 rounded-xl">
+                          <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                        </div>
+                        <div className="ml-4 space-y-2">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
+                          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-12"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                {healthMetricsData.map((metric, index) => {
+                  const MetricIcon = metric.icon;
+                  const colors = [
+                    { bg: 'bg-gradient-to-br from-red-500 to-pink-600', text: 'text-red-100' },
+                    { bg: 'bg-gradient-to-br from-blue-500 to-cyan-600', text: 'text-blue-100' },
+                    { bg: 'bg-gradient-to-br from-green-500 to-emerald-600', text: 'text-green-100' },
+                    { bg: 'bg-gradient-to-br from-purple-500 to-indigo-600', text: 'text-purple-100' }
+                  ];
+                  const color = colors[index % colors.length];
+                  return (
+                    <div key={metric.name} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600">
+                      <div className="flex items-center">
+                        <div className={`p-3 ${color.bg} rounded-xl`}>
+                          <MetricIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{metric.name}</p>
+                          <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{metric.value}{metric.unit}</p>
+                          <p className={`text-xs font-medium ${metric.value === '--' ? 'text-gray-500 dark:text-gray-400' : 'text-green-600 dark:text-green-400'}`}>{metric.status}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Quick Stats */}
@@ -666,25 +731,31 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                           <div className="flex space-x-2">
                             <button
                               onClick={() => handleCancelAppointment(appointment.id, appointment)}
-                              disabled={appointment.status === 'CANCELLED'}
-                              className={`text-sm font-medium transition-colors ${appointment.status === 'CANCELLED'
+                              disabled={appointment.status === 'CANCELLED' || isCancellingAppointment}
+                              className={`text-sm font-medium transition-colors flex items-center space-x-1 ${appointment.status === 'CANCELLED' || isCancellingAppointment
                                 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                                 : 'text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:underline'
                                 }`}
-                              title={appointment.status === 'CANCELLED' ? 'Appointment already cancelled' : 'Cancel this appointment'}
+                              title={appointment.status === 'CANCELLED' ? 'Appointment already cancelled' : isCancellingAppointment ? 'Cancelling appointment...' : 'Cancel this appointment'}
                             >
-                              {t('patientDashboard.cancel')}
+                              {isCancellingAppointment && (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                              )}
+                              <span>{t('patientDashboard.cancel')}</span>
                             </button>
                             <button
                               onClick={() => handleRescheduleAppointment(appointment)}
-                              disabled={appointment.status === 'CANCELLED'}
-                              className={`text-sm font-medium transition-colors ${appointment.status === 'CANCELLED'
+                              disabled={appointment.status === 'CANCELLED' || isReschedulingAppointment}
+                              className={`text-sm font-medium transition-colors flex items-center space-x-1 ${appointment.status === 'CANCELLED' || isReschedulingAppointment
                                 ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
                                 : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:underline'
                                 }`}
-                              title={appointment.status === 'CANCELLED' ? 'Cannot reschedule cancelled appointment' : 'Reschedule this appointment'}
+                              title={appointment.status === 'CANCELLED' ? 'Cannot reschedule cancelled appointment' : isReschedulingAppointment ? 'Rescheduling appointment...' : 'Reschedule this appointment'}
                             >
-                              {t('patientDashboard.reschedule')}
+                              {isReschedulingAppointment && (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                              )}
+                              <span>{t('patientDashboard.reschedule')}</span>
                             </button>
                           </div>
                         </td>
@@ -1166,9 +1237,14 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                 </button>
                 <button
                   onClick={confirmCancelAppointment}
-                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  disabled={isCancellingAppointment}
+                  className={`flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2 ${isCancellingAppointment ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
                 >
-                  Yes, Cancel
+                  {isCancellingAppointment && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>Yes, Cancel</span>
                 </button>
               </div>
             </div>
