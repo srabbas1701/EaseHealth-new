@@ -31,12 +31,16 @@ const AccessibleTestimonials = React.lazy(() => import('./components/AccessibleT
 import { FeatureDetection, OfflineIndicator, SkipLinks } from './components/ProgressiveEnhancement';
 import { AccessibilityAnnouncer } from './components/AccessibilityAnnouncer';
 import { SkipLinks as KeyboardSkipLinks, useKeyboardNavigation, FocusVisibleProvider } from './components/KeyboardNavigation';
-import ProtectedRoute from './components/ProtectedRoute';
 
 // Import routing components
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+
+import { useRBAC } from './hooks/useRBAC'
+import ProtectedRoute from './components/ProtectedRoute'
+import { RBACRoute } from './components/RBACRoute'
+
 // Route-level code splitting (lazy loaded pages)
 const SmartAppointmentBookingPage = React.lazy(() => import('./pages/SmartAppointmentBookingPage'));
 const PatientPreRegistrationPage = React.lazy(() => import('./pages/PatientPreRegistrationPage'));
@@ -48,6 +52,9 @@ const DoctorDashboardPage = React.lazy(() => import('./pages/DoctorDashboardPage
 const DoctorProfileUpdatePage = React.lazy(() => import('./pages/DoctorProfileUpdatePage'));
 const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const NewLoginPage = React.lazy(() => import('./pages/NewLoginPage'));
+const EmailVerificationPage = React.lazy(() => import('./pages/EmailVerificationPage'));
+const OnboardingChoicePage = React.lazy(() => import('./pages/OnboardingChoicePage'));
 const DoctorRegistrationPage = React.lazy(() => import('./pages/DoctorRegistrationPage'));
 
 // Auth props interface
@@ -387,6 +394,8 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
             doctor={doctorProfile}
           />
         </div>
+
+        <TestRBAC />
 
         {/* Hero Section */}
         <main id="main-content" tabIndex={-1} aria-label="Main content">
@@ -923,7 +932,24 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
   );
 }
 
+// Add this component definition BEFORE the App function
+const TestRBAC = () => {
+  const { userRole, isLoading } = useRBAC()
+
+  console.log('Current user role:', userRole)
+  console.log('Is loading:', isLoading)
+
+  return (
+    <div className="fixed top-4 right-4 p-4 bg-yellow-100 border border-yellow-400 rounded z-50">
+      <h3 className="font-bold">RBAC Test (Remove after testing)</h3>
+      <p>Role: {userRole || 'Not detected'}</p>
+      <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+    </div>
+  )
+}
+
 // Main App component now handles routing
+
 function App() {
   const authData = useAuth();
   const { user, session, profile, userState, isAuthenticated, handleLogout } = authData;
@@ -942,6 +968,7 @@ function App() {
 
   return (
     <FocusVisibleProvider>
+      <TestRBAC />  {/* Add this line here */}
       <FeatureDetection>
         <Suspense fallback={
           <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">
@@ -954,41 +981,60 @@ function App() {
           </div>
         }>
           <Routes>
+            {/* Public routes - no protection needed */}
             <Route path="/" element={<LandingPageContent {...authData} handleLogout={authData.handleLogout} />} />
+            <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
             <Route path="/smart-appointment-booking" element={<SmartAppointmentBookingPage {...authData} />} />
             <Route path="/patient-pre-registration" element={<PatientPreRegistrationPage {...authData} />} />
-            <Route
-              path="/patient-profile-update"
-              element={
-                <ProtectedRoute
-                  isAuthenticated={authData.isAuthenticated}
-                  isLoading={authData.isLoadingInitialAuth}
-                  user={authData.user}
-                >
-                  <PatientProfileUpdatePage {...authData} />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/admin-dashboard" element={<AdminDashboardPage {...authData} />} />
-            <Route path="/patient-dashboard" element={<PatientDashboardPage {...authData} />} />
-            <Route path="/choose-service" element={<ChooseServicePage {...authData} />} />
-            <Route path="/doctor-dashboard" element={<DoctorDashboardPage {...authData} />} />
-            <Route
-              path="/doctor-profile-update"
-              element={
-                <ProtectedRoute
-                  isAuthenticated={authData.isAuthenticated}
-                  isLoading={authData.isLoadingInitialAuth}
-                  user={authData.user}
-                >
-                  <DoctorProfileUpdatePage {...authData} />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/login-page" element={<LoginPage {...authData} />} />
             <Route path="/doctor-registration" element={<DoctorRegistrationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
-            {/* Add more routes here as you create new pages */}
+
+            {/* Login page - accessible to all */}
+            <Route path="/login-page" element={<NewLoginPage {...authData} />} />
+
+            {/* Email verification page */}
+            <Route path="/verify-email" element={<EmailVerificationPage {...authData} />} />
+
+            {/* Onboarding choice page */}
+            <Route path="/onboarding-choice" element={
+              <RBACRoute allowedRoles={['patient']}>
+                <OnboardingChoicePage {...authData} />
+              </RBACRoute>
+            } />
+
+            {/* Patient routes - protected */}
+            <Route path="/patient-dashboard" element={
+              <RBACRoute allowedRoles={['patient', 'admin']}>
+                <PatientDashboardPage {...authData} />
+              </RBACRoute>
+            } />
+
+            <Route path="/patient-profile-update" element={
+              <RBACRoute allowedRoles={['patient', 'admin']} resource="profile" action="update">
+                <PatientProfileUpdatePage {...authData} />
+              </RBACRoute>
+            } />
+
+            {/* Doctor routes - protected */}
+            <Route path="/doctor-dashboard" element={
+              <DoctorDashboardPage {...authData} />
+            } />
+
+            <Route path="/doctor-profile-update" element={
+              <RBACRoute allowedRoles={['doctor', 'admin']} resource="profile" action="update">
+                <DoctorProfileUpdatePage {...authData} />
+              </RBACRoute>
+            } />
+
+            {/* Admin routes - heavily protected */}
+            <Route path="/admin-dashboard" element={
+              <RBACRoute allowedRoles={['admin']}>
+                <AdminDashboardPage {...authData} />
+              </RBACRoute>
+            } />
+
+            {/* Fallback route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </FeatureDetection>

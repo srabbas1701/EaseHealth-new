@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, AlertCircle, Phone, CheckCircle, X, RefreshCw } from 'lucide-react';
@@ -42,7 +42,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
   // Get booking details and redirect info from location state
   const bookingDetails = location.state?.bookingDetails || null;
   const dashboardType = location.state?.dashboardType || 'patient';
-  const redirectTo = location.state?.redirectTo || (dashboardType === 'admin' ? '/admin-dashboard' : dashboardType === 'doctor' ? '/doctor-dashboard' : '/patient-dashboard');
+
+  // Check for redirect parameter in URL
+  const searchParams = new URLSearchParams(location.search);
+  const urlRedirect = searchParams.get('redirect');
+
+  const redirectTo = urlRedirect || location.state?.redirectTo;
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -69,14 +74,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
-
-  // Redirect if already authenticated (but not when coming from booking or processing booking)
-  React.useEffect(() => {
-    if (isAuthenticated && !bookingDetails && !isProcessingBooking) {
-      console.log('🔄 User already authenticated, redirecting to:', redirectTo);
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isAuthenticated, navigate, redirectTo, bookingDetails, isProcessingBooking]);
+  // Handle redirect after successful login - NO useEffect for redirects
 
   // Handle form input changes
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -216,10 +214,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
           });
         }
       } else {
-        // Default redirect based on redirectTo (only if not processing booking)
+        // Handle redirect directly after successful login
         if (!isProcessingBooking) {
-          console.log('🔄 Redirecting to:', redirectTo);
-          navigate(redirectTo);
+          console.log('🔄 Login successful, checking for redirect');
+          const searchParams = new URLSearchParams(location.search);
+          const urlRedirect = searchParams.get('redirect');
+
+          if (urlRedirect) {
+            console.log('🔄 Redirecting to:', urlRedirect);
+            // Add a longer delay to ensure role is loaded before redirect
+            setTimeout(() => {
+              console.log('🔄 Executing redirect to:', urlRedirect);
+              navigate(urlRedirect, { replace: true });
+            }, 500);
+          } else {
+            console.log('🔄 No redirect parameter found');
+          }
         }
       }
 

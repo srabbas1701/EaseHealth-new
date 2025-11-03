@@ -9,7 +9,8 @@ import {
   Phone,
   Search,
   User,
-  LogOut
+  LogOut,
+  LogIn
 } from 'lucide-react';
 import DarkModeToggle from './DarkModeToggle';
 import LanguageToggle from './LanguageToggle';
@@ -439,7 +440,7 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: FileText,
       title: t('features.adminDashboard.title'),
       description: t('features.adminDashboard.description'),
-      to: "/login-page",
+      to: "/login-page?redirect=/admin-dashboard&from=dashboard",
       forPatients: false,
       dashboardType: "admin"
     },
@@ -447,7 +448,7 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: User,
       title: t('features.patientDashboard.title'),
       description: t('features.patientDashboard.description'),
-      to: "/login-page",
+      to: "/login-page?redirect=/patient-dashboard&from=dashboard",
       forPatients: true,
       dashboardType: "patient"
     },
@@ -455,7 +456,7 @@ const Navigation: React.FC<NavigationProps> = ({
       icon: Calendar,
       title: t('features.doctorDashboard.title'),
       description: t('features.doctorDashboard.description'),
-      to: "/login-page",
+      to: "/login-page?redirect=/doctor-dashboard&from=dashboard",
       forPatients: false,
       dashboardType: "doctor"
     }
@@ -645,6 +646,18 @@ const Navigation: React.FC<NavigationProps> = ({
               </div>
               <LanguageToggle showDropdown={true} />
               <DarkModeToggle showDropdown={true} />
+              {/* Login Button - only for unauthenticated users (desktop) */}
+              {!isAuthenticated && (
+                <Link
+                  to="/login-page?from=topbar"
+                  className="flex items-center bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2"
+                  title="Login"
+                  aria-label="Sign in"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Login
+                </Link>
+              )}
               {getDynamicCTA()}
             </div>
 
@@ -765,6 +778,18 @@ const Navigation: React.FC<NavigationProps> = ({
                   <div className="mb-4 flex items-center space-x-3">
                     <LanguageToggle />
                     <DarkModeToggle />
+                    {/* Login Button - only for unauthenticated users (mobile) */}
+                    {!isAuthenticated && (
+                      <Link
+                        to="/login-page?from=topbar"
+                        className="flex items-center bg-gradient-to-r from-[#0075A2] to-[#0A2647] text-white px-4 py-2.5 rounded-lg font-medium hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#0075A2] focus:ring-offset-2"
+                        title="Login"
+                        aria-label="Sign in"
+                      >
+                        <LogIn className="w-4 h-4 mr-2" />
+                        Login
+                      </Link>
+                    )}
                   </div>
                   {getDynamicCTA()}
                 </div>

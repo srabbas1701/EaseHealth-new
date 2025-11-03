@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import {
   Calendar, Clock, Save, ChevronLeft, ChevronRight, X, CheckCircle, AlertCircle, User, FileText,
   ArrowLeft, Heart, Users, Activity, Edit3, RefreshCw, Eye, MoreVertical, UserCheck, UserX
@@ -8,6 +8,7 @@ import Navigation from '../components/Navigation';
 import { AccessibilityAnnouncer } from '../components/AccessibilityAnnouncer';
 import { useDarkMode } from '../hooks/useDarkMode';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useRBAC } from '../hooks/useRBAC';
 import { supabase, getDoctorIdByUserId, createDoctorSchedulesForNext4Weeks, generateTimeSlotsForNext4Weeks } from '../utils/supabase';
 import PatientTabContent from '../components/PatientTab';
 import ScheduleManagement from '../components/Schedule/ScheduleManagement';
@@ -75,6 +76,7 @@ interface ScheduleForm {
 
 function DoctorDashboardPage({ user, session, profile, userState, isAuthenticated, isLoadingInitialAuth, isProfileLoading, handleLogout }: AuthProps) {
   const { language } = useLanguage();
+  const { userRole, isLoading: roleLoading } = useRBAC();
   const [announcement, setAnnouncement] = useState('');
 
   // Doctor data state
@@ -577,6 +579,22 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     }
   }, [doctor?.id, loadTodayAppointments, loadTodayStats]);
 
+  // Check if user has doctor role - AFTER all hooks
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0075A2] mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (userRole !== 'doctor' && userRole !== 'admin') {
+    return <Navigate to="/login-page" replace />;
+  }
+
   // Show loading state while determining initial authentication
   if (isLoadingInitialAuth) {
     return (
@@ -964,11 +982,10 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                     setActiveTab(tab.id as any);
                     setAnnouncement(`Switched to ${tab.label} tab`);
                   }}
-                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-white dark:bg-gray-600 text-[#0075A2] dark:text-[#0EA5E9] shadow-sm'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9]'
-                  }`}
+                  className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-md font-medium transition-all ${activeTab === tab.id
+                    ? 'bg-white dark:bg-gray-600 text-[#0075A2] dark:text-[#0EA5E9] shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-[#0075A2] dark:hover:text-[#0EA5E9]'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="hidden sm:inline">{tab.label}</span>

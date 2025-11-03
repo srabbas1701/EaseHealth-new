@@ -462,6 +462,10 @@ export interface Profile {
   gender?: string
   city?: string
   state?: string
+  role?: string  // Add this if not already present
+  email_verified?: boolean  // Add this
+  verification_token?: string  // Add this
+  verification_expires_at?: string  // Add this
   created_at?: string
   updated_at?: string
 }
