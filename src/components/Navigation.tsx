@@ -462,10 +462,23 @@ const Navigation: React.FC<NavigationProps> = ({
     }
   ];
 
-  // Filter features based on user type
-  const featuresMenuItems = isDoctor
-    ? allFeaturesMenuItems.filter(item => item.dashboardType === 'doctor')
-    : allFeaturesMenuItems;
+  // Filter features based on user type and auth state
+  let featuresMenuItems = allFeaturesMenuItems;
+  if (isDoctor) {
+    // Doctors: only doctor dashboard related entries
+    featuresMenuItems = allFeaturesMenuItems.filter(item => item.dashboardType === 'doctor');
+  } else if (isAuthenticated) {
+    // Authenticated patients: show only patient-appropriate items
+    featuresMenuItems = allFeaturesMenuItems
+      .filter(item => item.forPatients === true || item.dashboardType === 'patient')
+      .map(item => {
+        // If patient is logged in, Patient Pre-Registration should open profile update
+        if (item.to === '/patient-pre-registration') {
+          return { ...item, to: '/patient-profile-update' };
+        }
+        return item;
+      });
+  }
 
   const navigationItems = [
     { label: t('nav.home'), to: "/", description: "Back to homepage" },

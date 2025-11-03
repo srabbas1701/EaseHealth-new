@@ -493,7 +493,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                           <img
                             src={`/${benefit.image}`}
                             alt={benefit.title}
-                            className="w-full h-64 object-contain rounded-lg bg-white"
+                            className="w-full h-64 object-cover object-center rounded-lg bg-white dark:bg-transparent"
                             loading="lazy"
                             decoding="async"
                           />
@@ -526,7 +526,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
                           <img
                             src={`/${benefit.image}`}
                             alt={benefit.title}
-                            className="w-full h-64 object-contain rounded-lg bg-white"
+                            className="w-full h-64 object-cover object-center rounded-lg bg-white dark:bg-transparent"
                             loading="lazy"
                             decoding="async"
                           />
@@ -1002,9 +1002,9 @@ function App() {
               </RBACRoute>
             } />
 
-            {/* Patient routes - protected */}
+            {/* Patient routes - protected (patients only) */}
             <Route path="/patient-dashboard" element={
-              <RBACRoute allowedRoles={['patient', 'admin']}>
+              <RBACRoute allowedRoles={['patient']}>
                 <PatientDashboardPage {...authData} />
               </RBACRoute>
             } />
@@ -1015,9 +1015,11 @@ function App() {
               </RBACRoute>
             } />
 
-            {/* Doctor routes - protected */}
+            {/* Doctor routes - protected (doctors only) */}
             <Route path="/doctor-dashboard" element={
-              <DoctorDashboardPage {...authData} />
+              <RBACRoute allowedRoles={['doctor']}>
+                <DoctorDashboardPage {...authData} />
+              </RBACRoute>
             } />
 
             <Route path="/doctor-profile-update" element={

@@ -6,23 +6,13 @@ import {
     FileText,
     User,
     Phone,
-    MapPin,
-    Calendar,
     CheckCircle,
     AlertCircle,
-    Clock,
     Shield,
-    MessageCircle,
-    Star,
     Heart,
-    Mail,
-    Home,
     ChevronRight,
     X,
     Camera,
-    Eye,
-    EyeOff,
-    Lock,
     Save
 } from 'lucide-react';
 import Navigation from '../components/Navigation';
@@ -61,6 +51,22 @@ interface FormData {
     labReportFiles: File[];
     profileImageFile: File | null;
 }
+
+// Helper: Format date to DD-MM-YYYY for display only
+const formatDisplayDate = (dateString: string): string => {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString;
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+};
+
+// Static list of Indian States/UTs
+const INDIAN_STATES: string[] = [
+    'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+];
 
 interface UploadedFiles {
     idProofUrls: string[];
@@ -595,7 +601,7 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 <div className="flex items-center justify-center min-h-screen px-4">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-                        <p className="text-lg text-gray-600 dark:text-gray-300">Loading profile data...</p>
+                        <p className="text-lg text-gray-600 dark:text-gray-300">{t('patientProfileUpdate.loading')}</p>
                     </div>
                 </div>
             </div>
@@ -657,443 +663,429 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                         className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-8"
                     >
                         <ArrowLeft className="w-5 h-5 mr-2" />
-                        Back to Dashboard
+                        {t('patientProfileUpdate.backToDashboard')}
                     </Link>
 
                     {/* Header Section */}
                     <div className="text-center mb-12">
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-6">
-                            Update Profile
+                            {t('patientProfileUpdate.title')}
                         </h1>
                         <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
-                            Update your personal and medical information
+                            {t('patientProfileUpdate.subtitle')}
                         </p>
+                        {/* Legend removed as per request; section colors indicate state */}
                     </div>
-
-                    {/* Main Form */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
-                        <form onSubmit={handleSubmit} className="space-y-12">
-
-                            {/* Non-Editable Information Section */}
-                            <div className="space-y-6">
-                                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                                        <Shield className="w-6 h-6 mr-3 text-blue-600" />
-                                        Account Information (Read-Only)
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                        These fields cannot be modified for security reasons
-                                    </p>
+                    {/* Read-only summary on top (gray) followed by editable form (white) */}
+                    <div className="space-y-8 lg:space-y-10">
+                        <div className="bg-gray-50 dark:bg-gray-800/60 rounded-2xl shadow-2xl p-6 md:p-8 border border-gray-200 dark:border-gray-700">
+                            <div className="pb-4">
+                                <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                                    <Shield className="w-5 h-5 mr-2 text-blue-600" />
+                                    {t('patientProfileUpdate.identitySection.title')}
+                                </h2>
+                                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                                    {t('patientProfileUpdate.identitySection.subtitle')}
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Patient ID</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.patientId}</p>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Patient ID
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.patientId}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Registration Date
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.registrationDate}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Full Name
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.fullName}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Email Address
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.email}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Phone Number
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.phoneNumber}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Blood Type
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.bloodType}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Date of Birth
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.dateOfBirth}</p>
-                                    </div>
-
-                                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Gender
-                                        </label>
-                                        <p className="font-medium text-[#0A2647] dark:text-gray-100">{formData.gender}</p>
-                                    </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Registration Date</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.registrationDate}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Full Name</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.fullName}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email Address</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.email}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone Number</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.phoneNumber}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Blood Type</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.bloodType}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date of Birth</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formatDisplayDate(formData.dateOfBirth)}</p>
+                                </div>
+                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Gender</label>
+                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.gender}</p>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Editable Personal Information Section */}
-                            <div className="space-y-6">
-                                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                                        <User className="w-6 h-6 mr-3 text-blue-600" />
-                                        Personal Information (Editable)
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                        Update your address and contact information
-                                    </p>
-                                </div>
+                        {/* Editable sections form (white) */}
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8">
+                            <form onSubmit={handleSubmit} className="space-y-12">
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Address
-                                        </label>
-                                        <textarea
-                                            id="address"
-                                            value={formData.address}
-                                            onChange={(e) => handleInputChange('address', e.target.value)}
-                                            rows={3}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                                }`}
-                                            placeholder="Enter your complete address"
-                                        />
-                                        {errors.address && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                                                <AlertCircle className="w-4 h-4 mr-1" />
-                                                {errors.address}
-                                            </p>
-                                        )}
+                                {/* Editable Personal Information Section */}
+                                <div className="space-y-6">
+                                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                                            <User className="w-6 h-6 mr-3 text-blue-600" />
+                                            {t('patientProfileUpdate.contactSection.title')}
+                                        </h2>
+                                        <p className="text-gray-600 dark:text-gray-300 mt-2">
+                                            {t('patientProfileUpdate.contactSection.subtitle')}
+                                        </p>
                                     </div>
 
-                                    <div>
-                                        <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            City
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="city"
-                                            value={formData.city}
-                                            onChange={(e) => handleInputChange('city', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter your city"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            State
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="state"
-                                            value={formData.state}
-                                            onChange={(e) => handleInputChange('state', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter your state"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Medical Information Section */}
-                            <div className="space-y-6">
-                                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                                        <Heart className="w-6 h-6 mr-3 text-blue-600" />
-                                        Medical Information (Editable)
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                        Update your medical history and current medications
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="medicalHistory" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Medical History
-                                        </label>
-                                        <textarea
-                                            id="medicalHistory"
-                                            value={formData.medicalHistory}
-                                            onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
-                                            rows={4}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter your medical history"
-                                        />
-                                    </div>
-
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Allergies
-                                        </label>
-                                        <textarea
-                                            id="allergies"
-                                            value={formData.allergies}
-                                            onChange={(e) => handleInputChange('allergies', e.target.value)}
-                                            rows={3}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="List any allergies you have"
-                                        />
-                                    </div>
-
-                                    <div className="md:col-span-2">
-                                        <label htmlFor="currentMedications" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Current Medications
-                                        </label>
-                                        <textarea
-                                            id="currentMedications"
-                                            value={formData.currentMedications}
-                                            onChange={(e) => handleInputChange('currentMedications', e.target.value)}
-                                            rows={3}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="List your current medications"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="insuranceProvider" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Insurance Provider
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="insuranceProvider"
-                                            value={formData.insuranceProvider}
-                                            onChange={(e) => handleInputChange('insuranceProvider', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter your insurance provider"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="insuranceNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Insurance Number
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="insuranceNumber"
-                                            value={formData.insuranceNumber}
-                                            onChange={(e) => handleInputChange('insuranceNumber', e.target.value)}
-                                            className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                                            placeholder="Enter your insurance number"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Emergency Contacts Section */}
-                            <div className="space-y-6">
-                                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                                        <Phone className="w-6 h-6 mr-3 text-blue-600" />
-                                        Emergency Contacts (Editable)
-                                    </h2>
-                                    <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                        Update your emergency contact information
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Emergency Contact Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="emergencyContactName"
-                                            value={formData.emergencyContactName}
-                                            onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                                }`}
-                                            placeholder="Enter emergency contact name"
-                                        />
-                                        {errors.emergencyContactName && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                                                <AlertCircle className="w-4 h-4 mr-1" />
-                                                {errors.emergencyContactName}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Emergency Contact Phone
-                                        </label>
-                                        <input
-                                            type="tel"
-                                            id="emergencyContactPhone"
-                                            value={formData.emergencyContactPhone}
-                                            onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
-                                            className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                                }`}
-                                            placeholder="Enter emergency contact phone"
-                                        />
-                                        {errors.emergencyContactPhone && (
-                                            <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
-                                                <AlertCircle className="w-4 h-4 mr-1" />
-                                                {errors.emergencyContactPhone}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Document Upload Section */}
-                            <div className="space-y-6">
-                                <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
-                                        <Upload className="w-6 h-6 mr-3 text-blue-600" />
-                                        Upload Additional Documents (Optional)
-                                    </h2>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                        Upload additional documents if needed
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* ID Proof Upload */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">ID Proof Documents</h3>
-                                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-                                            <input
-                                                type="file"
-                                                id="idProof"
-                                                multiple
-                                                accept=".pdf,.jpg,.jpeg"
-                                                onChange={(e) => handleFileUpload('idProofFiles', e.target.files)}
-                                                className="hidden"
-                                            />
-                                            <label htmlFor="idProof" className="cursor-pointer">
-                                                <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">Upload ID Proof</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPEG (Max 10MB)</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.address.label')}
                                             </label>
+                                            <textarea
+                                                id="address"
+                                                value={formData.address}
+                                                onChange={(e) => handleInputChange('address', e.target.value)}
+                                                rows={3}
+                                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.address ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                    }`}
+                                                placeholder={t('patientProfileUpdate.fields.address.placeholder')}
+                                            />
+                                            {errors.address && (
+                                                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                    <AlertCircle className="w-4 h-4 mr-1" />
+                                                    {errors.address}
+                                                </p>
+                                            )}
                                         </div>
-                                        {formData.idProofFiles.length > 0 && (
-                                            <div className="space-y-2">
-                                                {formData.idProofFiles.map((file, index) => (
-                                                    <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeFile('idProofFiles', index)}
-                                                            className="text-red-500 hover:text-red-700"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+
+                                        <div>
+                                            <label htmlFor="city" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.city.label')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="city"
+                                                value={formData.city}
+                                                onChange={(e) => handleInputChange('city', e.target.value)}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.city.placeholder')}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="state" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.state.label')}
+                                            </label>
+                                            <select
+                                                id="state"
+                                                value={formData.state || ''}
+                                                onChange={(e) => handleInputChange('state', e.target.value)}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                            >
+                                                <option value="" disabled>{t('patientProfileUpdate.fields.state.placeholder')}</option>
+                                                {INDIAN_STATES.map((st) => (
+                                                    <option key={st} value={st}>{st}</option>
                                                 ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Lab Reports Upload */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Lab Reports</h3>
-                                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-                                            <input
-                                                type="file"
-                                                id="labReports"
-                                                multiple
-                                                accept=".pdf,.jpg,.jpeg"
-                                                onChange={(e) => handleFileUpload('labReportFiles', e.target.files)}
-                                                className="hidden"
-                                            />
-                                            <label htmlFor="labReports" className="cursor-pointer">
-                                                <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">Upload Lab Reports</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPEG (Max 10MB)</p>
-                                            </label>
+                                            </select>
                                         </div>
-                                        {formData.labReportFiles.length > 0 && (
-                                            <div className="space-y-2">
-                                                {formData.labReportFiles.map((file, index) => (
-                                                    <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                                                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeFile('labReportFiles', index)}
-                                                            className="text-red-500 hover:text-red-700"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Profile Image Upload */}
-                                    <div className="space-y-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Image</h3>
-                                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
-                                            <input
-                                                type="file"
-                                                id="profileImage"
-                                                accept=".jpg,.jpeg"
-                                                onChange={(e) => handleFileUpload('profileImageFile', e.target.files)}
-                                                className="hidden"
-                                            />
-                                            <label htmlFor="profileImage" className="cursor-pointer">
-                                                <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">Upload Profile Image</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">JPEG (Max 10MB)</p>
-                                            </label>
-                                        </div>
-                                        {formData.profileImageFile && (
-                                            <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{formData.profileImageFile.name}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFile('profileImageFile')}
-                                                    className="text-red-500 hover:text-red-700"
-                                                >
-                                                    <X className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Submit Button */}
-                            <div className="flex justify-end pt-6">
-                                <button
-                                    type="submit"
-                                    disabled={isSubmitting}
-                                    className={`flex items-center px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 ${isSubmitting
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
-                                        }`}
-                                >
-                                    {isSubmitting ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
-                                            Updating Profile...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save className="w-5 h-5 mr-2" />
-                                            Update Profile
-                                            <ChevronRight className="w-5 h-5 ml-2" />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
+                                {/* Medical Information Section */}
+                                <div className="space-y-6">
+                                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                                            <Heart className="w-6 h-6 mr-3 text-blue-600" />
+                                            {t('patientProfileUpdate.medicalSection.title')}
+                                        </h2>
+                                        <p className="text-gray-600 dark:text-gray-300 mt-2">
+                                            {t('patientProfileUpdate.medicalSection.subtitle')}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="medicalHistory" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.medicalHistory.label')}
+                                            </label>
+                                            <textarea
+                                                id="medicalHistory"
+                                                value={formData.medicalHistory}
+                                                onChange={(e) => handleInputChange('medicalHistory', e.target.value)}
+                                                rows={4}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.medicalHistory.placeholder')}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="allergies" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.allergies.label')}
+                                            </label>
+                                            <textarea
+                                                id="allergies"
+                                                value={formData.allergies}
+                                                onChange={(e) => handleInputChange('allergies', e.target.value)}
+                                                rows={3}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.allergies.placeholder')}
+                                            />
+                                        </div>
+
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="currentMedications" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.currentMedications.label')}
+                                            </label>
+                                            <textarea
+                                                id="currentMedications"
+                                                value={formData.currentMedications}
+                                                onChange={(e) => handleInputChange('currentMedications', e.target.value)}
+                                                rows={3}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.currentMedications.placeholder')}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="insuranceProvider" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.insuranceProvider.label')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="insuranceProvider"
+                                                value={formData.insuranceProvider}
+                                                onChange={(e) => handleInputChange('insuranceProvider', e.target.value)}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.insuranceProvider.placeholder')}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="insuranceNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.insuranceNumber.label')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="insuranceNumber"
+                                                value={formData.insuranceNumber}
+                                                onChange={(e) => handleInputChange('insuranceNumber', e.target.value)}
+                                                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder={t('patientProfileUpdate.fields.insuranceNumber.placeholder')}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Emergency Contacts Section */}
+                                <div className="space-y-6">
+                                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                                            <Phone className="w-6 h-6 mr-3 text-blue-600" />
+                                            {t('patientProfileUpdate.emergencySection.title')}
+                                        </h2>
+                                        <p className="text-gray-600 dark:text-gray-300 mt-2">
+                                            {t('patientProfileUpdate.emergencySection.subtitle')}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label htmlFor="emergencyContactName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.emergencyContactName.label')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                id="emergencyContactName"
+                                                value={formData.emergencyContactName}
+                                                onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
+                                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactName ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                    }`}
+                                                placeholder={t('patientProfileUpdate.fields.emergencyContactName.placeholder')}
+                                            />
+                                            {errors.emergencyContactName && (
+                                                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                    <AlertCircle className="w-4 h-4 mr-1" />
+                                                    {errors.emergencyContactName}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="emergencyContactPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                {t('patientProfileUpdate.fields.emergencyContactPhone.label')}
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                id="emergencyContactPhone"
+                                                value={formData.emergencyContactPhone}
+                                                onChange={(e) => handleInputChange('emergencyContactPhone', e.target.value)}
+                                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.emergencyContactPhone ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                    }`}
+                                                placeholder={t('patientProfileUpdate.fields.emergencyContactPhone.placeholder')}
+                                            />
+                                            {errors.emergencyContactPhone && (
+                                                <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                    <AlertCircle className="w-4 h-4 mr-1" />
+                                                    {errors.emergencyContactPhone}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Document Upload Section */}
+                                <div className="space-y-6">
+                                    <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                                            <Upload className="w-6 h-6 mr-3 text-blue-600" />
+                                            {t('patientProfileUpdate.documentsSection.title')}
+                                        </h2>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                            {t('patientProfileUpdate.documentsSection.subtitle')}
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* ID Proof Upload */}
+                                        <div className="space-y-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('patientProfileUpdate.uploads.idProof.title')}</h3>
+                                            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                                                <input
+                                                    type="file"
+                                                    id="idProof"
+                                                    multiple
+                                                    accept=".pdf,.jpg,.jpeg"
+                                                    onChange={(e) => handleFileUpload('idProofFiles', e.target.files)}
+                                                    className="hidden"
+                                                />
+                                                <label htmlFor="idProof" className="cursor-pointer">
+                                                    <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientProfileUpdate.uploads.idProof.button')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('patientProfileUpdate.uploads.idProof.hint')}</p>
+                                                </label>
+                                            </div>
+                                            {formData.idProofFiles.length > 0 && (
+                                                <div className="space-y-2">
+                                                    {formData.idProofFiles.map((file, index) => (
+                                                        <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeFile('idProofFiles', index)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Lab Reports Upload */}
+                                        <div className="space-y-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('patientProfileUpdate.uploads.labReports.title')}</h3>
+                                            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                                                <input
+                                                    type="file"
+                                                    id="labReports"
+                                                    multiple
+                                                    accept=".pdf,.jpg,.jpeg"
+                                                    onChange={(e) => handleFileUpload('labReportFiles', e.target.files)}
+                                                    className="hidden"
+                                                />
+                                                <label htmlFor="labReports" className="cursor-pointer">
+                                                    <FileText className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientProfileUpdate.uploads.labReports.button')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('patientProfileUpdate.uploads.labReports.hint')}</p>
+                                                </label>
+                                            </div>
+                                            {formData.labReportFiles.length > 0 && (
+                                                <div className="space-y-2">
+                                                    {formData.labReportFiles.map((file, index) => (
+                                                        <div key={index} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{file.name}</span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeFile('labReportFiles', index)}
+                                                                className="text-red-500 hover:text-red-700"
+                                                            >
+                                                                <X className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Profile Image Upload */}
+                                        <div className="space-y-4">
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('patientProfileUpdate.uploads.profileImage.title')}</h3>
+                                            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                                                <input
+                                                    type="file"
+                                                    id="profileImage"
+                                                    accept=".jpg,.jpeg"
+                                                    onChange={(e) => handleFileUpload('profileImageFile', e.target.files)}
+                                                    className="hidden"
+                                                />
+                                                <label htmlFor="profileImage" className="cursor-pointer">
+                                                    <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('patientProfileUpdate.uploads.profileImage.button')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('patientProfileUpdate.uploads.profileImage.hint')}</p>
+                                                </label>
+                                            </div>
+                                            {formData.profileImageFile && (
+                                                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">{formData.profileImageFile.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile('profileImageFile')}
+                                                        className="text-red-500 hover:text-red-700"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Submit Button */}
+                                <div className="flex justify-end pt-6">
+                                    <div className="flex items-center justify-end gap-3 pt-6">
+                                        <Link to="/patient-dashboard" className="px-6 py-3 rounded-lg font-medium text-[#0A2647] dark:text-gray-100 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                            {t('patientProfileUpdate.actions.cancel')}
+                                        </Link>
+                                        <button
+                                            type="submit"
+                                            disabled={isSubmitting}
+                                            className={`flex items-center px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-200 transform hover:scale-105 ${isSubmitting
+                                                ? 'bg-gray-400 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl'
+                                                }`}
+                                        >
+                                            {isSubmitting ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                                                    {t('patientProfileUpdate.submit.updating')}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save className="w-5 h-5 mr-2" />
+                                                    {t('patientProfileUpdate.submit.update')}
+                                                    <ChevronRight className="w-5 h-5 ml-2" />
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>

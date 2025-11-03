@@ -80,7 +80,62 @@ export const en = {
     resendOTP: "Resend OTP",
     otpSentSuccessfully: "OTP sent successfully!",
     portalTitle: "Professional Healthcare Portal",
-    portalDescription: "Secure, AI-powered platform for healthcare professionals"
+    portalDescription: "Secure, AI-powered platform for healthcare professionals",
+    // NewLoginPage strings
+    welcomeBack: "Welcome Back",
+    createAccount: "Create Account",
+    signInToAccount: "Sign in to your EaseHealth account",
+    joinToGetStarted: "Join EaseHealth to get started",
+    completeAccountToAccess: "Complete your account to access the dashboard",
+    signInToContinue: "Sign in to continue",
+    loading: "Loading...",
+    pleaseWait: "Please wait...",
+    signIn: "Sign In",
+    fullName: "Full Name",
+    enterFullName: "Enter your full name",
+    phoneNumber: "Phone Number",
+    enterPhoneNumber: "Enter your phone number",
+    confirmPasswordLabel: "Confirm Password",
+    confirmPasswordPlaceholder: "Confirm your password",
+    forgotPasswordQuestion: "Forgot your password?",
+    dontHaveAccount: "Don't have an account?",
+    signUp: "Sign up",
+    alreadyHaveAccount: "Already have an account?",
+    backToHome: "Back to Home",
+    goToMyDashboard: "Go to my dashboard",
+    signOutToSwitchAccount: "Sign out to switch account",
+    // Verification messages
+    verificationExpiresIn: "Verification expires in:",
+    quickVerificationTips: "Quick Verification Tips:",
+    checkSpamFolder: "Check your spam/junk folder",
+    lookForEmails: "Look for emails from EaseHealth",
+    clickVerificationLink: "Click the verification link immediately",
+    have5MinutesToVerify: "You have 5 minutes to verify",
+    didntReceiveEmail: "Didn't receive email? Resend now",
+    accountRecoveryOptions: "Account Recovery Options:",
+    resendVerificationEmail: "Resend Verification Email",
+    accountDeletedNote: "If you don't receive the email within 5 minutes, your account will be automatically deleted and you can sign up again.",
+    // Role mismatch messages
+    thisLinkForDoctors: "This link is for Doctors. Your account is a {userRole}. Please use the correct login link.",
+    thisLinkForPatients: "This link is for Patients. Your account is a {userRole}. Please use the correct login link.",
+    thisLinkForAdmin: "This link is for Admin. Your account is a {userRole}. Please use the correct login link.",
+    unableToValidateRole: "Unable to validate your role. Please try again or use the correct login link.",
+    // Signup success
+    accountCreatedSuccess: "Account created! Please check your email and verify within 5 minutes. Check your spam folder if you don't see the email.",
+    // Password reset messages
+    enterEmailFirst: "Please enter your email address first",
+    passwordResetEmailSent: "Password reset email sent! Check your inbox.",
+    failedToSendResetEmail: "Failed to send password reset email",
+    // Resend verification
+    newVerificationEmailSent: "New verification email sent! Please check your inbox.",
+    failedToResendVerification: "Failed to resend verification email. Please try again.",
+    // Generic errors
+    signupFailed: "Signup failed. Please try again.",
+    loginFailed: "Login failed. Please try again.",
+    // Email already exists errors
+    emailAlreadyRegistered: "This email address is already registered. Please sign in instead.",
+    emailAlreadyExists: "An account with this email already exists. If you already have an account, please sign in.",
+    profileExistsError: "This email is already registered. Please use the sign in option below."
   },
 
   // Hero Section
@@ -399,6 +454,64 @@ export const en = {
       contactSupport: "Contact Support"
     },
     getStarted: "Get Started"
+  },
+
+  // Patient Profile Update Page
+  patientProfileUpdate: {
+    backToDashboard: "Back to Dashboard",
+    title: "Manage Your Profile",
+    subtitle: "Review your account info and update your contact, medical, and emergency details.",
+    loading: "Loading profile data...",
+    identitySection: {
+      title: "Account & Identity",
+      subtitle: "Locked for security — cannot be modified"
+    },
+    contactSection: {
+      title: "Contact & Address",
+      subtitle: "Keep your address and contact details up to date"
+    },
+    medicalSection: {
+      title: "Medical Details",
+      subtitle: "Update your medical history and current medications"
+    },
+    emergencySection: {
+      title: "Emergency Contacts",
+      subtitle: "People we should contact in case of emergencies"
+    },
+    documentsSection: {
+      title: "Documents",
+      subtitle: "Optional supporting documents"
+    },
+    badges: {
+      readOnly: "Read-only",
+      editable: "Editable",
+      optional: "Optional"
+    },
+    legendLabel: "Legend:",
+    fields: {
+      address: { label: "Address", placeholder: "Enter your complete address" },
+      city: { label: "City", placeholder: "Enter your city" },
+      state: { label: "State", placeholder: "Enter your state" },
+      medicalHistory: { label: "Medical History", placeholder: "Enter your medical history" },
+      allergies: { label: "Allergies", placeholder: "List any allergies you have" },
+      currentMedications: { label: "Current Medications", placeholder: "List your current medications" },
+      insuranceProvider: { label: "Insurance Provider", placeholder: "Enter your insurance provider" },
+      insuranceNumber: { label: "Insurance Number", placeholder: "Enter your insurance number" },
+      emergencyContactName: { label: "Emergency Contact Name", placeholder: "Enter emergency contact name" },
+      emergencyContactPhone: { label: "Emergency Contact Phone", placeholder: "Enter emergency contact phone" }
+    },
+    uploads: {
+      idProof: { title: "ID Proof Documents", button: "Upload ID Proof", hint: "PDF, JPEG (Max 10MB)" },
+      labReports: { title: "Lab Reports", button: "Upload Lab Reports", hint: "PDF, JPEG (Max 10MB)" },
+      profileImage: { title: "Profile Image", button: "Upload Profile Image", hint: "JPEG (Max 10MB)" }
+    },
+    submit: {
+      updating: "Saving changes...",
+      update: "Save Changes"
+    },
+    actions: {
+      cancel: "Cancel"
+    }
   },
 
   // Pre-Registration

@@ -80,7 +80,62 @@ export const hi = {
     resendOTP: "OTP पुनः भेजें",
     otpSentSuccessfully: "OTP सफलतापूर्वक भेज दिया गया!",
     portalTitle: "पेशेवर स्वास्थ्य पोर्टल",
-    portalDescription: "सुरक्षित, AI-संचालित स्वास्थ्य सेवा प्लेटफॉर्म"
+    portalDescription: "सुरक्षित, AI-संचालित स्वास्थ्य सेवा प्लेटफॉर्म",
+    // NewLoginPage strings
+    welcomeBack: "वापसी पर स्वागत है",
+    createAccount: "खाता बनाएं",
+    signInToAccount: "अपने EaseHealth खाते में साइन इन करें",
+    joinToGetStarted: "शुरू करने के लिए EaseHealth से जुड़ें",
+    completeAccountToAccess: "डैशबोर्ड तक पहुंचने के लिए अपना खाता पूरा करें",
+    signInToContinue: "जारी रखने के लिए साइन इन करें",
+    loading: "लोड हो रहा है...",
+    pleaseWait: "कृपया प्रतीक्षा करें...",
+    signIn: "साइन इन करें",
+    fullName: "पूरा नाम",
+    enterFullName: "अपना पूरा नाम दर्ज करें",
+    phoneNumber: "फोन नंबर",
+    enterPhoneNumber: "अपना फोन नंबर दर्ज करें",
+    confirmPasswordLabel: "पासवर्ड की पुष्टि करें",
+    confirmPasswordPlaceholder: "अपने पासवर्ड की पुष्टि करें",
+    forgotPasswordQuestion: "पासवर्ड भूल गए?",
+    dontHaveAccount: "खाता नहीं है?",
+    signUp: "साइन अप करें",
+    alreadyHaveAccount: "पहले से खाता है?",
+    backToHome: "होम पर वापस जाएं",
+    goToMyDashboard: "मेरे डैशबोर्ड पर जाएं",
+    signOutToSwitchAccount: "खाता बदलने के लिए साइन आउट करें",
+    // Verification messages
+    verificationExpiresIn: "सत्यापन समाप्त होगा:",
+    quickVerificationTips: "त्वरित सत्यापन सुझाव:",
+    checkSpamFolder: "अपने स्पैम/जंक फोल्डर को जांचें",
+    lookForEmails: "EaseHealth से ईमेल देखें",
+    clickVerificationLink: "तुरंत सत्यापन लिंक पर क्लिक करें",
+    have5MinutesToVerify: "आपके पास सत्यापन के लिए 5 मिनट हैं",
+    didntReceiveEmail: "ईमेल नहीं मिला? अभी पुनः भेजें",
+    accountRecoveryOptions: "खाता पुनर्प्राप्ति विकल्प:",
+    resendVerificationEmail: "सत्यापन ईमेल पुनः भेजें",
+    accountDeletedNote: "यदि आपको 5 मिनट के भीतर ईमेल नहीं मिलता है, तो आपका खाता स्वचालित रूप से हटा दिया जाएगा और आप फिर से साइन अप कर सकते हैं।",
+    // Role mismatch messages
+    thisLinkForDoctors: "यह लिंक डॉक्टरों के लिए है। आपका खाता {userRole} है। कृपया सही लॉगिन लिंक का उपयोग करें।",
+    thisLinkForPatients: "यह लिंक मरीजों के लिए है। आपका खाता {userRole} है। कृपया सही लॉगिन लिंक का उपयोग करें।",
+    thisLinkForAdmin: "यह लिंक एडमिन के लिए है। आपका खाता {userRole} है। कृपया सही लॉगिन लिंक का उपयोग करें।",
+    unableToValidateRole: "आपकी भूमिका सत्यापित करने में असमर्थ। कृपया पुनः प्रयास करें या सही लॉगिन लिंक का उपयोग करें।",
+    // Signup success
+    accountCreatedSuccess: "खाता बन गया! कृपया अपना ईमेल जांचें और 5 मिनट के भीतर सत्यापित करें। यदि आपको ईमेल नहीं दिख रहा है तो अपना स्पैम फोल्डर जांचें।",
+    // Password reset messages
+    enterEmailFirst: "कृपया पहले अपना ईमेल पता दर्ज करें",
+    passwordResetEmailSent: "पासवर्ड रीसेट ईमेल भेज दिया गया! अपना इनबॉक्स जांचें।",
+    failedToSendResetEmail: "पासवर्ड रीसेट ईमेल भेजने में विफल",
+    // Resend verification
+    newVerificationEmailSent: "नया सत्यापन ईमेल भेज दिया गया! कृपया अपना इनबॉक्स जांचें।",
+    failedToResendVerification: "सत्यापन ईमेल पुनः भेजने में विफल। कृपया पुनः प्रयास करें।",
+    // Generic errors
+    signupFailed: "साइनअप विफल। कृपया पुनः प्रयास करें।",
+    loginFailed: "लॉगिन विफल। कृपया पुनः प्रयास करें।",
+    // Email already exists errors
+    emailAlreadyRegistered: "यह ईमेल पता पहले से पंजीकृत है। कृपया इसके बजाय साइन इन करें।",
+    emailAlreadyExists: "इस ईमेल के साथ पहले से एक खाता मौजूद है। यदि आपके पास पहले से खाता है, तो कृपया साइन इन करें।",
+    profileExistsError: "यह ईमेल पहले से पंजीकृत है। कृपया नीचे दिए गए साइन इन विकल्प का उपयोग करें।"
   },
 
   // Hero Section
@@ -168,6 +223,64 @@ export const hi = {
       title: "विज़िट और देखभाल",
       description: "अंदर आएं, परामर्श करें, और रिमाइंडर और डिजिटल प्रिस्क्रिप्शन प्राप्त करें।"
     }
+  },
+
+  // Trust and Compliance
+  trust: {
+    title: "विश्वसनीयता और अनुपालन",
+    subtitle: "आपके डेटा की सुरक्षा और गोपनीयता हमारी सर्वोच्च प्राथमिकता है",
+    dpdpCompliance: {
+      title: "DPDP अनुपालन",
+      description: "भारत के डिजिटल पर्सनल डेटा प्रोटेक्शन अधिनियम (DPDP) का पूर्ण अनुपालन।"
+    },
+    indiaDataResidency: {
+      title: "इंडिया डेटा रेजिडेंसी",
+      description: "आपका डेटा भारत की सीमाओं के भीतर ही रहता है — बेहतर गोपनीयता के लिए।"
+    },
+    immutableAuditLogs: {
+      title: "अपरिवर्तनीय ऑडिट लॉग",
+      description: "छेड़छाड़-रोधी लॉगिंग के साथ पूरी पारदर्शिता।"
+    }
+  },
+
+  // Testimonials
+  testimonials: {
+    title: "मरीज क्या कहते हैं",
+    subtitle: "भारत भर के मरीजों के वास्तविक अनुभव",
+    testimonial1: "बुकिंग तेज़ थी और विज़िट से पहले SMS रिमाइंडर मिल गए।",
+    testimonial2: "पूर्व-पंजीकरण से क्लिनिक में मेरे 30 मिनट बचे।",
+    testimonial3: "ऐप पर अपनी बारी ट्रैक कर पाया — अब बिना जानकारी इंतज़ार नहीं।",
+    testimonial4: "डिजिटल पूर्व-पंजीकरण ने विज़िट को बहुत आसान और प्रभावी बना दिया।",
+    testimonial5: "आखिरकार एक हेल्थकेयर ऐप जो सच में काम करता है! रिमाइंडर बहुत उपयोगी हैं।",
+    slideshow: "स्लाइडशो",
+    listView: "सूची दृश्य",
+    summary: "सारांश: {count} ग्राहक प्रशंसापत्र, औसत रेटिंग {rating} सितारे।"
+  },
+
+  // FAQs
+  faqs: {
+    title: "कोई सवाल?",
+    subtitle: "EaseHealth AI से जुड़े सामान्य प्रश्नों के उत्तर",
+    q1: {
+      question: "क्या मेरा डेटा सुरक्षित है?",
+      answer: "हाँ। EaseHealth भारत के DPDP अधिनियम का पालन करता है, एन्क्रिप्शन और ऑडिट लॉग के साथ।"
+    },
+    q2: {
+      question: "क्या आधार आवश्यक है?",
+      answer: "आधार से पूर्व-पंजीकरण आसान हो जाता है, लेकिन आप मोबाइल नंबर से भी साइन-अप कर सकते हैं।"
+    },
+    q3: {
+      question: "मैं किन डॉक्टरों के साथ बुक कर सकता/सकती हूँ?",
+      answer: "केवल EaseHealth से जुड़े पार्टनर्ड डॉक्टर और क्लीनिक।"
+    },
+    q4: {
+      question: "क्या ऐप रिमाइंडर भेजता है?",
+      answer: "हाँ, अपॉइंटमेंट और फ़ॉलो-अप के लिए SMS/WhatsApp अलर्ट मिलते हैं।"
+    },
+    showMore: "और दिखाएँ",
+    showLess: "कम दिखाएँ",
+    expandQuestion: "प्रश्न खोलें",
+    collapseQuestion: "प्रश्न बंद करें"
   },
 
   // Appointment Booking
@@ -336,6 +449,64 @@ export const hi = {
       contactSupport: "सहायता से संपर्क करें"
     },
     getStarted: "शुरू करें"
+  },
+
+  // Patient Profile Update Page
+  patientProfileUpdate: {
+    backToDashboard: "डैशबोर्ड पर वापस जाएं",
+    title: "अपनी प्रोफ़ाइल प्रबंधित करें",
+    subtitle: "अपने खाता विवरण देखें और संपर्क, चिकित्सा व आपातकालीन जानकारी अपडेट करें।",
+    loading: "प्रोफ़ाइल डेटा लोड हो रहा है...",
+    identitySection: {
+      title: "खाता व पहचान",
+      subtitle: "सुरक्षा हेतु लॉक — बदली नहीं जा सकती"
+    },
+    contactSection: {
+      title: "संपर्क व पता",
+      subtitle: "अपना पता व संपर्क विवरण अद्यतन रखें"
+    },
+    medicalSection: {
+      title: "चिकित्सा विवरण",
+      subtitle: "अपना चिकित्सा इतिहास और वर्तमान दवाएं अपडेट करें"
+    },
+    emergencySection: {
+      title: "आपातकालीन संपर्क",
+      subtitle: "आपातकाल में किससे संपर्क करें"
+    },
+    documentsSection: {
+      title: "दस्तावेज़",
+      subtitle: "वैकल्पिक सहायक दस्तावेज़"
+    },
+    badges: {
+      readOnly: "केवल पढ़ने हेतु",
+      editable: "संपादन योग्य",
+      optional: "वैकल्पिक"
+    },
+    legendLabel: "लीजेंड:",
+    fields: {
+      address: { label: "पता", placeholder: "अपना पूरा पता दर्ज करें" },
+      city: { label: "शहर", placeholder: "अपना शहर दर्ज करें" },
+      state: { label: "राज्य", placeholder: "अपना राज्य दर्ज करें" },
+      medicalHistory: { label: "चिकित्सा इतिहास", placeholder: "अपना चिकित्सा इतिहास दर्ज करें" },
+      allergies: { label: "एलर्जी", placeholder: "अपनी एलर्जी सूचीबद्ध करें" },
+      currentMedications: { label: "वर्तमान दवाएं", placeholder: "अपनी वर्तमान दवाएं सूचीबद्ध करें" },
+      insuranceProvider: { label: "बीमा प्रदाता", placeholder: "अपना बीमा प्रदाता दर्ज करें" },
+      insuranceNumber: { label: "बीमा नंबर", placeholder: "अपना बीमा नंबर दर्ज करें" },
+      emergencyContactName: { label: "आपातकालीन संपर्क नाम", placeholder: "आपातकालीन संपर्क का नाम दर्ज करें" },
+      emergencyContactPhone: { label: "आपातकालीन संपर्क फोन", placeholder: "आपातकालीन संपर्क का फोन दर्ज करें" }
+    },
+    uploads: {
+      idProof: { title: "पहचान प्रमाण दस्तावेज़", button: "आईडी प्रूफ अपलोड करें", hint: "PDF, JPEG (अधिकतम 10MB)" },
+      labReports: { title: "लैब रिपोर्ट्स", button: "लैब रिपोर्ट्स अपलोड करें", hint: "PDF, JPEG (अधिकतम 10MB)" },
+      profileImage: { title: "प्रोफ़ाइल छवि", button: "प्रोफ़ाइल छवि अपलोड करें", hint: "JPEG (अधिकतम 10MB)" }
+    },
+    submit: {
+      updating: "बदलाव सहेजे जा रहे हैं...",
+      update: "बदलाव सहेजें"
+    },
+    actions: {
+      cancel: "रद्द करें"
+    }
   },
 
   // Pre-Registration
