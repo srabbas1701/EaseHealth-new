@@ -587,7 +587,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
                         state={{ bookingDetails, userData: { email: formData.email } }}
                         className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
                       >
-                        {t('login.signUp')}
+                        {t('login.signUpLink')}
                       </Link>
                     ) : dashboardType === 'admin' ? (
                       <span className="text-gray-500 dark:text-gray-400">
@@ -595,11 +595,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ isAuthenticated }) => {
                       </span>
                     ) : dashboardType === 'doctor' ? (
                       <Link to="/doctor-registration" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                        {t('login.signUp')}
+                        {t('login.signUpLink')}
                       </Link>
                     ) : (
                       <Link to="/patient-pre-registration" className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">
-                        {t('login.signUp')}
+                        {t('login.signUpLink')}
                       </Link>
                     )}
                   </p>

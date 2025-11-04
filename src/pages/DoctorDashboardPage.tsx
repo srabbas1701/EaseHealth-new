@@ -162,7 +162,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
 
   // Load doctor data
   const loadDoctorData = useCallback(async () => {
-    if (!isAuthenticated || !user || !profile) {
+    if (!isAuthenticated || !user) {
       console.log('❌ Cannot load doctor data - missing auth:', { isAuthenticated, hasUser: !!user, hasProfile: !!profile });
       return;
     }
@@ -186,19 +186,19 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           // Handle profile_image_url - could be full URL or path
           let profileImageUrl = doctorData.profile_image_url;
 
-          // If URL is a path (not a full URL), generate signed URL
+          // If URL is a path (not a full URL), generate public URL (not signed URL for profile images)
           if (profileImageUrl && !profileImageUrl.startsWith('http')) {
             try {
               const cleanPath = profileImageUrl.replace('doctor-profile-images/', '');
-              const { data: signedUrlData } = await supabase.storage
+              const { data: publicUrlData } = supabase.storage
                 .from('doctor-profile-images')
-                .createSignedUrl(cleanPath, 3600);
+                .getPublicUrl(cleanPath);
 
-              if (signedUrlData?.signedUrl) {
-                profileImageUrl = signedUrlData.signedUrl;
+              if (publicUrlData?.publicUrl) {
+                profileImageUrl = publicUrlData.publicUrl;
               }
             } catch (err) {
-              console.error('Error generating signed URL:', err);
+              console.error('Error generating public URL:', err);
             }
           }
 
@@ -231,7 +231,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     } finally {
       setIsLoadingDoctor(false);
     }
-  }, [isAuthenticated, user, profile]);
+  }, [isAuthenticated, user]);
 
   // Load today's appointments
   const loadTodayAppointments = useCallback(async () => {

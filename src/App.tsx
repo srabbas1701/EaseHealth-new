@@ -37,7 +37,6 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 
-import { useRBAC } from './hooks/useRBAC'
 import ProtectedRoute from './components/ProtectedRoute'
 import { RBACRoute } from './components/RBACRoute'
 
@@ -395,8 +394,6 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           />
         </div>
 
-        <TestRBAC />
-
         {/* Hero Section */}
         <main id="main-content" tabIndex={-1} aria-label="Main content">
           <section
@@ -732,7 +729,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           {/* Testimonials */}
           <section
             id="testimonials"
-            className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900"
+            className="py-16 lg:py-24 bg-white dark:bg-gray-800"
             aria-label="Patient testimonials and reviews"
             tabIndex={-1}
           >
@@ -766,7 +763,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           {/* FAQs */}
           <section
             id="faqs"
-            className="py-16 lg:py-24 bg-white dark:bg-gray-800"
+            className="py-16 lg:py-24 bg-[#F6F6F6] dark:bg-gray-900"
             aria-label="Frequently asked questions"
             tabIndex={-1}
           >
@@ -819,7 +816,7 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
           </section>
 
           {/* Footer */}
-          <footer id="contact" className="bg-[#E8E8E8] dark:bg-gray-900 border-t-4 border-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]" role="contentinfo" aria-label="Footer with contact information and links">
+          <footer id="contact" className="bg-white dark:bg-gray-900 border-t-4 border-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7]" role="contentinfo" aria-label="Footer with contact information and links">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                 {/* Logo and Description */}
@@ -932,22 +929,6 @@ function LandingPageContent({ user, session, profile, isLoadingInitialAuth, isPr
   );
 }
 
-// Add this component definition BEFORE the App function
-const TestRBAC = () => {
-  const { userRole, isLoading } = useRBAC()
-
-  console.log('Current user role:', userRole)
-  console.log('Is loading:', isLoading)
-
-  return (
-    <div className="fixed top-4 right-4 p-4 bg-yellow-100 border border-yellow-400 rounded z-50">
-      <h3 className="font-bold">RBAC Test (Remove after testing)</h3>
-      <p>Role: {userRole || 'Not detected'}</p>
-      <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
-    </div>
-  )
-}
-
 // Main App component now handles routing
 
 function App() {
@@ -968,7 +949,6 @@ function App() {
 
   return (
     <FocusVisibleProvider>
-      <TestRBAC />  {/* Add this line here */}
       <FeatureDetection>
         <Suspense fallback={
           <div className="min-h-screen bg-[#F6F6F6] dark:bg-gray-900 flex items-center justify-center">

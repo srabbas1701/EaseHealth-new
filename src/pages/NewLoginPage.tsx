@@ -470,7 +470,7 @@ const NewLoginPage: React.FC<NewLoginPageProps> = ({ isAuthenticated, handleLogo
                         {!isLoginMode && (
                             <div>
                                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    {t('login.phoneNumber')}
+                                    {t('login.phoneNumberLabel')}
                                 </label>
                                 <div className="relative">
                                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -482,7 +482,7 @@ const NewLoginPage: React.FC<NewLoginPageProps> = ({ isAuthenticated, handleLogo
                                         onChange={handleInputChange}
                                         required={!isLoginMode}
                                         className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#0075A2] focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                        placeholder={t('login.enterPhoneNumber')}
+                                        placeholder={t('login.enterPhoneNumberPlaceholder')}
                                     />
                                 </div>
                             </div>
@@ -609,7 +609,7 @@ const NewLoginPage: React.FC<NewLoginPageProps> = ({ isAuthenticated, handleLogo
                                     onClick={() => setIsLoginMode(false)}
                                     className="text-[#0075A2] dark:text-[#0EA5E9] hover:underline font-semibold"
                                 >
-                                    {t('login.signUp')}
+                                    {t('login.signUpLink')}
                                 </button>
                             </p>
                         ) : (

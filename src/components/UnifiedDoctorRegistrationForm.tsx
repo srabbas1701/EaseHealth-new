@@ -374,8 +374,9 @@ const UnifiedDoctorRegistrationForm: React.FC<UnifiedDoctorRegistrationFormProps
           uploadDoctorDocument(formData.profilePicture, finalUserId, 'profile_image')
             .then(result => {
               setUploadedFiles(prev => new Set(prev).add('profilePicture'));
-              updateFormData({ profilePictureUrl: result.publicUrl || result.signedUrl });
-              return result.publicUrl || result.signedUrl;
+              // Store the path instead of full URL for consistency
+              updateFormData({ profilePictureUrl: result.path });
+              return result.path;
             })
         );
       }

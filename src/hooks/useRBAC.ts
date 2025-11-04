@@ -121,7 +121,7 @@ export const useRBAC = () => {
   const canAccess = (resource: string, action: string) => {
     const accessRules = {
       'admin': ['*'], // Admin can access everything
-      'doctor': ['appointments:read', 'appointments:update', 'patients:read', 'schedules:manage'],
+      'doctor': ['appointments:read', 'appointments:update', 'patients:read', 'schedules:manage', 'profile:read', 'profile:update'],
       'patient': ['appointments:read', 'appointments:create', 'profile:read', 'profile:update']
     }
 

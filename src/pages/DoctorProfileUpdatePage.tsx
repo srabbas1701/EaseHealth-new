@@ -146,11 +146,17 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
           // Load profile image if exists
           if (doctorData.profile_image_url) {
             try {
-              const imageUrl = await getDoctorSignedUrl(
-                doctorData.profile_image_url,
-                'profile_image'
-              );
-              if (imageUrl) {
+              let imageUrl = doctorData.profile_image_url;
+              
+              // If it's already a full URL, use it directly
+              if (imageUrl.startsWith('http')) {
+                setProfileImagePreview(imageUrl);
+              } else {
+                // Otherwise, it's a path - get the public URL
+                imageUrl = await getDoctorSignedUrl(
+                  imageUrl,
+                  'profile_image'
+                );
                 setProfileImagePreview(imageUrl);
               }
             } catch (error) {
@@ -249,9 +255,9 @@ function DoctorProfileUpdatePage({ user, session, profile, userState, isAuthenti
             'profile_image'
           );
 
-          if (uploadResult.publicUrl) {
-            profileImageUrl = uploadResult.publicUrl;
-          } else if (uploadResult.path) {
+          // Store the path (not the full URL) for consistency
+          // This allows us to generate fresh public URLs on demand
+          if (uploadResult.path) {
             profileImageUrl = uploadResult.path;
           } else {
             throw new Error('Failed to upload profile image');
