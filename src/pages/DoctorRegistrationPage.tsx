@@ -49,6 +49,8 @@ const CreateAccountStep: React.FC<{
     setIsLoading(true);
 
     try {
+      console.log('🔐 Starting doctor signup process for:', formData.email);
+      
       const { data, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -57,6 +59,7 @@ const CreateAccountStep: React.FC<{
       if (authError) throw authError;
       if (!data.user) throw new Error('No user data returned');
 
+      console.log('✅ Doctor signup successful, proceeding with registration');
       onSuccess(data.user.id, formData.email);
     } catch (error) {
       console.error('Error during signup:', error);

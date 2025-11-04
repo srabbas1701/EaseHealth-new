@@ -111,6 +111,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
     
     try {
       if (mode === 'signup') {
+        console.log('🔐 Starting signup process for:', formData.email);
+        
         // Sign up the user
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
@@ -122,17 +124,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
         }
 
         if (authData.user) {
-          // Create user profile
-          try {
-            await createProfile(authData.user.id, {
-              full_name: formData.name,
-              phone_number: formData.phone,
-            });
-          } catch (profileError) {
-            console.error('Error creating profile:', profileError);
-            // Don't throw here - user is created, profile creation failed
-            // We can handle this gracefully
-          }
+          console.log('✅ Signup successful - verification email sent');
+          // Profile will be created after email verification
         }
 
         onSuccess({

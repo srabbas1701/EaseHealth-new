@@ -24,80 +24,101 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ handleLog
     const { t } = useTranslations(language);
     const { isDarkMode } = useTheme();
 
-    const [isVerifying, setIsVerifying] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(true);
     const [verificationStatus, setVerificationStatus] = useState<'pending' | 'success' | 'error' | 'expired'>('pending');
     const [error, setError] = useState('');
     const [userEmail, setUserEmail] = useState('');
 
-    // Get token from URL
-    const token = searchParams.get('token');
-    const email = searchParams.get('email');
-
     useEffect(() => {
-        if (token && email) {
-            verifyEmail(token, email);
-        } else {
-            setVerificationStatus('error');
-            setError('Invalid verification link');
-        }
-    }, [token, email]);
-
-    const verifyEmail = async (verificationToken: string, email: string) => {
-        setIsVerifying(true);
-        setError('');
-
-        try {
-            // Use Supabase's built-in email verification
-            const { data, error } = await supabase.auth.verifyOtp({
-                token: verificationToken,
-                type: 'email'
-            });
-
-            if (error) {
-                // Check if it's an expired or invalid token
-                if (error.message.includes('expired') || error.message.includes('invalid')) {
-                    setVerificationStatus('expired');
-                    setError('Verification link has expired. Please sign up again.');
+        const handleEmailVerification = async () => {
+            try {
+                // Check if there's an error in the URL hash (from Supabase)
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const errorParam = hashParams.get('error');
+                const errorDescription = hashParams.get('error_description');
+                
+                if (errorParam) {
+                    console.error('❌ Email verification error from URL:', errorParam, errorDescription);
+                    
+                    if (errorParam === 'access_denied' && errorDescription?.includes('expired')) {
+                        setVerificationStatus('expired');
+                        setError('Verification link has expired. Please sign up again.');
+                    } else {
+                        setVerificationStatus('error');
+                        setError(errorDescription || 'Invalid verification link');
+                    }
+                    setIsVerifying(false);
                     return;
                 }
-                throw error;
+
+                // Supabase automatically handles the email verification via the URL hash
+                // We just need to check if the user is now authenticated
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    console.error('❌ Error getting session:', sessionError);
+                    setVerificationStatus('error');
+                    setError('Verification failed. Please try again.');
+                    setIsVerifying(false);
+                    return;
+                }
+
+                if (session && session.user) {
+                    console.log('✅ Email verified successfully, updating profile...');
+                    
+                    // Update profile to mark email as verified
+                    // Profile was auto-created by database trigger during signup
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({
+                            email_verified: true
+                        })
+                        .eq('id', session.user.id);
+
+                    if (updateError) {
+                        console.error('❌ Error updating profile:', updateError);
+                        // Don't throw error, verification still successful
+                    }
+                    
+                    console.log('✅ Profile updated - email verified');
+                    setUserEmail(session.user.email || '');
+                    setVerificationStatus('success');
+                    
+                    // Redirect to onboarding choice after 2 seconds
+                    setTimeout(() => {
+                        navigate('/onboarding-choice', { replace: true });
+                    }, 2000);
+                } else {
+                    // No session means link might be expired or invalid
+                    console.log('⚠️ No session found - verification may have failed');
+                    setVerificationStatus('pending');
+                    setError('Waiting for verification...');
+                }
+                
+                setIsVerifying(false);
+
+            } catch (error: any) {
+                console.error('❌ Email verification error:', error);
+                setVerificationStatus('error');
+                setError(error.message || 'Verification failed. Please try again.');
+                setIsVerifying(false);
             }
+        };
 
-            // Update profile to mark email as verified
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    email_verified: true
-                })
-                .eq('id', data.user.id);
-
-            if (updateError) throw updateError;
-
-            setVerificationStatus('success');
-            setUserEmail(email);
-
-            // Redirect to onboarding choice after 3 seconds
-            setTimeout(() => {
-                navigate('/onboarding-choice', { replace: true });
-            }, 3000);
-
-        } catch (error: any) {
-            console.error('Email verification error:', error);
-            setVerificationStatus('error');
-            setError(error.message || 'Verification failed. Please try again.');
-        } finally {
-            setIsVerifying(false);
-        }
-    };
+        handleEmailVerification();
+    }, [navigate]);
 
     const resendVerification = async () => {
-        if (!email) return;
-
         try {
+            if (!userEmail) {
+                setError('Email address not found. Please return to login and sign up again.');
+                return;
+            }
+
             // Use Supabase's built-in resend functionality
             const { error } = await supabase.auth.resend({
                 type: 'signup',
-                email: email,
+                email: userEmail,
                 options: {
                     emailRedirectTo: `${window.location.origin}/verify-email`
                 }
@@ -105,11 +126,11 @@ const EmailVerificationPage: React.FC<EmailVerificationPageProps> = ({ handleLog
 
             if (error) throw error;
 
-            setError('');
+            setError('Verification email resent! Please check your inbox.');
             setVerificationStatus('pending');
         } catch (error: any) {
             console.error('Resend verification error:', error);
-            setError('Failed to resend verification email');
+            setError('Failed to resend verification email. Please try signing up again.');
         }
     };
 

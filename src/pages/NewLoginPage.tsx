@@ -223,6 +223,8 @@ const NewLoginPage: React.FC<NewLoginPageProps> = ({ isAuthenticated, handleLogo
         }
 
         try {
+            console.log('🔐 Starting signup process for:', formData.email);
+            
             // Use Supabase's built-in signup with email verification
             const { data, error } = await supabase.auth.signUp({
                 email: formData.email,
@@ -236,70 +238,30 @@ const NewLoginPage: React.FC<NewLoginPageProps> = ({ isAuthenticated, handleLogo
                 }
             });
 
-            // Check for email already registered error from Supabase auth
+            console.log('📊 Signup response:', { 
+                hasUser: !!data?.user, 
+                hasSession: !!data?.session,
+                userId: data?.user?.id,
+                error: error 
+            });
+
+            // Check for explicit error from Supabase auth
             if (error) {
-                // Check if email already exists in auth
-                if (error.message?.includes('User already registered') ||
-                    error.message?.includes('already registered') ||
-                    error.message?.includes('email address is already registered') ||
-                    error.message?.includes('Email already registered')) {
-                    setError(t('login.emailAlreadyRegistered'));
-                    setIsLoginMode(true); // Switch to login mode to help user
-                    setIsLoading(false);
-                    return;
-                }
-                throw error;
+                console.error('❌ Supabase signup error:', error);
+                setError(error.message || t('login.signupFailed'));
+                setIsLoading(false);
+                return;
             }
 
             if (data.user) {
-                // Create profile (no custom verification needed)
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert({
-                        id: data.user.id,
-                        full_name: formData.fullName,
-                        phone_number: formData.phone,
-                        role: 'patient',
-                        email_verified: false // Will be true after Supabase verification
-                    });
-
-                if (profileError) {
-                    // Check for RLS policy violation (profile already exists)
-                    if (profileError.message?.includes('row-level security policy') ||
-                        profileError.message?.includes('violates row-level security') ||
-                        profileError.code === '42501' || // PostgreSQL error code for insufficient privileges
-                        profileError.message?.includes('duplicate key') ||
-                        profileError.message?.includes('already exists')) {
-                        // Profile already exists - user registered before but trying to sign up again
-                        setError(t('login.emailAlreadyRegistered'));
-                        setIsLoginMode(true); // Switch to login mode
-                        setIsLoading(false);
-                        return;
-                    }
-                    throw profileError;
-                }
-
+                console.log('✅ Signup successful - verification email sent');
+                console.log('✅ Profile will be auto-created by database trigger');
                 setSuccess(t('login.accountCreatedSuccess'));
-                setIsLoginMode(true);
+                setCountdown(300); // 5 minutes countdown
             }
         } catch (error: any) {
-            console.error('Signup error:', error);
-
-            // Handle specific error cases with user-friendly messages
-            const errorMessage = error?.message || '';
-
-            if (errorMessage.includes('row-level security policy') ||
-                errorMessage.includes('violates row-level security') ||
-                errorMessage.includes('already registered') ||
-                errorMessage.includes('User already registered') ||
-                errorMessage.includes('email address is already registered') ||
-                errorMessage.includes('duplicate key') ||
-                errorMessage.includes('already exists')) {
-                setError(t('login.emailAlreadyRegistered'));
-                setIsLoginMode(true); // Switch to login mode to help user
-            } else {
-                setError(errorMessage || t('login.signupFailed'));
-            }
+            console.error('❌ Signup error:', error);
+            setError(error.message || t('login.signupFailed'));
         } finally {
             setIsLoading(false);
         }
