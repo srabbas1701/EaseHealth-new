@@ -396,3 +396,6 @@ COMMENT ON POLICY "Doctors can view vitals of their patients" ON public.patient_
 -- All policies should now contain "(select auth.uid())" instead of "auth.uid()"
 -- ============================================
 
+
+
+

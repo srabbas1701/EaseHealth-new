@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import PatientHeader from './PatientHeader/PatientHeader';
 import MedicalInfoSection from './MedicalInfo/MedicalInfoSection';
@@ -16,7 +16,8 @@ interface PatientTabContentProps {
 const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, doctorId, onBack }) => {
   const { patient, isLoading: isLoadingPatient, error: patientError } = usePatientDetails(patientId);
   const { vitals, isLoading: isLoadingVitals } = usePatientVitals(patientId);
-  const { reports, isLoading: isLoadingReports, uploadReport, deleteReport } = usePatientReports(patientId);
+  const { reports, isLoading: isLoadingReports, uploadReport, deleteReport, markReviewed, lockReports } = usePatientReports(patientId);
+  const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
 
   if (!patientId) {
     return (
@@ -85,8 +86,11 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
         reports={reports}
         isLoadingReports={isLoadingReports}
         onUploadReport={uploadReport}
-        onDeleteReport={deleteReport}
+        onDeleteReport={(reportId: string, reason: string) => deleteReport(reportId, reason, 'doctor')}
+        onMarkReviewed={(ids: string[]) => markReviewed(ids)}
+        onLockReports={(ids: string[]) => lockReports(ids)}
         doctorId={doctorId}
+        onSelectionChange={(ids: string[]) => setSelectedReportIds(ids)}
       />
 
       {/* Diagnosis & Prescription Form */}
@@ -94,6 +98,18 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
         patientId={patient.id}
         doctorId={doctorId}
         patientName={patient.full_name}
+        onAfterSave={(consultationId) => {
+          if (selectedReportIds.length > 0 && consultationId) {
+            lockReports(selectedReportIds, consultationId);
+            setSelectedReportIds([]);
+          }
+        }}
+        selectedReportIds={selectedReportIds}
+        onGenerateAI={async (ids) => {
+          // Placeholder: integrate with your AI agent later; return a mock summary string
+          console.log('Generate AI Summary for reports:', ids);
+          return `Summary for ${ids.length} report(s):\n- Key findings will appear here.\n- This is a placeholder until AI integration is configured.`;
+        }}
       />
     </div>
   );

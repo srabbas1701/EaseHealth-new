@@ -5,22 +5,37 @@ interface DeleteConfirmationModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
+    onConfirmWithReason?: (reason: string) => void;
     title: string;
     message: string;
     fileName?: string;
     isLoading?: boolean;
+    reasons?: string[];
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     isOpen,
     onClose,
     onConfirm,
+    onConfirmWithReason,
     title,
     message,
     fileName,
-    isLoading = false
+    isLoading = false,
+    reasons
 }) => {
     if (!isOpen) return null;
+
+    const [selectedReason, setSelectedReason] = React.useState<string>('');
+    const requireReason = Array.isArray(reasons) && reasons.length > 0 && typeof onConfirmWithReason === 'function';
+    const handleConfirm = () => {
+        if (requireReason) {
+            if (!selectedReason) return;
+            onConfirmWithReason!(selectedReason);
+        } else {
+            onConfirm();
+        }
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -71,6 +86,23 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
                             </div>
                         </div>
                     </div>
+
+                    {requireReason && (
+                        <div className="mt-4">
+                            <label className="block text-sm text-gray-700 dark:text-gray-200 mb-1">Reason</label>
+                            <select
+                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 text-sm"
+                                value={selectedReason}
+                                onChange={(e) => setSelectedReason(e.target.value)}
+                                disabled={isLoading}
+                            >
+                                <option value="" disabled>Select a reason</option>
+                                {reasons!.map(r => (
+                                    <option key={r} value={r}>{r}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -84,8 +116,8 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
                             Cancel
                         </button>
                         <button
-                            onClick={onConfirm}
-                            disabled={isLoading}
+                            onClick={handleConfirm}
+                            disabled={isLoading || (requireReason && !selectedReason)}
                             className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:cursor-not-allowed flex items-center justify-center"
                         >
                             {isLoading ? (

@@ -296,16 +296,49 @@ const PatientPreRegistrationPage: React.FC = () => {
         }
       }
 
-      // Upload Lab Report files
+      // Upload Lab Report files and create records in patient_reports table
       console.log(`📄 Uploading ${formData.labReportFiles.length} lab report files...`);
       for (const file of formData.labReportFiles) {
         try {
+          // 1. Upload file to storage
           const uploadResult = await uploadPatientDocument(file, patientId, 'lab_reports');
-          const url = uploadResult.publicUrl || uploadResult.signedUrl;
-          if (url) {
-            result.labReportUrls.push(url);
-            console.log('✅ Lab report file uploaded:', file.name);
+
+          // 2. Get user_id for the patient (patientId here is actually user_id during registration)
+          // Note: At registration time, patientId passed to uploadFiles is actually the patient's record ID
+          // We need to get the user_id from the patient record
+          const { data: patientData } = await supabase
+            .from('patients')
+            .select('user_id')
+            .eq('id', patientId)
+            .single();
+
+          // 3. Create record in patient_reports table
+          const { data: reportData, error: insertError } = await supabase
+            .from('patient_reports')
+            .insert({
+              patient_id: patientId,
+              report_name: file.name,
+              report_type: 'lab_report',
+              file_url: uploadResult.path,           // Store storage path, not full URL
+              file_size: file.size,
+              file_type: file.type,
+              // IMPORTANT: uploaded_by references doctors(id). For patient-sourced uploads, leave NULL.
+              uploaded_by: null,
+              upload_source: 'patient_registration',
+              upload_date: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error('❌ Failed to create report record:', insertError);
+            throw insertError;
           }
+
+          // Track report ID for confirmation
+          result.labReportUrls.push(reportData.id);
+          console.log('✅ Lab report uploaded and recorded in database:', file.name);
+
         } catch (err) {
           console.error('❌ Lab report upload failed:', err);
           setAnnouncement(`Failed to upload lab report: ${file.name}. You can try again later.`);
@@ -532,15 +565,16 @@ const PatientPreRegistrationPage: React.FC = () => {
       const uploadedFiles = await uploadFiles(patientResult.id);
 
       // Step 5: Update patient record with file URLs
-      if (uploadedFiles.profileImageUrl || uploadedFiles.idProofUrls.length > 0 || uploadedFiles.labReportUrls.length > 0) {
+      // Note: lab_report_urls no longer stored here - they're in patient_reports table
+      if (uploadedFiles.profileImageUrl || uploadedFiles.idProofUrls.length > 0) {
         console.log('🔄 Updating patient record with file URLs...');
 
         const { error: updateError } = await supabase
           .from('patients')
           .update({
             profile_image_url: uploadedFiles.profileImageUrl,
-            id_proof_urls: uploadedFiles.idProofUrls,
-            lab_report_urls: uploadedFiles.labReportUrls
+            id_proof_urls: uploadedFiles.idProofUrls
+            // lab_report_urls removed - now stored in patient_reports table
           })
           .eq('id', patientResult.id);
 
@@ -550,6 +584,11 @@ const PatientPreRegistrationPage: React.FC = () => {
         } else {
           console.log('✅ Updated patient record with file URLs');
         }
+      }
+
+      // Log lab reports summary (now stored in patient_reports table)
+      if (uploadedFiles.labReportUrls.length > 0) {
+        console.log(`✅ ${uploadedFiles.labReportUrls.length} lab reports saved to patient_reports table`);
       }
 
       // Step 6: Create pre-registration record with minimal data

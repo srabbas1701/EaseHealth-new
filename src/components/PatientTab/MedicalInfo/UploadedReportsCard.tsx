@@ -6,9 +6,12 @@ interface UploadedReportsCardProps {
   reports: PatientReport[];
   isLoading: boolean;
   onUpload: (file: File, reportName: string, reportType: string, doctorId: string) => Promise<PatientReport | null>;
-  onDelete: (reportId: string) => Promise<boolean>;
+  onDelete: (reportId: string, reason: string) => Promise<boolean>;
   doctorId: string;
   patientId: string;
+  onMarkReviewed?: (reportIds: string[]) => Promise<boolean>;
+  onLockReports?: (reportIds: string[]) => Promise<boolean>;
+  onSelectionChange?: (reportIds: string[]) => void;
 }
 
 const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
@@ -17,11 +20,38 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
   onUpload,
   onDelete,
   doctorId,
+  onMarkReviewed,
+  onLockReports,
+  onSelectionChange,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [viewingReport, setViewingReport] = useState<PatientReport | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<PatientReport | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteReason, setDeleteReason] = useState<string>('');
+  const deleteReasons = [
+    'Wrong report',
+    'Old report',
+    'Incomplete report',
+    'Duplicate upload',
+    'Not related to this patient',
+    'Poor image quality / Unreadable',
+    'Other',
+  ];
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      onSelectionChange && onSelectionChange(Array.from(next));
+      return next;
+    });
+  };
+  const clearSelection = () => { setSelectedIds(new Set()); onSelectionChange && onSelectionChange([]); };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -46,9 +76,21 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
     }
   };
 
-  const handleDelete = async (reportId: string) => {
-    if (window.confirm('Are you sure you want to delete this report?')) {
-      await onDelete(reportId);
+  const requestDelete = (report: PatientReport) => {
+    setReportToDelete(report);
+    setDeleteReason('');
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!reportToDelete) return;
+    try {
+      setIsDeleting(true);
+      await onDelete(reportToDelete.id, deleteReason);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setReportToDelete(null);
     }
   };
 
@@ -121,6 +163,12 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
                     className="bg-white dark:bg-gray-600 rounded-lg p-3 border border-gray-200 dark:border-gray-500 hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-start space-x-3">
+                      <input
+                        type="checkbox"
+                        className="mt-2 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                        checked={selectedIds.has(report.id)}
+                        onChange={() => toggleSelect(report.id)}
+                      />
                       <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
                         <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                       </div>
@@ -146,7 +194,7 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
                           <Eye className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                         </button>
                         <button
-                          onClick={() => handleDelete(report.id)}
+                          onClick={() => requestDelete(report)}
                           className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
                           title="Delete"
                         >
@@ -194,6 +242,56 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
                   title={viewingReport.report_name}
                 />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteModal && reportToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-600 flex items-start">
+              <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center mr-3">
+                <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete report?</h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  You are about to delete "{reportToDelete.report_name}". This will remove it from both the doctor and patient dashboards.
+                </p>
+                <label className="block mt-3 text-sm text-gray-700 dark:text-gray-200">Reason</label>
+                <select
+                  className="w-full mt-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 p-2 text-sm"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                >
+                  <option value="" disabled>Select a reason</option>
+                  {deleteReasons.map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={() => { setShowDeleteModal(false); setReportToDelete(null); }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="p-6 flex justify-end space-x-3">
+              <button
+                onClick={() => { setShowDeleteModal(false); setReportToDelete(null); }}
+                className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={isDeleting || !deleteReason}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm disabled:opacity-60"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           </div>
         </div>

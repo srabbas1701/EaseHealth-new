@@ -17,3 +17,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- Update comment
 COMMENT ON FUNCTION cleanup_unverified_users() IS 'Deletes unverified user profiles after 30 minutes for security and database hygiene. Protected against search path injection.';
 
+
+
+

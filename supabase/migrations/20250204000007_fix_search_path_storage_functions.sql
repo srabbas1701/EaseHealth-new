@@ -115,3 +115,6 @@ COMMENT ON FUNCTION public.generate_document_filename(UUID, TEXT, TEXT) IS 'Gene
 GRANT EXECUTE ON FUNCTION get_doctor_document_url(uuid, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION upload_doctor_document(uuid, text, text, bytea, text) TO authenticated;
 
+
+
+

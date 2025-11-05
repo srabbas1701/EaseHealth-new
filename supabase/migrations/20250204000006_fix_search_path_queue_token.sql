@@ -45,3 +45,6 @@ $$ LANGUAGE plpgsql SET search_path = public;
 -- Update comment
 COMMENT ON FUNCTION generate_queue_token() IS 'Generates a unique queue token in format QT-YYYY-XXXX for appointment tracking. Protected against search path injection.';
 
+
+
+

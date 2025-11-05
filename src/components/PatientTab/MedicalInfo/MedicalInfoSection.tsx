@@ -9,7 +9,10 @@ interface MedicalInfoSectionProps {
   reports: PatientReport[];
   isLoadingReports: boolean;
   onUploadReport: (file: File, reportName: string, reportType: string, doctorId: string) => Promise<PatientReport | null>;
-  onDeleteReport: (reportId: string) => Promise<boolean>;
+  onDeleteReport: (reportId: string, reason: string) => Promise<boolean>;
+  onMarkReviewed: (reportIds: string[]) => Promise<boolean>;
+  onLockReports: (reportIds: string[]) => Promise<boolean>;
+  onSelectionChange?: (reportIds: string[]) => void;
   doctorId: string;
 }
 
@@ -19,6 +22,9 @@ const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = memo(({
   isLoadingReports,
   onUploadReport,
   onDeleteReport,
+  onMarkReviewed,
+  onLockReports,
+  onSelectionChange,
   doctorId,
 }) => {
   return (
@@ -32,6 +38,9 @@ const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = memo(({
         onDelete={onDeleteReport}
         doctorId={doctorId}
         patientId={patient.id}
+        onMarkReviewed={onMarkReviewed}
+        onLockReports={onLockReports}
+        onSelectionChange={onSelectionChange}
       />
     </div>
   );

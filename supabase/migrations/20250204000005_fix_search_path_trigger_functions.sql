@@ -23,3 +23,6 @@ $$ LANGUAGE plpgsql SET search_path = public;
 COMMENT ON FUNCTION update_updated_at_column() IS 'Trigger function to automatically update updated_at timestamp. Protected against search path injection.';
 COMMENT ON FUNCTION handle_updated_at() IS 'Trigger function to automatically update updated_at timestamp. Protected against search path injection.';
 
+
+
+

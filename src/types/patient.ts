@@ -50,9 +50,18 @@ export interface PatientReport {
   file_size?: number;
   file_type?: string;
   uploaded_by?: string;
+  upload_source?: 'patient_registration' | 'patient_profile_update' | 'doctor_upload';
   upload_date: string;
   description?: string;
   is_deleted?: boolean;
+  deleted_reason?: string | null;
+  deleted_by?: string | null;
+  deleted_by_role?: 'doctor' | 'patient' | 'admin' | null;
+  deleted_at?: string | null;
+  locked?: boolean;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  linked_consultation_id?: string | null;
   created_at: string;
   updated_at: string;
 }

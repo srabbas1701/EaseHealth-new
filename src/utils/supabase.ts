@@ -458,14 +458,11 @@ export interface Profile {
   id: string
   full_name: string
   phone_number: string
-  age?: number
-  gender?: string
-  city?: string
-  state?: string
-  role?: string  // Add this if not already present
-  email_verified?: boolean  // Add this
-  verification_token?: string  // Add this
-  verification_expires_at?: string  // Add this
+  email?: string  // User email, copied from auth.users
+  role?: string  // User role: 'patient', 'doctor', 'admin'
+  email_verified?: boolean  // Email verification status
+  verification_token?: string  // Token for email verification
+  verification_expires_at?: string  // Token expiration timestamp
   created_at?: string
   updated_at?: string
 }

@@ -9,12 +9,18 @@ interface DiagnosisPrescriptionFormProps {
   patientId: string;
   doctorId: string;
   patientName: string;
+  onAfterSave?: (consultationId: string | null) => void;
+  selectedReportIds?: string[];
+  onGenerateAI?: (reportIds: string[]) => Promise<string | void> | string | void;
 }
 
-const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo(({
+const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo(({ 
   patientId,
   doctorId,
   patientName,
+  onAfterSave,
+  selectedReportIds = [],
+  onGenerateAI,
 }) => {
   const {
     formData,
@@ -30,6 +36,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [savedConsultationId, setSavedConsultationId] = useState<string | null>(null);
+  const [aiSummary, setAiSummary] = useState<string>('');
 
   const handleSave = async () => {
     setSaveMessage(null);
@@ -38,6 +45,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
 
     if (result.success) {
       setSavedConsultationId(result.consultationId || null);
+      try { onAfterSave && onAfterSave(result.consultationId || null); } catch {}
       setSaveMessage({
         type: 'success',
         text: 'Prescription saved successfully!',
@@ -59,8 +67,59 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
     setShowPrintModal(true);
   };
 
+  const handleGenerateAI = async () => {
+    if (!selectedReportIds || selectedReportIds.length === 0) {
+      setSaveMessage({ type: 'error', text: 'Select at least one report to generate AI analysis.' });
+      setTimeout(() => setSaveMessage(null), 4000);
+      return;
+    }
+    try {
+      const result = await onGenerateAI?.(selectedReportIds);
+      if (typeof result === 'string' && result.trim().length > 0) {
+        setAiSummary(result);
+      } else {
+        // Fallback placeholder until the backend is wired
+        setAiSummary('AI summary generated. (Integration placeholder)');
+      }
+      setSaveMessage({ type: 'success', text: 'AI summary generated.' });
+      setTimeout(() => setSaveMessage(null), 4000);
+    } catch (e) {
+      setSaveMessage({ type: 'error', text: 'Failed to start AI analysis.' });
+      setTimeout(() => setSaveMessage(null), 4000);
+    }
+  };
+
   return (
     <>
+      {/* Standalone AI Summary card above the Diagnosis & Prescription card */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-6 border border-gray-200 dark:border-gray-600">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+              <Bot className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">AI Summary</h3>
+          </div>
+          <button
+            type="button"
+            onClick={handleGenerateAI}
+            disabled={isSaving || (selectedReportIds?.length ?? 0) === 0}
+            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            title={selectedReportIds.length === 0 ? 'Select report(s) to summarize' : 'Generate AI summary from selected reports'}
+          >
+            <Bot className="w-5 h-5" />
+            <span>Generate AI Summary</span>
+          </button>
+        </div>
+        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-60 overflow-auto" style={{ minHeight: '100px' }}>
+          {aiSummary ? (
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{aiSummary}</pre>
+          ) : (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No AI summary yet. Select report(s) and click "Generate AI Summary".</p>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-2 border-teal-500 dark:border-teal-600">
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6">
@@ -179,15 +238,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-600">
-          <button
-            type="button"
-            disabled
-            className="flex items-center space-x-2 px-6 py-3 bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-lg font-medium cursor-not-allowed"
-            title="AI Analysis feature coming soon via n8n integration"
-          >
-            <Bot className="w-5 h-5" />
-            <span>Generate AI Analysis</span>
-          </button>
+          {/* Generate AI Summary button moved to AI Summary header */}
 
           <button
             type="button"

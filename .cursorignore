@@ -1,0 +1,68 @@
+# .cursorignore - Reduces token usage by excluding historical docs
+# 
+# Excluded files can still be accessed by:
+# 1. Explicitly referencing them in chat
+# 2. Temporarily commenting out patterns below
+# 3. Modifying this file and restarting Cursor
+
+# Keep these accessible for email verification work:
+# EMAIL_VERIFICATION_FIX.md
+# SIGNUP_FLOW_VISUAL.md
+# NEXT_STEPS.md
+# ADMIN_FEATURES_MIGRATION_NOTES.md
+
+# Node modules
+node_modules/
+
+# Build outputs  
+dist/
+backups/
+
+# Large assets
+*.png
+*.jpg
+*.pdf
+
+# Logs
+*.log
+
+# Database backups
+*.sql.backup
+
+# Test files
+test_*.js
+test_*.ts
+# Add to your existing .cursorignore:
+
+# All image formats
+*.gif
+*.svg
+*.webp
+*.ico
+
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
+# Large data files
+*.csv
+*.json.bak
+
+# Environment files (if you have many)
+.env.local
+.env.*.local
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Historical markdown docs (can still reference directly if needed)
+*_FIX_SUMMARY.md
+# *_VERIFICATION.md
+# *_FIX_VERIFICATION.md
+APPLY_*.md
+FINAL_*.md
+CRITICAL_*.md
+FIXES_APPLIED*.md
+docs/archive/

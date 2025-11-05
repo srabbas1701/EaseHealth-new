@@ -68,6 +68,73 @@ const INDIAN_STATES: string[] = [
     'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal', 'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu', 'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
 ];
 
+// Blood type options
+const BLOOD_TYPES: string[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+// Gender options
+const GENDER_OPTIONS: string[] = ['Male', 'Female', 'Other', 'Prefer not to say'];
+
+// Helper: Convert dd-mm-yyyy to yyyy-mm-dd for database storage
+const convertDateForDatabase = (dateString: string): string => {
+    if (!dateString) return '';
+    // If already in yyyy-mm-dd format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+    }
+    // Convert dd-mm-yyyy to yyyy-mm-dd
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+        const [dd, mm, yyyy] = parts;
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    return dateString;
+};
+
+// Helper: Convert yyyy-mm-dd to dd-mm-yyyy for display
+const convertDateForDisplay = (dateString: string): string => {
+    if (!dateString) return '';
+    // If already in dd-mm-yyyy format, return as is
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+        return dateString;
+    }
+    // Convert yyyy-mm-dd to dd-mm-yyyy
+    const parts = dateString.split('-');
+    if (parts.length === 3) {
+        const [yyyy, mm, dd] = parts;
+        return `${dd}-${mm}-${yyyy}`;
+    }
+    return dateString;
+};
+
+// Helper: Calculate age from date of birth
+const calculateAge = (dateOfBirth: string): number | null => {
+    if (!dateOfBirth) return null;
+
+    // Handle both dd-mm-yyyy and yyyy-mm-dd formats
+    let birthDate: Date;
+
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateOfBirth)) {
+        // dd-mm-yyyy format
+        const [dd, mm, yyyy] = dateOfBirth.split('-').map(Number);
+        birthDate = new Date(yyyy, mm - 1, dd);
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+        // yyyy-mm-dd format
+        birthDate = new Date(dateOfBirth);
+    } else {
+        return null;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+
+    return age >= 0 ? age : null;
+};
+
 interface UploadedFiles {
     idProofUrls: string[];
     labReportUrls: string[];
@@ -124,6 +191,13 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
         profileImageUrl: null
     });
     const [isLoading, setIsLoading] = useState(true);
+
+    // Track which fields are editable (empty initially, can be set once)
+    const [editableFields, setEditableFields] = useState({
+        bloodType: false,
+        dateOfBirth: false,
+        gender: false
+    });
 
     // Load patient data
     useEffect(() => {
@@ -222,6 +296,17 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 }
 
                 if (patientData) {
+                    // Check which fields are empty and can be edited once
+                    const canEditBloodType = !patientData.blood_type || patientData.blood_type.trim() === '';
+                    const canEditDateOfBirth = !patientData.date_of_birth || patientData.date_of_birth.trim() === '';
+                    const canEditGender = !patientData.gender || patientData.gender.trim() === '';
+
+                    setEditableFields({
+                        bloodType: canEditBloodType,
+                        dateOfBirth: canEditDateOfBirth,
+                        gender: canEditGender
+                    });
+
                     setFormData({
                         patientId: patientData.id || '',
                         registrationDate: patientData.created_at ? new Date(patientData.created_at).toLocaleDateString() : '',
@@ -409,20 +494,48 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 });
             }
 
-            // Upload Lab Report files
+            // Upload Lab Report files and create records in patient_reports table
             if (formData.labReportFiles.length > 0) {
                 console.log(`📄 Uploading ${formData.labReportFiles.length} lab report files...`);
                 formData.labReportFiles.forEach(file => {
                     uploadPromises.push(
-                        uploadPatientDocument(file, patientId, 'lab_reports')
-                            .then(uploadResult => {
-                                const url = uploadResult.publicUrl || uploadResult.signedUrl;
-                                if (url) {
-                                    result.labReportUrls.push(url);
-                                    console.log('✅ Lab report file uploaded:', file.name);
-                                }
-                            })
-                            .catch(async (err) => {
+                        (async () => {
+                            try {
+                                // 1. Upload file to storage
+                                const uploadResult = await uploadPatientDocument(file, patientId, 'lab_reports');
+
+                                // 2. Get user_id for the patient
+                                const { data: patientData } = await supabase
+                                    .from('patients')
+                                    .select('user_id')
+                                    .eq('id', patientId)
+                                    .single();
+
+                                // 3. Create record in patient_reports table
+                                const { data: reportData, error: insertError } = await supabase
+                                    .from('patient_reports')
+                                    .insert({
+                                        patient_id: patientId,
+                                        report_name: file.name,
+                                        report_type: 'lab_report',
+                                        file_url: uploadResult.path,
+                                        file_size: file.size,
+                                        file_type: file.type,
+                                        // uploaded_by references doctors(id). For patient uploads keep NULL.
+                                        uploaded_by: null,
+                                        upload_source: 'patient_profile_update',
+                                        upload_date: new Date().toISOString()
+                                    })
+                                    .select()
+                                    .single();
+
+                                if (insertError) throw insertError;
+
+                                // Track report ID for confirmation
+                                result.labReportUrls.push(reportData.id);
+                                console.log('✅ Lab report uploaded and recorded in database:', file.name);
+
+                            } catch (err: any) {
                                 console.error('❌ Lab report upload failed:', err);
 
                                 // If JWT error, try refreshing session and retry once
@@ -430,11 +543,34 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                                     console.log('🔄 JWT error detected, refreshing session and retrying...');
                                     try {
                                         await supabase.auth.refreshSession();
+
+                                        // Retry upload
                                         const retryResult = await uploadPatientDocument(file, patientId, 'lab_reports');
-                                        const url = retryResult.publicUrl || retryResult.signedUrl;
-                                        if (url) {
-                                            result.labReportUrls.push(url);
-                                            console.log('✅ Lab report file uploaded successfully on retry:', file.name);
+                                        const { data: patientData } = await supabase
+                                            .from('patients')
+                                            .select('user_id')
+                                            .eq('id', patientId)
+                                            .single();
+
+                                        const { data: reportData } = await supabase
+                                            .from('patient_reports')
+                                            .insert({
+                                                patient_id: patientId,
+                                                report_name: file.name,
+                                                report_type: 'lab_report',
+                                                file_url: retryResult.path,
+                                                file_size: file.size,
+                                                file_type: file.type,
+                                                uploaded_by: null,
+                                                upload_source: 'patient_profile_update',
+                                                upload_date: new Date().toISOString()
+                                            })
+                                            .select()
+                                            .single();
+
+                                        if (reportData) {
+                                            result.labReportUrls.push(reportData.id);
+                                            console.log('✅ Lab report uploaded successfully on retry:', file.name);
                                         }
                                     } catch (retryErr) {
                                         console.error('❌ Lab report upload failed on retry:', retryErr);
@@ -443,7 +579,8 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                                 } else {
                                     setAnnouncement(`Failed to upload lab report: ${file.name}. You can try again later.`);
                                 }
-                            })
+                            }
+                        })()
                     );
                 });
             }
@@ -484,6 +621,36 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
             newErrors.emergencyContactPhone = 'Emergency contact phone must be 10 digits';
         }
 
+        // Validate editable fields if they are being set for the first time
+        if (editableFields.bloodType && !formData.bloodType.trim()) {
+            newErrors.bloodType = 'Blood type is required';
+        }
+
+        if (editableFields.dateOfBirth) {
+            if (!formData.dateOfBirth.trim()) {
+                newErrors.dateOfBirth = 'Date of birth is required';
+            } else {
+                // Validate date format dd-mm-yyyy
+                const dateRegex = /^(0[1-9]|[12][0-9]|3[01])-(0[1-9]|1[0-2])-\d{4}$/;
+                if (!dateRegex.test(formData.dateOfBirth.trim())) {
+                    newErrors.dateOfBirth = 'Date must be in dd-mm-yyyy format';
+                } else {
+                    // Validate if it's a valid date
+                    const [dd, mm, yyyy] = formData.dateOfBirth.split('-').map(Number);
+                    const date = new Date(yyyy, mm - 1, dd);
+                    if (date.getDate() !== dd || date.getMonth() !== mm - 1 || date.getFullYear() !== yyyy) {
+                        newErrors.dateOfBirth = 'Invalid date';
+                    } else if (date > new Date()) {
+                        newErrors.dateOfBirth = 'Date of birth cannot be in the future';
+                    }
+                }
+            }
+        }
+
+        if (editableFields.gender && !formData.gender.trim()) {
+            newErrors.gender = 'Gender is required';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -502,7 +669,7 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
 
         try {
             // Update patient record (session refresh removed for performance)
-            const updateData = {
+            const updateData: any = {
                 address: formData.address,
                 city: formData.city,
                 state: formData.state,
@@ -514,6 +681,28 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 emergency_contact_name: formData.emergencyContactName,
                 emergency_contact_phone: formData.emergencyContactPhone
             };
+
+            // Include editable fields if they are being set for the first time
+            if (editableFields.bloodType && formData.bloodType) {
+                updateData.blood_type = formData.bloodType;
+            }
+
+            if (editableFields.dateOfBirth && formData.dateOfBirth) {
+                // Convert dd-mm-yyyy to yyyy-mm-dd for database
+                const dobForDB = convertDateForDatabase(formData.dateOfBirth);
+                updateData.date_of_birth = dobForDB;
+
+                // Calculate and store age
+                const calculatedAge = calculateAge(formData.dateOfBirth);
+                if (calculatedAge !== null) {
+                    updateData.age = calculatedAge;
+                    console.log('✅ Calculated age from DOB:', calculatedAge);
+                }
+            }
+
+            if (editableFields.gender && formData.gender) {
+                updateData.gender = formData.gender;
+            }
 
             console.log('📊 Updating patient record...');
 
@@ -544,29 +733,37 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 console.log('📁 Uploading new files...');
                 const uploadedFiles = await uploadFiles(formData.patientId);
 
-                // Update patient record with new file URLs
-                const { error: fileUpdateError } = await supabase
-                    .from('patients')
-                    .update({
-                        profile_image_url: uploadedFiles.profileImageUrl,
-                        id_proof_urls: uploadedFiles.idProofUrls,
-                        lab_report_urls: uploadedFiles.labReportUrls
-                    })
-                    .eq('id', formData.patientId);
+                // Update patient record with new file URLs (only profile image and ID proofs)
+                // Note: lab_report_urls no longer stored here - they're in patient_reports table
+                if (uploadedFiles.profileImageUrl || uploadedFiles.idProofUrls.length > 0) {
+                    const { error: fileUpdateError } = await supabase
+                        .from('patients')
+                        .update({
+                            profile_image_url: uploadedFiles.profileImageUrl,
+                            id_proof_urls: uploadedFiles.idProofUrls
+                            // lab_report_urls removed - now stored in patient_reports table
+                        })
+                        .eq('id', formData.patientId);
 
-                if (fileUpdateError) {
-                    console.error('⚠️ Error updating patient with file URLs:', fileUpdateError);
+                    if (fileUpdateError) {
+                        console.error('⚠️ Error updating patient with file URLs:', fileUpdateError);
 
-                    // Handle JWT expiration during file URL update
-                    if (fileUpdateError.message && fileUpdateError.message.includes('InvalidJWT')) {
-                        setAnnouncement('Your session expired during file upload. Please log in again.');
-                        setTimeout(() => {
-                            handleLogout();
-                        }, 2000);
-                        return;
+                        // Handle JWT expiration during file URL update
+                        if (fileUpdateError.message && fileUpdateError.message.includes('InvalidJWT')) {
+                            setAnnouncement('Your session expired during file upload. Please log in again.');
+                            setTimeout(() => {
+                                handleLogout();
+                            }, 2000);
+                            return;
+                        }
+                    } else {
+                        console.log('✅ Updated patient record with file URLs');
                     }
-                } else {
-                    console.log('✅ Updated patient record with file URLs');
+                }
+
+                // Log lab reports summary (now stored in patient_reports table)
+                if (uploadedFiles.labReportUrls.length > 0) {
+                    console.log(`✅ ${uploadedFiles.labReportUrls.length} lab reports saved to patient_reports table`);
                 }
             }
 
@@ -709,18 +906,30 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Phone Number</label>
                                     <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.phoneNumber}</p>
                                 </div>
-                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Blood Type</label>
-                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.bloodType}</p>
-                                </div>
-                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date of Birth</label>
-                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formatDisplayDate(formData.dateOfBirth)}</p>
-                                </div>
-                                <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Gender</label>
-                                    <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.gender}</p>
-                                </div>
+
+                                {/* Conditionally display Blood Type - read-only if already set */}
+                                {!editableFields.bloodType && (
+                                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Blood Type</label>
+                                        <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.bloodType}</p>
+                                    </div>
+                                )}
+
+                                {/* Conditionally display Date of Birth - read-only if already set */}
+                                {!editableFields.dateOfBirth && (
+                                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Date of Birth</label>
+                                        <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formatDisplayDate(formData.dateOfBirth)}</p>
+                                    </div>
+                                )}
+
+                                {/* Conditionally display Gender - read-only if already set */}
+                                {!editableFields.gender && (
+                                    <div className="bg-white/60 dark:bg-gray-800/60 rounded-lg p-3 md:p-4 border border-gray-200 dark:border-gray-700 cursor-default min-w-0">
+                                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Gender</label>
+                                        <p className="text-sm font-medium text-[#0A2647] dark:text-gray-100 break-words">{formData.gender}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -792,6 +1001,87 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                                                 ))}
                                             </select>
                                         </div>
+
+                                        {/* Editable Blood Type - Only if empty initially */}
+                                        {editableFields.bloodType && (
+                                            <div>
+                                                <label htmlFor="bloodType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Blood Type <span className="text-red-500">*</span>
+                                                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Can be set only once)</span>
+                                                </label>
+                                                <select
+                                                    id="bloodType"
+                                                    value={formData.bloodType}
+                                                    onChange={(e) => handleInputChange('bloodType', e.target.value)}
+                                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.bloodType ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                        }`}
+                                                >
+                                                    <option value="">Select Blood Type</option>
+                                                    {BLOOD_TYPES.map((type) => (
+                                                        <option key={type} value={type}>{type}</option>
+                                                    ))}
+                                                </select>
+                                                {errors.bloodType && (
+                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                        <AlertCircle className="w-4 h-4 mr-1" />
+                                                        {errors.bloodType}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Editable Date of Birth - Only if empty initially */}
+                                        {editableFields.dateOfBirth && (
+                                            <div>
+                                                <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Date of Birth <span className="text-red-500">*</span>
+                                                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Can be set only once)</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    id="dateOfBirth"
+                                                    value={formData.dateOfBirth}
+                                                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                                                    placeholder="dd-mm-yyyy"
+                                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.dateOfBirth ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                        }`}
+                                                />
+                                                {errors.dateOfBirth && (
+                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                        <AlertCircle className="w-4 h-4 mr-1" />
+                                                        {errors.dateOfBirth}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Editable Gender - Only if empty initially */}
+                                        {editableFields.gender && (
+                                            <div>
+                                                <label htmlFor="gender" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    Gender <span className="text-red-500">*</span>
+                                                    <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">(Can be set only once)</span>
+                                                </label>
+                                                <select
+                                                    id="gender"
+                                                    value={formData.gender}
+                                                    onChange={(e) => handleInputChange('gender', e.target.value)}
+                                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${errors.gender ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                                                        }`}
+                                                >
+                                                    <option value="">Select Gender</option>
+                                                    {GENDER_OPTIONS.map((option) => (
+                                                        <option key={option} value={option}>{option}</option>
+                                                    ))}
+                                                </select>
+                                                {errors.gender && (
+                                                    <p className="mt-2 text-sm text-red-600 dark:text-red-400 flex items-center">
+                                                        <AlertCircle className="w-4 h-4 mr-1" />
+                                                        {errors.gender}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 

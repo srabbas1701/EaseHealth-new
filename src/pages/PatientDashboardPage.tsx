@@ -10,6 +10,7 @@ import { getPatientProfileWithStats, getUpcomingAppointments, getAppointmentHist
 import { getFreshSignedUrls, deletePatientDocument, updatePatientFileUrls } from '../utils/patientFileUploadUtils';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { usePatientVitals } from '../hooks/patient/usePatientVitals';
+import { usePatientReports } from '../hooks/patient/usePatientReports';
 // Temporarily commented out recharts imports to fix loading issue
 // import { 
 //   LineChart, 
@@ -64,8 +65,10 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
   const [activeTab, setActiveTab] = useState<'pre-registration' | 'prescriptions' | 'uploaded-files' | 'ai-analytics'>('pre-registration');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<any>(null);
-  const [freshLabReportUrls, setFreshLabReportUrls] = useState<string[]>([]);
   const [freshIdProofUrls, setFreshIdProofUrls] = useState<string[]>([]);
+
+  // Use patient reports hook for lab reports (replaces freshLabReportUrls)
+  const { reports: labReports, isLoading: isLoadingLabReports, deleteReport: deletePatientReport } = usePatientReports(patientProfile?.id || null);
 
   // Delete modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -73,6 +76,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     type: 'idProof' | 'labReport' | 'profileImage';
     index: number;
     fileName: string;
+    reportId?: string; // for labReport
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -307,12 +311,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     try {
       console.log('🔄 Refreshing signed URLs for documents...');
 
-      // Refresh lab report URLs
-      if (patientProfile.lab_report_urls && patientProfile.lab_report_urls.length > 0) {
-        const freshLabUrls = await getFreshSignedUrls(patientProfile.lab_report_urls, 'lab_reports');
-        setFreshLabReportUrls(freshLabUrls);
-        console.log('✅ Refreshed lab report URLs:', freshLabUrls.length);
-      }
+      // Lab reports are now handled by usePatientReports hook - no need to refresh here
 
       // Refresh ID proof URLs
       if (patientProfile.id_proof_urls && patientProfile.id_proof_urls.length > 0) {
@@ -323,7 +322,6 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     } catch (error) {
       console.error('❌ Error refreshing signed URLs:', error);
       // Fallback to original URLs
-      setFreshLabReportUrls(patientProfile.lab_report_urls || []);
       setFreshIdProofUrls(patientProfile.id_proof_urls || []);
     }
   };
@@ -346,9 +344,10 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           documentType = 'aadhaar_documents';
           break;
         case 'labReport':
-          currentUrls = [...freshLabReportUrls];
-          documentType = 'lab_reports';
-          break;
+          // handled via onConfirmWithReason below, not here
+          setShowDeleteModal(false);
+          setIsDeleting(false);
+          return;
         case 'profileImage':
           currentUrls = patientProfile.profile_image_url ? [patientProfile.profile_image_url] : [];
           documentType = 'profile_image';
@@ -369,7 +368,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
           setFreshIdProofUrls(updatedUrls);
           break;
         case 'labReport':
-          setFreshLabReportUrls(updatedUrls);
+          // No longer needed - handled by patient_reports table
           break;
         case 'profileImage':
           // Update patient profile state
@@ -905,17 +904,24 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                       <FileText className="w-5 h-5 mr-2 text-[#0075A2] dark:text-[#0EA5E9]" />
                       {t('patientDashboard.preRegistration.labReports')}
                     </h4>
-                    {freshLabReportUrls && freshLabReportUrls.length > 0 ? (
+                    {isLoadingLabReports ? (
+                      <div className="text-center py-4">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#0075A2] dark:border-[#0EA5E9] mx-auto"></div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading reports...</p>
+                      </div>
+                    ) : labReports && labReports.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {freshLabReportUrls.map((url: string, index: number) => (
-                          <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        {labReports.map((report) => (
+                          <div key={report.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                             <div className="flex items-center justify-between">
                               <div>
-                                <p className="font-medium text-[#0A2647] dark:text-gray-100">{t('patientDashboard.uploadedFiles.labReport')} {index + 1}</p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Click to view document</p>
+                                <p className="font-medium text-[#0A2647] dark:text-gray-100">{report.report_name}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {new Date(report.upload_date).toLocaleDateString()}
+                                </p>
                               </div>
                               <a
-                                href={url}
+                                href={report.file_url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-[#0075A2] dark:bg-[#0EA5E9] text-white px-3 py-2 rounded-lg hover:bg-[#0A2647] dark:hover:bg-[#0284C7] transition-colors text-sm font-medium"
@@ -1049,26 +1055,33 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                         {t('patientDashboard.uploadedFiles.labReports')}
                       </h4>
                       <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {freshLabReportUrls.length} {t('patientDashboard.uploadedFiles.fileCount')}
+                        {isLoadingLabReports ? '...' : labReports.length} {t('patientDashboard.uploadedFiles.fileCount')}
                       </span>
                     </div>
-                    {freshLabReportUrls && freshLabReportUrls.length > 0 ? (
+                    {isLoadingLabReports ? (
+                      <div className="text-center py-6">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading reports...</p>
+                      </div>
+                    ) : labReports && labReports.length > 0 ? (
                       <div className="space-y-3">
-                        {freshLabReportUrls.map((url: string, index: number) => (
-                          <div key={index} className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
+                        {labReports.map((report) => (
+                          <div key={report.id} className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center flex-1">
                                 <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center mr-3">
                                   <FileText className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-[#0A2647] dark:text-gray-100">Lab Report {index + 1}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Medical Test Results</p>
+                                  <p className="font-semibold text-[#0A2647] dark:text-gray-100">{report.report_name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(report.upload_date).toLocaleDateString()} • {report.upload_source?.replace('_', ' ')}
+                                  </p>
                                 </div>
                               </div>
                               <div className="flex space-x-2">
                                 <a
-                                  href={url}
+                                  href={report.file_url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="bg-[#0075A2] hover:bg-[#0A2647] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
@@ -1076,13 +1089,15 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                   <Eye className="w-4 h-4 mr-1" />
                                   View
                                 </a>
+                                {!report.locked && (
                                 <button
                                   className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
                                   onClick={() => {
                                     setFileToDelete({
                                       type: 'labReport',
-                                      index: index,
-                                      fileName: `Lab Report ${index + 1}`
+                                      index: 0,
+                                      fileName: report.report_name,
+                                      reportId: report.id,
                                     });
                                     setShowDeleteModal(true);
                                   }}
@@ -1090,6 +1105,10 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                   <X className="w-4 h-4 mr-1" />
                                   Delete
                                 </button>
+                                )}
+                                {report.locked && (
+                                  <span className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 text-xs" title="This report is part of your medical record and can’t be deleted.">Locked</span>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1163,7 +1182,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
 
                   {/* No files message */}
                   {freshIdProofUrls.length === 0 &&
-                    freshLabReportUrls.length === 0 &&
+                    labReports.length === 0 &&
                     !patientProfile.profile_image_url && (
                       <div className="text-center py-12">
                         <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -1259,10 +1278,30 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
             setFileToDelete(null);
           }}
           onConfirm={handleDeleteFile}
+          onConfirmWithReason={fileToDelete?.type === 'labReport' && fileToDelete?.reportId ? async (reason: string) => {
+            if (!fileToDelete?.reportId) return;
+            setIsDeleting(true);
+            const ok = await deletePatientReport(fileToDelete.reportId, reason, 'patient');
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+            setFileToDelete(null);
+            if (!ok) {
+              setAnnouncement('Failed to delete the report. It may be locked or you may not have permission.');
+            }
+          } : undefined}
           title="Delete File"
-          message="Are you sure you want to delete this file? This action cannot be undone."
+          message={fileToDelete?.type === 'labReport' ? 'Select a reason and confirm to delete this report. This action hides the report from both dashboards.' : 'Are you sure you want to delete this file? This action cannot be undone.'}
           fileName={fileToDelete?.fileName}
           isLoading={isDeleting}
+          reasons={fileToDelete?.type === 'labReport' ? [
+            'Wrong report',
+            'Old report',
+            'Incomplete report',
+            'Duplicate upload',
+            'Not related to this patient',
+            'Poor image quality / Unreadable',
+            'Other',
+          ] : undefined}
         />
       </main>
     </div>

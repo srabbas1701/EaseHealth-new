@@ -895,7 +895,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
       <main id="main-content" tabIndex={-1} aria-label="Smart Appointment Booking">
         {/* Hero Section */}
-        <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-12 lg:py-16">
+        <section className="relative bg-gradient-to-br from-white dark:from-gray-800 to-[#F6F6F6] dark:to-gray-900 py-8 lg:py-10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Back Button */}
             <Link
@@ -907,41 +907,43 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
             </Link>
 
             {/* Page Header */}
-            <div className="text-center mb-8">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight mb-6">
+            <div className="text-center mb-6">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#0A2647] dark:text-gray-100 leading-tight">
                 {t('appointmentBooking.pageTitle')}
               </h1>
-              <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed max-w-3xl mx-auto">
+              <p className="mt-3 text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-6 leading-relaxed max-w-3xl mx-auto">
                 {t('appointmentBooking.pageSubtitle')}
               </p>
 
-              {/* Quick Stats */}
-              <div className="flex flex-wrap justify-center gap-8 mb-12">
-                <div className="flex items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                    <Zap className="w-6 h-6 text-white" />
+              {/* Compact Quick Stats */}
+              <div className="mt-6 flex items-center justify-center space-x-8 mb-6">
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] flex items-center justify-center text-white">
+                    <Zap className="w-4 h-4" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.bookingTime.value')}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('appointmentBooking.quickStats.bookingTime.label')}</p>
-                  </div>
-                </div>
-                <div className="flex items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                    <Shield className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.security.value')}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('appointmentBooking.quickStats.security.label')}</p>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.bookingTime.value')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('appointmentBooking.quickStats.bookingTime.label')}</div>
                   </div>
                 </div>
-                <div className="flex items-center text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-full flex items-center justify-center mr-3">
-                    <Star className="w-6 h-6 text-white" />
+
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] flex items-center justify-center text-white">
+                    <Shield className="w-4 h-4" />
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.rating.value')}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">{t('appointmentBooking.quickStats.rating.label')}</p>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.security.value')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('appointmentBooking.quickStats.security.label')}</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] flex items-center justify-center text-white">
+                    <Star className="w-4 h-4" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-semibold text-[#0A2647] dark:text-gray-100">{t('appointmentBooking.quickStats.rating.value')}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('appointmentBooking.quickStats.rating.label')}</div>
                   </div>
                 </div>
               </div>
@@ -951,7 +953,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
               {/* Left Column - Booking Steps (3/4 width) */}
               <div className="lg:col-span-3">
-                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 lg:p-10 border border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-6 lg:p-8 border border-gray-200 dark:border-gray-700">
                   <div className="text-center mb-8">
                     <h2 className="text-3xl font-bold text-[#0A2647] dark:text-gray-100 mb-4">{t('appointmentBooking.bookAppointment.title')}</h2>
                     <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.bookAppointment.subtitle')}</p>
@@ -1444,7 +1446,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
               <div className="lg:col-span-1">
                 <div className="space-y-6">
                   {/* How It Works */}
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 border border-gray-200 dark:border-gray-700 sticky top-24">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-4 border border-gray-200 dark:border-gray-700">
                     <div className="text-center mb-6">
                       <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100 mb-2">{t('appointmentBooking.howItWorksTitle')}</h3>
                       <p className="text-gray-600 dark:text-gray-300">{t('appointmentBooking.howItWorksSubtitle')}</p>
@@ -1474,7 +1476,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
 
                   {/* Booking Summary */}
                   {(selectedDoctor || selectedDate || selectedTime) && (
-                    <div className="bg-gradient-to-br from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl shadow-xl p-6 text-white">
+                    <div className="bg-gradient-to-br from-[#0075A2] dark:from-[#0EA5E9] to-[#0A2647] dark:to-[#0284C7] rounded-3xl shadow-xl p-4 text-white">
                       <h3 className="text-xl font-bold mb-4 flex items-center">
                         <CheckCircle className="w-6 h-6 mr-2" />
                         Booking Summary
@@ -1509,7 +1511,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                   )}
 
                   {/* Quick Tips */}
-                  <div className="bg-gradient-to-br from-green-50 dark:from-green-900/20 to-blue-50 dark:to-blue-900/20 rounded-3xl shadow-lg p-6 border border-green-200 dark:border-green-800">
+                  <div className="bg-gradient-to-br from-green-50 dark:from-green-900/20 to-blue-50 dark:to-blue-900/20 rounded-3xl shadow-lg p-4 border border-green-200 dark:border-green-800">
                     <h4 className="font-bold text-[#0A2647] dark:text-gray-100 text-lg mb-4 flex items-center">
                       💡 Quick Tips
                     </h4>
@@ -1530,7 +1532,7 @@ function SmartAppointmentBookingPage({ user, session, profile, userState, isAuth
                   </div>
 
                   {/* Support */}
-                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-200 dark:border-gray-700 text-center">
+                  <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
                     <Shield className="w-8 h-8 text-[#0075A2] dark:text-[#0EA5E9] mx-auto mb-3" />
                     <h4 className="font-bold text-[#0A2647] dark:text-gray-100 mb-2">Need Help?</h4>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">Our support team is here to assist you</p>
