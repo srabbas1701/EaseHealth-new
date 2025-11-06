@@ -12,6 +12,8 @@ interface DiagnosisPrescriptionFormProps {
   onAfterSave?: (consultationId: string | null) => void;
   selectedReportIds?: string[];
   onGenerateAI?: (reportIds: string[]) => Promise<string | void> | string | void;
+  isGeneratingAI?: boolean;
+  aiError?: string | null;
 }
 
 const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo(({ 
@@ -21,6 +23,8 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
   onAfterSave,
   selectedReportIds = [],
   onGenerateAI,
+  isGeneratingAI = false,
+  aiError = null,
 }) => {
   const {
     formData,
@@ -103,12 +107,21 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
           <button
             type="button"
             onClick={handleGenerateAI}
-            disabled={isSaving || (selectedReportIds?.length ?? 0) === 0}
+            disabled={isSaving || isGeneratingAI || (selectedReportIds?.length ?? 0) === 0}
             className="inline-flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            title={selectedReportIds.length === 0 ? 'Select report(s) to summarize' : 'Generate AI summary from selected reports'}
+            title={selectedReportIds.length === 0 ? 'Select report(s) to summarize' : isGeneratingAI ? 'Generating summary...' : 'Generate AI summary from selected reports'}
           >
-            <Bot className="w-5 h-5" />
-            <span>Generate AI Summary</span>
+            {isGeneratingAI ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <Bot className="w-5 h-5" />
+                <span>Generate AI Summary</span>
+              </>
+            )}
           </button>
         </div>
         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-60 overflow-auto" style={{ minHeight: '100px' }}>
@@ -116,6 +129,11 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
             <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{aiSummary}</pre>
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">No AI summary yet. Select report(s) and click "Generate AI Summary".</p>
+          )}
+          {aiError && (
+            <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg">
+              <p className="text-sm text-red-700 dark:text-red-300">{aiError}</p>
+            </div>
           )}
         </div>
       </div>

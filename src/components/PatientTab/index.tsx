@@ -6,6 +6,7 @@ import DiagnosisPrescriptionForm from './DiagnosisPrescription/DiagnosisPrescrip
 import { usePatientDetails } from '../../hooks/patient/usePatientDetails';
 import { usePatientVitals } from '../../hooks/patient/usePatientVitals';
 import { usePatientReports } from '../../hooks/patient/usePatientReports';
+import { supabase } from '../../utils/supabase';
 
 interface PatientTabContentProps {
   patientId: string | null;
@@ -18,6 +19,8 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
   const { vitals, isLoading: isLoadingVitals } = usePatientVitals(patientId);
   const { reports, isLoading: isLoadingReports, uploadReport, deleteReport, markReviewed, lockReports } = usePatientReports(patientId);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   if (!patientId) {
     return (
@@ -105,11 +108,81 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
           }
         }}
         selectedReportIds={selectedReportIds}
-        onGenerateAI={async (ids) => {
-          // Placeholder: integrate with your AI agent later; return a mock summary string
-          console.log('Generate AI Summary for reports:', ids);
-          return `Summary for ${ids.length} report(s):\n- Key findings will appear here.\n- This is a placeholder until AI integration is configured.`;
+        onGenerateAI={async (reportIds: string[]) => {
+          setIsGeneratingAI(true);
+          setAiError(null);
+          try {
+            // Fetch report metadata
+            const { data: reportData, error: fetchError } = await supabase
+              .from('patient_reports')
+              .select('id, report_name, file_url, report_type, upload_date, file_size, file_type')
+              .in('id', reportIds);
+
+            if (fetchError) throw fetchError;
+            if (!reportData || reportData.length === 0) throw new Error('Reports not found');
+
+            // Create signed URLs
+            const reportsWithSignedUrls = await Promise.all(
+              reportData.map(async (report) => {
+                try {
+                  const { data: signedUrlData, error: urlError } = await supabase.storage
+                    .from('lab-reports')
+                    .createSignedUrl(report.file_url, 3600);
+                  if (urlError) throw urlError;
+                  return {
+                    id: report.id,
+                    name: report.report_name,
+                    type: report.report_type,
+                    file_url: signedUrlData?.signedUrl || '',
+                    upload_date: report.upload_date,
+                    file_size: report.file_size,
+                    file_type: report.file_type,
+                  };
+                } catch (e) {
+                  console.error('Signed URL error:', e);
+                  return null;
+                }
+              })
+            );
+
+            const validReports = reportsWithSignedUrls.filter((r): r is {
+              id: string; name: string; type: string; file_url: string; upload_date: string; file_size?: number; file_type?: string;
+            } => !!r && !!r.file_url);
+
+            if (validReports.length === 0) {
+              throw new Error('Unable to access report files');
+            }
+
+            const webhookUrl = (import.meta as any).env?.VITE_N8N_AI_SUMMARY_WEBHOOK || 'https://your-n8n-instance.com/webhook/ai-summary';
+            const payload = {
+              reports: validReports,
+              patient_id: patientId,
+              doctor_id: doctorId,
+              timestamp: new Date().toISOString(),
+            };
+
+            const resp = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!resp.ok) {
+              const t = await resp.text();
+              throw new Error(`n8n error: ${resp.status} ${t}`);
+            }
+            const result = await resp.json();
+            if (!result?.summary) throw new Error('Invalid AI response');
+            return result.summary as string;
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'AI generation failed';
+            setAiError(message);
+            throw err;
+          } finally {
+            setIsGeneratingAI(false);
+          }
         }}
+        isGeneratingAI={isGeneratingAI}
+        aiError={aiError}
       />
     </div>
   );
