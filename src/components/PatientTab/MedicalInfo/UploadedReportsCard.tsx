@@ -12,6 +12,7 @@ interface UploadedReportsCardProps {
   onMarkReviewed?: (reportIds: string[]) => Promise<boolean>;
   onLockReports?: (reportIds: string[]) => Promise<boolean>;
   onSelectionChange?: (reportIds: string[]) => void;
+  onRefresh?: () => Promise<void>;
 }
 
 const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
@@ -107,6 +108,19 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // clear session cache for this patient so hook will re-fetch
+      try { sessionStorage.removeItem(`patient_reports_cache_${patientId}`); } catch {}
+      if (onRefresh) await onRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-[#E8E8E8] dark:border-gray-600 h-full flex flex-col">
@@ -118,6 +132,21 @@ const UploadedReportsCard: React.FC<UploadedReportsCardProps> = memo(({
             <h3 className="text-lg font-bold text-[#0A2647] dark:text-gray-100">
               Uploaded Reports & Documents
             </h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh reports"
+              className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:shadow-sm transition-colors flex items-center space-x-2 text-sm"
+            >
+              {isRefreshing ? (
+                <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-3-6.7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              )}
+              <span className="text-xs">Refresh</span>
+            </button>
           </div>
         </div>
 

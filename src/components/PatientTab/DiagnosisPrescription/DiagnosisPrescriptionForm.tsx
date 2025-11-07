@@ -16,7 +16,7 @@ interface DiagnosisPrescriptionFormProps {
   aiError?: string | null;
 }
 
-const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo(({ 
+const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo(({
   patientId,
   doctorId,
   patientName,
@@ -49,7 +49,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
 
     if (result.success) {
       setSavedConsultationId(result.consultationId || null);
-      try { onAfterSave && onAfterSave(result.consultationId || null); } catch {}
+      try { onAfterSave && onAfterSave(result.consultationId || null); } catch { }
       setSaveMessage({
         type: 'success',
         text: 'Prescription saved successfully!',
@@ -80,7 +80,113 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
     try {
       const result = await onGenerateAI?.(selectedReportIds);
       if (typeof result === 'string' && result.trim().length > 0) {
-        setAiSummary(result);
+        // sanitize AI output: remove surrounding ``` fences (```html or ```), trim
+        const stripFences = (s: string) => {
+          let out = s.trim();
+          out = out.replace(/^\s*```(?:html|text)?\s*/i, '');
+          out = out.replace(/\s*```\s*$/i, '');
+          return out.trim();
+        };
+        const cleaned = stripFences(result);
+
+        // Helper: sanitize HTML using DOMParser (browser) - remove scripts and unsafe attributes
+        const sanitizeHtml = (htmlString: string) => {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const allowedTags = new Set(['DIV','P','H1','H2','H3','H4','H5','H6','TABLE','THEAD','TBODY','TR','TH','TD','UL','OL','LI','STRONG','B','EM','I','BR','SPAN','TD','SECTION','ASIDE']);
+            const walk = (node: Node) => {
+              const children = Array.from(node.childNodes);
+              for (const child of children) {
+                if (child.nodeType === Node.ELEMENT_NODE) {
+                  const el = child as HTMLElement;
+                  // remove script/style
+                  if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') {
+                    el.remove();
+                    continue;
+                  }
+                  if (!allowedTags.has(el.tagName)) {
+                    // replace disallowed element with its text content
+                    const text = document.createTextNode(el.textContent || '');
+                    el.parentNode?.replaceChild(text, el);
+                    continue;
+                  }
+                  // strip unsafe attributes
+                  const attrs = Array.from(el.attributes).map(a => a.name);
+                  for (const attr of attrs) {
+                    if (attr.startsWith('on')) el.removeAttribute(attr);
+                    if (['src','href','style'].includes(attr)) el.removeAttribute(attr);
+                  }
+                  walk(el);
+                }
+              }
+            };
+            walk(doc.body);
+            return doc.body.innerHTML;
+          } catch (e) {
+            return '';
+          }
+        };
+
+        // Basic Markdown -> HTML converter for tables and simple formatting
+        const markdownToHtml = (md: string) => {
+          // Detect table
+          const lines = md.split(/\r?\n/);
+          let i = 0;
+          // find table start: header line with '|' and separator line with ---
+          while (i < lines.length && !/\|/.test(lines[i])) i++;
+          if (i < lines.length && /\|/.test(lines[i]) && i + 1 < lines.length && /^(\s*\|?[\s:-]+\|[\s:-]+\|?)/.test(lines[i+1])) {
+            // parse table
+            const headerLine = lines[i];
+            const sepLine = lines[i+1];
+            const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
+            const rows: string[][] = [];
+            let j = i + 2;
+            while (j < lines.length && /\|/.test(lines[j])) {
+              const cols = lines[j].split('|').map(c => c.trim()).filter((_, idx, arr) => idx < headers.length);
+              rows.push(cols);
+              j++;
+            }
+            const th = headers.map(h => `<th>${h}</th>`).join('');
+            const trs = rows.map(r => `<tr>${r.map((c,idx)=>`<td>${c||''}</td>`).join('')}</tr>`).join('');
+            // replace the block in md with table html
+            const before = lines.slice(0, i).join('\n');
+            const after = lines.slice(j).join('\n');
+            const tableHtml = `<table><thead><tr>${th}</tr></thead><tbody>${trs}</tbody></table>`;
+            const rest = [before, tableHtml, after].filter(Boolean).join('\n\n');
+            // simple replacements for headings and bold/italic
+            return rest.replace(/^### (.+)$/gm, '<h3>$1</h3>')
+              .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+              .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+              .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+              .replace(/\*(.+?)\*/g, '<em>$1</em>')
+              .replace(/\n{2,}/g, '</p><p>');
+          }
+          // fallback: simple paragraphs and inline formatting
+          const html = md.split(/\n{2,}/).map(p => {
+            const inline = p.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+            return `<p>${inline}</p>`;
+          }).join('');
+          return html;
+        };
+
+        let finalHtml = '';
+        if (cleaned.trim().startsWith('<')) {
+          finalHtml = sanitizeHtml(cleaned);
+        } else {
+          // convert markdown (if any) to html then sanitize
+          const converted = markdownToHtml(cleaned);
+          finalHtml = sanitizeHtml(converted);
+        }
+
+        // if finalHtml is empty, fallback to cleaned plain text escaped
+        const safeOutput = finalHtml || cleaned.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        setAiSummary(safeOutput);
+        try {
+          if (patientId) {
+            sessionStorage.setItem(`ai_summary_${patientId}`, safeOutput);
+          }
+        } catch {}
       } else {
         // Fallback placeholder until the backend is wired
         setAiSummary('AI summary generated. (Integration placeholder)');
@@ -93,6 +199,22 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
     }
   };
 
+  // Restore cached AI summary (if any) when component mounts
+  React.useEffect(() => {
+    try {
+      if (patientId) {
+        const cached = sessionStorage.getItem(`ai_summary_${patientId}`);
+        if (cached && !aiSummary) {
+          // sanitize cached as well (in case older value had fences)
+          const sanitize = (s: string) => s.replace(/^\s*```(?:html|text)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+          setAiSummary(sanitize(cached));
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [patientId]);
+
   return (
     <>
       {/* Standalone AI Summary card above the Diagnosis & Prescription card */}
@@ -102,7 +224,10 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
             <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
               <Bot className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">AI Summary</h3>
+            <div>
+              <h3 className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">AI Summary</h3>
+              <p className="text-sm text-theme-muted dark:text-gray-400 mt-1">Concise clinical summary with highlighted abnormalities and recommendations</p>
+            </div>
           </div>
           <button
             type="button"
@@ -124,9 +249,23 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
             )}
           </button>
         </div>
-        <div className="bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-60 overflow-auto" style={{ minHeight: '100px' }}>
+        <div className="relative bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-96 overflow-auto ai-summary-box" style={{ minHeight: '140px' }}>
+          {isGeneratingAI && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60 dark:bg-black/40 rounded-lg">
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 rounded-full bg-gradient-to-r from-indigo-500 to-teal-400 flex items-center justify-center animate-spin-slow">
+                  <Bot className="w-8 h-8 text-white" />
+                </div>
+                <div className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">Generating AI summary...</div>
+              </div>
+            </div>
+          )}
           {aiSummary ? (
-            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{aiSummary}</pre>
+            aiSummary.trim().startsWith('<') ? (
+              <div className="ai-summary-html text-sm text-gray-800 dark:text-gray-200" dangerouslySetInnerHTML={{ __html: aiSummary }} />
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 ai-summary-content">{aiSummary}</pre>
+            )
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">No AI summary yet. Select report(s) and click "Generate AI Summary".</p>
           )}
@@ -152,11 +291,10 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         {/* Save Success/Error Messages */}
         {saveMessage && (
           <div
-            className={`mb-6 p-4 rounded-lg flex items-start space-x-3 ${
-              saveMessage.type === 'success'
+            className={`mb-6 p-4 rounded-lg flex items-start space-x-3 ${saveMessage.type === 'success'
                 ? 'bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700'
                 : 'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700'
-            }`}
+              }`}
           >
             {saveMessage.type === 'success' ? (
               <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />

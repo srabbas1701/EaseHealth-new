@@ -17,7 +17,7 @@ interface PatientTabContentProps {
 const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, doctorId, onBack }) => {
   const { patient, isLoading: isLoadingPatient, error: patientError } = usePatientDetails(patientId);
   const { vitals, isLoading: isLoadingVitals } = usePatientVitals(patientId);
-  const { reports, isLoading: isLoadingReports, uploadReport, deleteReport, markReviewed, lockReports } = usePatientReports(patientId);
+  const { reports, isLoading: isLoadingReports, uploadReport, deleteReport, markReviewed, lockReports, refetch: refetchReports } = usePatientReports(patientId);
   const [selectedReportIds, setSelectedReportIds] = useState<string[]>([]);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -92,6 +92,13 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
         onDeleteReport={(reportId: string, reason: string) => deleteReport(reportId, reason, 'doctor')}
         onMarkReviewed={(ids: string[]) => markReviewed(ids)}
         onLockReports={(ids: string[]) => lockReports(ids)}
+        onRefresh={async () => {
+          try {
+            await refetchReports();
+          } catch (e) {
+            console.error('Manual refresh failed', e);
+          }
+        }}
         doctorId={doctorId}
         onSelectionChange={(ids: string[]) => setSelectedReportIds(ids)}
       />
@@ -159,6 +166,11 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
               patient_id: patientId,
               doctor_id: doctorId,
               timestamp: new Date().toISOString(),
+              // Request HTML output and indicate we support chunked per-report summarization.
+              options: {
+                output_format: 'html',
+                chunked: true,
+              },
             };
 
             const resp = await fetch(webhookUrl, {
@@ -169,6 +181,12 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
             if (!resp.ok) {
               const t = await resp.text();
               throw new Error(`n8n error: ${resp.status} ${t}`);
+            }
+            // Some n8n setups may return empty body or non-JSON on success.
+            const ct = resp.headers.get('content-type') || '';
+            if (!ct.includes('application/json')) {
+              const t = await resp.text();
+              throw new Error(`n8n non-JSON response: ${t?.slice(0,500)}`);
             }
             const result = await resp.json();
             if (!result?.summary) throw new Error('Invalid AI response');

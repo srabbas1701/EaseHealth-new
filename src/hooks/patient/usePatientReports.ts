@@ -28,6 +28,26 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
     setError(null);
 
     try {
+      // Try to use a short-lived cache to avoid refetching when navigating back-and-forth.
+      // Cache is stored in sessionStorage and considered fresh for 5 minutes.
+      const CACHE_TTL_MS = 5 * 60 * 1000;
+      const cacheKey = `patient_reports_cache_${patientId}`;
+      try {
+        const raw = sessionStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.timestamp && Date.now() - parsed.timestamp < CACHE_TTL_MS && Array.isArray(parsed.reports)) {
+            setReports(parsed.reports);
+            setIsLoading(false);
+            console.log(`♻️ Loaded ${parsed.reports.length} reports from session cache for patient ${patientId}`);
+            return;
+          }
+        }
+      } catch (err) {
+        // ignore cache errors
+        console.warn('Patient reports cache read error', err);
+      }
+
       // Fetch all reports from patient_reports table (single source of truth)
       // This includes:
       // - Patient uploads during registration (upload_source: 'patient_registration')
@@ -78,6 +98,12 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
       });
 
       setReports(filtered);
+      // Store into session cache for quick re-entry (signed urls are short-lived; TTL is small)
+      try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), reports: filtered }));
+      } catch (err) {
+        console.warn('Failed to write patient reports cache', err);
+      }
       console.log(`✅ Fetched ${reportsWithSignedUrls.length} reports for patient ${patientId}`);
     } catch (err) {
       console.error('Error fetching patient reports:', err);

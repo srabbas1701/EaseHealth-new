@@ -278,6 +278,147 @@ section:focus {
   }
 }
 
+/* AI Summary specific styles */
+.ai-summary-box {
+  background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
+  backdrop-filter: blur(4px);
+}
+.dark .ai-summary-box {
+  background: linear-gradient(180deg, rgba(34,34,34,0.45), rgba(20,20,20,0.35));
+}
+.ai-summary-content {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Custom scrollbar for AI summary */
+.ai-summary-box::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.ai-summary-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ai-summary-box::-webkit-scrollbar-thumb {
+  background-color: rgba(10,38,71,0.6);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark .ai-summary-box::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.12);
+}
+/* Firefox scrollbar */
+.ai-summary-box {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(10,38,71,0.6) transparent;
+}
+
+/* HTML table styles for AI-generated HTML summaries */
+.ai-summary-html table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  table-layout: fixed;
+}
+.ai-summary-html th,
+.ai-summary-html td {
+  border: 1px solid rgba(10,38,71,0.08);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+  word-wrap: break-word;
+}
+.ai-summary-html thead th {
+  background: rgba(10,38,71,0.06);
+  font-weight: 600;
+}
+.dark .ai-summary-html thead th {
+  background: rgba(255,255,255,0.04);
+}
+.ai-summary-html tr:nth-child(even) td {
+  background: rgba(10,38,71,0.02);
+}
+.dark .ai-summary-html tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+.ai-summary-html .high-risk {
+  background: rgba(239,68,68,0.08);
+  color: #b91c1c;
+  font-weight: 600;
+}
+.ai-summary-html .moderate-risk {
+  background: rgba(245,158,11,0.06);
+  color: #92400e;
+  font-weight: 600;
+}
+.ai-summary-html .mild-risk {
+  background: rgba(234,179,8,0.03);
+  color: #92400e;
+}
+
+/* Slow spin animation */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 1.5s linear infinite;
+}
+
+/* Highlighting for facts vs AI analysis */
+.ai-summary-html [data-role="facts"] {
+  background: rgba(255,255,255,0.6);
+  border-left: 4px solid rgba(16,185,129,0.12);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.dark .ai-summary-html [data-role="facts"] {
+  background: rgba(34,34,34,0.04);
+}
+.ai-summary-html [data-role="analysis"] {
+  background: rgba(10,38,71,0.03);
+  border-left: 4px solid rgba(59,130,246,0.12);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.ai-summary-html [data-role="analysis"]::before {
+  content: "AI Analysis / Recommendations";
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  background: rgba(59,130,246,0.95);
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.dark .ai-summary-html [data-role="analysis"]::before {
+  background: rgba(14,165,233,0.95);
+}
+.ai-summary-html .recommendation.ai-generated {
+  border-left: 3px dashed rgba(59,130,246,0.18);
+  padding-left: 8px;
+  margin: 8px 0;
+}
+.ai-summary-html .recommendation.ai-generated::after {
+  content: "AI-generated";
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  color: rgba(59,130,246,0.95);
+  background: rgba(59,130,246,0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {

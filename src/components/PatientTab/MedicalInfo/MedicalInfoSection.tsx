@@ -14,6 +14,7 @@ interface MedicalInfoSectionProps {
   onLockReports: (reportIds: string[]) => Promise<boolean>;
   onSelectionChange?: (reportIds: string[]) => void;
   doctorId: string;
+  onRefresh?: () => Promise<void>;
 }
 
 const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = memo(({
@@ -26,6 +27,7 @@ const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = memo(({
   onLockReports,
   onSelectionChange,
   doctorId,
+  onRefresh,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -36,6 +38,7 @@ const MedicalInfoSection: React.FC<MedicalInfoSectionProps> = memo(({
         isLoading={isLoadingReports}
         onUpload={onUploadReport}
         onDelete={onDeleteReport}
+        onRefresh={onRefresh}
         doctorId={doctorId}
         patientId={patient.id}
         onMarkReviewed={onMarkReviewed}
