@@ -764,15 +764,26 @@ const PatientProfileUpdatePage: React.FC<AuthProps> = ({ user, session, profile,
                 // Log lab reports summary (now stored in patient_reports table)
                 if (uploadedFiles.labReportUrls.length > 0) {
                     console.log(`✅ ${uploadedFiles.labReportUrls.length} lab reports saved to patient_reports table`);
+
+                    // Clear patient reports cache to ensure dashboard shows fresh data
+                    try {
+                        const cacheKey = `patient_reports_cache_${formData.patientId}`;
+                        sessionStorage.removeItem(cacheKey);
+                        console.log('🗑️ Cleared patient reports cache for fresh reload');
+                    } catch (err) {
+                        console.warn('Failed to clear patient reports cache:', err);
+                    }
                 }
             }
 
             setSubmitSuccess(true);
             setAnnouncement('Profile updated successfully!');
 
-            // Redirect after 2 seconds
+            // Redirect after 2 seconds with state to force dashboard reload
             setTimeout(() => {
-                navigate('/patient-dashboard');
+                navigate('/patient-dashboard', {
+                    state: { profileUpdated: true, reloadData: true }
+                });
             }, 2000);
 
         } catch (error) {

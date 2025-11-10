@@ -8,5 +8,13 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      '/api/n8n/ai-summary': {
+        target: 'http://localhost:5678',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/n8n\/ai-summary/, '/webhook/ai-summary'),
+      },
+    },
   },
 });

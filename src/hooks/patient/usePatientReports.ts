@@ -151,6 +151,13 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
 
       if (insertError) throw insertError;
 
+      // Clear cache before fetching to ensure we get the latest data including the new upload
+      try {
+        sessionStorage.removeItem(`patient_reports_cache_${patientId}`);
+      } catch (err) {
+        console.warn('Failed to clear patient reports cache', err);
+      }
+
       await fetchReports();
 
       return reportData as PatientReport;
@@ -183,6 +190,13 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
 
       if (updateError) throw updateError;
 
+      // Clear cache before fetching to ensure we get the latest data
+      try {
+        sessionStorage.removeItem(`patient_reports_cache_${patientId}`);
+      } catch (err) {
+        console.warn('Failed to clear patient reports cache', err);
+      }
+
       await fetchReports();
       return true;
     } catch (err) {
@@ -203,13 +217,21 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
         .update({ reviewed_by: reviewerId, reviewed_at: new Date().toISOString() })
         .in('id', reportIds);
       if (error) throw error;
+      
+      // Clear cache before fetching to ensure we get the latest data
+      try {
+        sessionStorage.removeItem(`patient_reports_cache_${patientId}`);
+      } catch (err) {
+        console.warn('Failed to clear patient reports cache', err);
+      }
+      
       await fetchReports();
       return true;
     } catch (err) {
       console.error('Error marking reviewed:', err);
       return false;
     }
-  }, [fetchReports]);
+  }, [fetchReports, patientId]);
 
   const lockReports = useCallback(async (reportIds: string[], consultationId?: string): Promise<boolean> => {
     if (!reportIds || reportIds.length === 0) return true;
@@ -221,13 +243,21 @@ export function usePatientReports(patientId: string | null): UsePatientReportsRe
         .update(payload)
         .in('id', reportIds);
       if (error) throw error;
+      
+      // Clear cache before fetching to ensure we get the latest data
+      try {
+        sessionStorage.removeItem(`patient_reports_cache_${patientId}`);
+      } catch (err) {
+        console.warn('Failed to clear patient reports cache', err);
+      }
+      
       await fetchReports();
       return true;
     } catch (err) {
       console.error('Error locking reports:', err);
       return false;
     }
-  }, [fetchReports]);
+  }, [fetchReports, patientId]);
 
   useEffect(() => {
     fetchReports();

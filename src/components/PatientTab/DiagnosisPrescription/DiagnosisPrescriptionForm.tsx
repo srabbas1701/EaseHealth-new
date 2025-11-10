@@ -1,9 +1,11 @@
 import React, { memo, useState } from 'react';
-import { FileText, Save, Printer, Bot, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Save, Printer, Bot, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import { usePrescriptionForm } from '../../../hooks/patient/usePrescriptionForm';
 import PrescriptionTable from './PrescriptionTable';
 import PrescriptionActions from './PrescriptionActions';
 import PrintPrescription from '../Print/PrintPrescription';
+import AICollapsibleChat from '../AICollapsibleChat';
+import '../../medical-summary.css';
 
 interface DiagnosisPrescriptionFormProps {
   patientId: string;
@@ -71,12 +73,375 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
     setShowPrintModal(true);
   };
 
+  const handlePrintAISummary = () => {
+    if (!aiSummary) {
+      alert('No AI summary to print. Please generate a summary first.');
+      return;
+    }
+
+    // Create a print-friendly window
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow pop-ups to print the AI summary.');
+      return;
+    }
+
+    // Get current date for the report
+    const currentDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    // Create HTML content with proper styling
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>AI Summary Report - ${patientName}</title>
+          <style>
+            @media print {
+              @page { margin: 1.5cm; }
+            }
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              border-bottom: 3px solid #0A2647;
+              padding-bottom: 15px;
+              margin-bottom: 20px;
+            }
+            .header h1 {
+              color: #0A2647;
+              margin: 0 0 5px 0;
+              font-size: 28px;
+            }
+            .header .subtitle {
+              color: #666;
+              font-size: 14px;
+              margin: 0;
+            }
+            .meta-info {
+              background-color: #f8f9fa;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+            }
+            .meta-item {
+              font-size: 14px;
+            }
+            .meta-label {
+              font-weight: 600;
+              color: #0A2647;
+            }
+            .content {
+              background: white;
+              padding: 20px;
+              border: 1px solid #e0e0e0;
+              border-radius: 8px;
+            }
+            .ai-summary-html h1, .ai-summary-html h2, .ai-summary-html h3 {
+              color: #0A2647;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+            .ai-summary-html h1 { font-size: 24px; }
+            .ai-summary-html h2 { font-size: 20px; }
+            .ai-summary-html h3 { font-size: 18px; }
+            .ai-summary-html table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 15px 0;
+            }
+            .ai-summary-html th,
+            .ai-summary-html td {
+              border: 1px solid #ddd;
+              padding: 10px;
+              text-align: left;
+            }
+            .ai-summary-html th {
+              background-color: #0A2647;
+              color: white;
+              font-weight: 600;
+            }
+            .ai-summary-html tr:nth-child(even) {
+              background-color: #f8f9fa;
+            }
+            .ai-summary-html p {
+              margin: 10px 0;
+            }
+            .ai-summary-html strong {
+              color: #0A2647;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 15px;
+              border-top: 1px solid #ddd;
+              text-align: center;
+              font-size: 12px;
+              color: #666;
+            }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>AI Summary Report</h1>
+            <p class="subtitle">Clinical Analysis & Recommendations</p>
+          </div>
+          
+          <div class="meta-info">
+            <div class="meta-item">
+              <span class="meta-label">Patient:</span> ${patientName}
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Generated:</span> ${currentDate}
+            </div>
+          </div>
+
+          <div class="content ai-summary-html">
+            ${aiSummary}
+          </div>
+
+          <div class="footer">
+            <p>This is an AI-generated summary. Please verify all information before making clinical decisions.</p>
+            <p>Generated by EaseHealth - Healthcare Management System</p>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+  };
+
+  const handleDownloadAISummary = () => {
+    if (!aiSummary) {
+      alert('No AI summary to download. Please generate a summary first.');
+      return;
+    }
+
+    // Get current date for filename
+    const currentDate = new Date().toISOString().split('T')[0];
+    const fileName = `AI_Summary_${patientName.replace(/\s+/g, '_')}_${currentDate}.html`;
+
+    // Create HTML content
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>AI Summary Report - ${patientName}</title>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 30px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      .header {
+        border-bottom: 3px solid #0A2647;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+      }
+      .header h1 {
+        color: #0A2647;
+        margin: 0 0 10px 0;
+        font-size: 32px;
+      }
+      .header .subtitle {
+        color: #666;
+        font-size: 16px;
+        margin: 0;
+      }
+      .meta-info {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .meta-item {
+        font-size: 15px;
+      }
+      .meta-label {
+        font-weight: 600;
+        color: #0A2647;
+        display: inline-block;
+        min-width: 100px;
+      }
+      .content {
+        padding: 20px 0;
+      }
+      .ai-summary-html h1, .ai-summary-html h2, .ai-summary-html h3 {
+        color: #0A2647;
+        margin-top: 25px;
+        margin-bottom: 15px;
+      }
+      .ai-summary-html h1 { font-size: 26px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px; }
+      .ai-summary-html h2 { font-size: 22px; }
+      .ai-summary-html h3 { font-size: 19px; }
+      .ai-summary-html table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      .ai-summary-html th,
+      .ai-summary-html td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+      }
+      .ai-summary-html th {
+        background-color: #0A2647;
+        color: white;
+        font-weight: 600;
+      }
+      .ai-summary-html tr:nth-child(even) {
+        background-color: #f8f9fa;
+      }
+      .ai-summary-html p {
+        margin: 12px 0;
+      }
+      .ai-summary-html strong {
+        color: #0A2647;
+        font-weight: 600;
+      }
+      .ai-summary-html ul, .ai-summary-html ol {
+        margin: 10px 0;
+        padding-left: 25px;
+      }
+      .ai-summary-html li {
+        margin: 5px 0;
+      }
+      .footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 2px solid #e0e0e0;
+        text-align: center;
+        font-size: 13px;
+        color: #666;
+      }
+      .disclaimer {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 20px;
+        font-size: 14px;
+      }
+      @media print {
+        body { background: white; }
+        .container { box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI Summary Report</h1>
+        <p class="subtitle">Clinical Analysis & Recommendations</p>
+      </div>
+      
+      <div class="meta-info">
+        <div class="meta-item">
+          <span class="meta-label">Patient:</span> ${patientName}
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Generated:</span> ${new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}
+        </div>
+      </div>
+
+      <div class="content ai-summary-html">
+        ${aiSummary}
+      </div>
+
+      <div class="disclaimer">
+        <strong>⚠️ Disclaimer:</strong> This is an AI-generated summary based on the provided medical reports. 
+        Please verify all information and consult with healthcare professionals before making any clinical decisions.
+      </div>
+
+      <div class="footer">
+        <p><strong>Generated by EaseHealth</strong> - Healthcare Management System</p>
+        <p>Report Date: ${new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })}</p>
+      </div>
+    </div>
+  </body>
+</html>
+    `;
+
+    // Create blob and download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Show success message
+    setSaveMessage({ type: 'success', text: `AI Summary downloaded as ${fileName}` });
+    setTimeout(() => setSaveMessage(null), 4000);
+  };
+
   const handleGenerateAI = async () => {
     if (!selectedReportIds || selectedReportIds.length === 0) {
       setSaveMessage({ type: 'error', text: 'Select at least one report to generate AI analysis.' });
       setTimeout(() => setSaveMessage(null), 4000);
       return;
     }
+
+    // Clear previous AI summary before generating new one
+    setAiSummary('');
+
+    // Clear the old cache for this report selection to force fresh generation
+    try {
+      const reportKey = selectedReportIds.sort().join('_');
+      const cacheKey = `ai_summary_${patientId}_${reportKey}`;
+      sessionStorage.removeItem(cacheKey);
+    } catch { }
+
     try {
       const result = await onGenerateAI?.(selectedReportIds);
       if (typeof result === 'string' && result.trim().length > 0) {
@@ -94,7 +459,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
           try {
             const parser = new DOMParser();
             const doc = parser.parseFromString(htmlString, 'text/html');
-            const allowedTags = new Set(['DIV','P','H1','H2','H3','H4','H5','H6','TABLE','THEAD','TBODY','TR','TH','TD','UL','OL','LI','STRONG','B','EM','I','BR','SPAN','TD','SECTION','ASIDE']);
+            const allowedTags = new Set(['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'UL', 'OL', 'LI', 'STRONG', 'B', 'EM', 'I', 'BR', 'SPAN', 'TD', 'SECTION', 'ASIDE']);
             const walk = (node: Node) => {
               const children = Array.from(node.childNodes);
               for (const child of children) {
@@ -115,7 +480,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
                   const attrs = Array.from(el.attributes).map(a => a.name);
                   for (const attr of attrs) {
                     if (attr.startsWith('on')) el.removeAttribute(attr);
-                    if (['src','href','style'].includes(attr)) el.removeAttribute(attr);
+                    if (['src', 'href', 'style'].includes(attr)) el.removeAttribute(attr);
                   }
                   walk(el);
                 }
@@ -135,10 +500,10 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
           let i = 0;
           // find table start: header line with '|' and separator line with ---
           while (i < lines.length && !/\|/.test(lines[i])) i++;
-          if (i < lines.length && /\|/.test(lines[i]) && i + 1 < lines.length && /^(\s*\|?[\s:-]+\|[\s:-]+\|?)/.test(lines[i+1])) {
+          if (i < lines.length && /\|/.test(lines[i]) && i + 1 < lines.length && /^(\s*\|?[\s:-]+\|[\s:-]+\|?)/.test(lines[i + 1])) {
             // parse table
             const headerLine = lines[i];
-            const sepLine = lines[i+1];
+            const sepLine = lines[i + 1];
             const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
             const rows: string[][] = [];
             let j = i + 2;
@@ -148,7 +513,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
               j++;
             }
             const th = headers.map(h => `<th>${h}</th>`).join('');
-            const trs = rows.map(r => `<tr>${r.map((c,idx)=>`<td>${c||''}</td>`).join('')}</tr>`).join('');
+            const trs = rows.map(r => `<tr>${r.map((c, idx) => `<td>${c || ''}</td>`).join('')}</tr>`).join('');
             // replace the block in md with table html
             const before = lines.slice(0, i).join('\n');
             const after = lines.slice(j).join('\n');
@@ -180,13 +545,17 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         }
 
         // if finalHtml is empty, fallback to cleaned plain text escaped
-        const safeOutput = finalHtml || cleaned.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const safeOutput = finalHtml || cleaned.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         setAiSummary(safeOutput);
+
+        // Cache with report selection in the key to avoid stale data when selection changes
         try {
           if (patientId) {
-            sessionStorage.setItem(`ai_summary_${patientId}`, safeOutput);
+            const reportKey = selectedReportIds.sort().join('_');
+            const cacheKey = `ai_summary_${patientId}_${reportKey}`;
+            sessionStorage.setItem(cacheKey, safeOutput);
           }
-        } catch {}
+        } catch { }
       } else {
         // Fallback placeholder until the backend is wired
         setAiSummary('AI summary generated. (Integration placeholder)');
@@ -199,21 +568,30 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
     }
   };
 
-  // Restore cached AI summary (if any) when component mounts
+  // Restore cached AI summary when component mounts OR when report selection changes
   React.useEffect(() => {
     try {
-      if (patientId) {
-        const cached = sessionStorage.getItem(`ai_summary_${patientId}`);
-        if (cached && !aiSummary) {
+      if (patientId && selectedReportIds.length > 0) {
+        const reportKey = selectedReportIds.sort().join('_');
+        const cacheKey = `ai_summary_${patientId}_${reportKey}`;
+        const cached = sessionStorage.getItem(cacheKey);
+
+        if (cached) {
           // sanitize cached as well (in case older value had fences)
           const sanitize = (s: string) => s.replace(/^\s*```(?:html|text)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
           setAiSummary(sanitize(cached));
+        } else {
+          // Different selection or no cache - clear previous summary
+          setAiSummary('');
         }
+      } else {
+        // No reports selected - clear summary
+        setAiSummary('');
       }
     } catch (e) {
       // ignore
     }
-  }, [patientId]);
+  }, [patientId, selectedReportIds]);
 
   return (
     <>
@@ -229,25 +607,51 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
               <p className="text-sm text-theme-muted dark:text-gray-400 mt-1">Concise clinical summary with highlighted abnormalities and recommendations</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={handleGenerateAI}
-            disabled={isSaving || isGeneratingAI || (selectedReportIds?.length ?? 0) === 0}
-            className="inline-flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            title={selectedReportIds.length === 0 ? 'Select report(s) to summarize' : isGeneratingAI ? 'Generating summary...' : 'Generate AI summary from selected reports'}
-          >
-            {isGeneratingAI ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <Bot className="w-5 h-5" />
-                <span>Generate AI Summary</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              type="button"
+              onClick={handleGenerateAI}
+              disabled={isSaving || isGeneratingAI || (selectedReportIds?.length ?? 0) === 0}
+              className="inline-flex items-center space-x-2 px-5 py-2.5 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg font-medium hover:bg-indigo-700 dark:hover:bg-indigo-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              title={selectedReportIds.length === 0 ? 'Select report(s) to summarize' : isGeneratingAI ? 'Generating summary...' : 'Generate AI summary from selected reports'}
+            >
+              {isGeneratingAI ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Bot className="w-5 h-5" />
+                  <span>Generate AI Summary</span>
+                </>
+              )}
+            </button>
+
+            {/* Print Button */}
+            <button
+              type="button"
+              onClick={handlePrintAISummary}
+              disabled={!aiSummary || isGeneratingAI}
+              className="inline-flex items-center space-x-2 px-4 py-2.5 bg-teal-600 dark:bg-teal-700 text-white rounded-lg font-medium hover:bg-teal-700 dark:hover:bg-teal-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              title={!aiSummary ? 'Generate a summary first to print' : 'Print AI Summary'}
+            >
+              <Printer className="w-5 h-5" />
+              <span>Print</span>
+            </button>
+
+            {/* Download Button */}
+            <button
+              type="button"
+              onClick={handleDownloadAISummary}
+              disabled={!aiSummary || isGeneratingAI}
+              className="inline-flex items-center space-x-2 px-4 py-2.5 bg-blue-600 dark:bg-blue-700 text-white rounded-lg font-medium hover:bg-blue-700 dark:hover:bg-blue-800 hover:shadow-lg transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              title={!aiSummary ? 'Generate a summary first to download' : 'Download AI Summary as HTML'}
+            >
+              <Download className="w-5 h-5" />
+              <span>Download</span>
+            </button>
+          </div>
         </div>
         <div className="relative bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 p-4 max-h-96 overflow-auto ai-summary-box" style={{ minHeight: '140px' }}>
           {isGeneratingAI && (
@@ -277,6 +681,14 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         </div>
       </div>
 
+      {/* AI Chat Component - Only enabled after AI Summary is generated */}
+      <AICollapsibleChat
+        patientId={patientId}
+        reportIds={selectedReportIds}
+        doctorId={doctorId}
+        isEnabled={!!aiSummary && !isGeneratingAI}
+      />
+
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-2 border-teal-500 dark:border-teal-600">
         {/* Header */}
         <div className="flex items-center space-x-3 mb-6">
@@ -292,8 +704,8 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         {saveMessage && (
           <div
             className={`mb-6 p-4 rounded-lg flex items-start space-x-3 ${saveMessage.type === 'success'
-                ? 'bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700'
-                : 'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700'
+              ? 'bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700'
+              : 'bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700'
               }`}
           >
             {saveMessage.type === 'success' ? (

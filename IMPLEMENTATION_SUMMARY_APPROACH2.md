@@ -387,3 +387,13 @@ async function getReportsForAI(patientId) {
 **Ready to go! Run the migrations and test the system.** 🚀
 
 
+
+
+
+
+
+
+
+
+
+

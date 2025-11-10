@@ -12,3 +12,13 @@ WHERE p.id = u.id
 COMMENT ON COLUMN public.profiles.email IS 'User email address, copied from auth.users during profile creation';
 
 
+
+
+
+
+
+
+
+
+
+

@@ -60,13 +60,6 @@ interface TodayStats {
   newPatients: number;
 }
 
-// Monthly stats interface
-interface MonthlyStats {
-  appointments: number;
-  cancelled: number;
-  newPatients: number;
-}
-
 // Schedule types
 interface ScheduleDay {
   isAvailable: boolean;
@@ -94,11 +87,6 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
   const [todayStats, setTodayStats] = useState<TodayStats>({
     appointments: 0,
     waitingArrived: 0,
-    cancelled: 0,
-    newPatients: 0
-  });
-  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats>({
-    appointments: 0,
     cancelled: 0,
     newPatients: 0
   });
@@ -172,14 +160,9 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     return initials;
   };
 
-  // Get current month in MMM format (e.g., "Nov", "Dec", "Jan")
-  const getCurrentMonthShort = () => {
-    return new Date().toLocaleDateString('en-US', { month: 'short' });
-  };
-
   // Load doctor data
   const loadDoctorData = useCallback(async () => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !user || !profile) {
       console.log('❌ Cannot load doctor data - missing auth:', { isAuthenticated, hasUser: !!user, hasProfile: !!profile });
       return;
     }
@@ -203,19 +186,19 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
           // Handle profile_image_url - could be full URL or path
           let profileImageUrl = doctorData.profile_image_url;
 
-          // If URL is a path (not a full URL), generate public URL (not signed URL for profile images)
+          // If URL is a path (not a full URL), generate signed URL
           if (profileImageUrl && !profileImageUrl.startsWith('http')) {
             try {
               const cleanPath = profileImageUrl.replace('doctor-profile-images/', '');
-              const { data: publicUrlData } = supabase.storage
+              const { data: signedUrlData } = await supabase.storage
                 .from('doctor-profile-images')
-                .getPublicUrl(cleanPath);
+                .createSignedUrl(cleanPath, 3600);
 
-              if (publicUrlData?.publicUrl) {
-                profileImageUrl = publicUrlData.publicUrl;
+              if (signedUrlData?.signedUrl) {
+                profileImageUrl = signedUrlData.signedUrl;
               }
             } catch (err) {
-              console.error('Error generating public URL:', err);
+              console.error('Error generating signed URL:', err);
             }
           }
 
@@ -248,7 +231,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     } finally {
       setIsLoadingDoctor(false);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?.id]);
 
   // Load today's appointments
   const loadTodayAppointments = useCallback(async () => {
@@ -302,70 +285,48 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     }
   }, [doctor?.id, selectedDate]);
 
-  // Load today's stats (ALWAYS uses actual TODAY's date, not selectedDate)
+  // Load today's stats
   const loadTodayStats = useCallback(async () => {
     if (!doctor?.id) return;
 
     setIsLoadingStats(true);
     try {
-      // Get actual today's date (not selectedDate which is for appointments table filtering)
-      const todayDate = new Date().toISOString().split('T')[0];
-
-      // Get appointment count for today (exclude cancelled)
+      // Get appointment count for today
       const { count: appointmentCount } = await supabase
         .from('appointments')
         .select('*', { count: 'exact', head: true })
         .eq('doctor_id', doctor.id)
-        .eq('schedule_date', todayDate)
-        .in('status', ['booked', 'confirmed', 'completed']);
+        .eq('schedule_date', selectedDate)
+        .in('status', ['scheduled', 'confirmed', 'in_room', 'arrived']);
 
       // Get waiting/arrived patients count
-      // Note: Database schema doesn't have 'in_room' or 'arrived' statuses yet
-      // This feature requires database migration to add these statuses
-      const arrivedCount = 0;
+      const { count: arrivedCount } = await supabase
+        .from('appointments')
+        .select('*', { count: 'exact', head: true })
+        .eq('doctor_id', doctor.id)
+        .eq('schedule_date', selectedDate)
+        .in('status', ['in_room', 'arrived']);
 
       // Get cancelled count
       const { count: cancelledCount } = await supabase
         .from('appointments')
         .select('*', { count: 'exact', head: true })
         .eq('doctor_id', doctor.id)
-        .eq('schedule_date', todayDate)
+        .eq('schedule_date', selectedDate)
         .eq('status', 'cancelled');
 
-      // Get new patients count for today (patients having their FIRST appointment with this doctor today)
-      const { data: todayAppointments } = await supabase
-        .from('appointments')
-        .select('patient_id')
-        .eq('doctor_id', doctor.id)
-        .eq('schedule_date', todayDate)
-        .neq('status', 'cancelled');
-
-      let newPatientsToday = 0;
-      if (todayAppointments && todayAppointments.length > 0) {
-        // Get unique patient IDs
-        const uniquePatientIds = [...new Set(todayAppointments.map(apt => apt.patient_id))];
-        
-        // For each patient, check if they have any appointments before today with this doctor
-        for (const patientId of uniquePatientIds) {
-          const { count: previousAppointments } = await supabase
-            .from('appointments')
-            .select('*', { count: 'exact', head: true })
-            .eq('doctor_id', doctor.id)
-            .eq('patient_id', patientId)
-            .lt('schedule_date', todayDate);
-          
-          // If no previous appointments, this is a new patient for this doctor
-          if (previousAppointments === 0) {
-            newPatientsToday++;
-          }
-        }
-      }
+      // Get new patients count for today
+      const { count: newPatientsCount } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', selectedDate + 'T00:00:00')
+        .lte('created_at', selectedDate + 'T23:59:59');
 
       setTodayStats({
         appointments: appointmentCount || 0,
         waitingArrived: arrivedCount || 0,
         cancelled: cancelledCount || 0,
-        newPatients: newPatientsToday
+        newPatients: newPatientsCount || 0
       });
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -373,79 +334,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     } finally {
       setIsLoadingStats(false);
     }
-  }, [doctor?.id]);
-
-  // Load monthly stats
-  const loadMonthlyStats = useCallback(async () => {
-    if (!doctor?.id) return;
-
-    try {
-      // Get first and last day of current month
-      const today = new Date();
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      
-      const firstDayStr = firstDay.toISOString().split('T')[0];
-      const lastDayStr = lastDay.toISOString().split('T')[0];
-
-      // Get monthly appointment count (all statuses except cancelled)
-      const { count: monthAppointmentCount } = await supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctor.id)
-        .gte('schedule_date', firstDayStr)
-        .lte('schedule_date', lastDayStr)
-        .in('status', ['booked', 'confirmed', 'completed']);
-
-      // Get monthly cancelled count
-      const { count: monthCancelledCount } = await supabase
-        .from('appointments')
-        .select('*', { count: 'exact', head: true })
-        .eq('doctor_id', doctor.id)
-        .gte('schedule_date', firstDayStr)
-        .lte('schedule_date', lastDayStr)
-        .eq('status', 'cancelled');
-
-      // Get monthly new patients count (patients having their FIRST appointment with this doctor in current month)
-      const { data: monthAppointments } = await supabase
-        .from('appointments')
-        .select('patient_id, schedule_date')
-        .eq('doctor_id', doctor.id)
-        .gte('schedule_date', firstDayStr)
-        .lte('schedule_date', lastDayStr)
-        .neq('status', 'cancelled')
-        .order('schedule_date', { ascending: true });
-
-      let newPatientsMonth = 0;
-      if (monthAppointments && monthAppointments.length > 0) {
-        // Get unique patient IDs
-        const uniquePatientIds = [...new Set(monthAppointments.map(apt => apt.patient_id))];
-        
-        // For each patient, check if they have any appointments before this month with this doctor
-        for (const patientId of uniquePatientIds) {
-          const { count: previousAppointments } = await supabase
-            .from('appointments')
-            .select('*', { count: 'exact', head: true })
-            .eq('doctor_id', doctor.id)
-            .eq('patient_id', patientId)
-            .lt('schedule_date', firstDayStr);
-          
-          // If no previous appointments before this month, this is a new patient for this doctor
-          if (previousAppointments === 0) {
-            newPatientsMonth++;
-          }
-        }
-      }
-
-      setMonthlyStats({
-        appointments: monthAppointmentCount || 0,
-        cancelled: monthCancelledCount || 0,
-        newPatients: newPatientsMonth
-      });
-    } catch (error) {
-      console.error('Error loading monthly stats:', error);
-    }
-  }, [doctor?.id]);
+  }, [doctor?.id, selectedDate]);
 
   // Refresh all data
   const refreshData = useCallback(async () => {
@@ -453,14 +342,13 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     try {
       await Promise.all([
         loadTodayAppointments(),
-        loadTodayStats(),
-        loadMonthlyStats()
+        loadTodayStats()
       ]);
       setAnnouncement('Dashboard data refreshed');
     } finally {
       setIsRefreshing(false);
     }
-  }, [loadTodayAppointments, loadTodayStats, loadMonthlyStats]);
+  }, [loadTodayAppointments, loadTodayStats]);
 
   // Update appointment status
   const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
@@ -665,7 +553,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     } finally {
       setIsSaving(false);
     }
-  }, [currentWeekSchedule, user, profile]);
+  }, [currentWeekSchedule, user?.id]);
 
   // Handle row click to view patient details
   const handleRowClick = (patientId: string) => {
@@ -688,9 +576,8 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
     if (doctor?.id) {
       loadTodayAppointments();
       loadTodayStats();
-      loadMonthlyStats();
     }
-  }, [doctor?.id, loadTodayAppointments, loadTodayStats, loadMonthlyStats]);
+  }, [doctor?.id, loadTodayAppointments, loadTodayStats]);
 
   // Check if user has doctor role - AFTER all hooks
   if (roleLoading) {
@@ -899,9 +786,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">
                     {isLoadingStats ? '...' : todayStats.appointments}
                   </p>
-                  <p className="text-xs font-semibold text-[#0075A2] dark:text-[#0EA5E9]">
-                    ({getCurrentMonthShort()}: {isLoadingStats ? '...' : monthlyStats.appointments})
-                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Normal</p>
                 </div>
               </div>
             </div>
@@ -917,6 +802,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">
                     {isLoadingStats ? '...' : todayStats.waitingArrived}
                   </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Normal</p>
                 </div>
               </div>
             </div>
@@ -932,9 +818,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">
                     {isLoadingStats ? '...' : todayStats.cancelled}
                   </p>
-                  <p className="text-xs font-semibold text-[#0075A2] dark:text-[#0EA5E9]">
-                    ({getCurrentMonthShort()}: {isLoadingStats ? '...' : monthlyStats.cancelled})
-                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Normal</p>
                 </div>
               </div>
             </div>
@@ -950,9 +834,7 @@ function DoctorDashboardPage({ user, session, profile, userState, isAuthenticate
                   <p className="text-2xl font-bold text-[#0A2647] dark:text-gray-100">
                     {isLoadingStats ? '...' : todayStats.newPatients}
                   </p>
-                  <p className="text-xs font-semibold text-[#0075A2] dark:text-[#0EA5E9]">
-                    ({getCurrentMonthShort()}: {isLoadingStats ? '...' : monthlyStats.newPatients})
-                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">Normal</p>
                 </div>
               </div>
             </div>

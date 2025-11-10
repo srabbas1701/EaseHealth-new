@@ -44,3 +44,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 COMMENT ON FUNCTION public.handle_new_user() IS 'Automatically creates a profile when a new user signs up. Extracts data from user_metadata and copies email from auth.users.';
 
 
+
+
+
+
+
+
+
+
+
+

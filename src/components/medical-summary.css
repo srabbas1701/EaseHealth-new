@@ -1,0 +1,424 @@
+/* Medical Summary Styles for EaseHealth AI Dashboard */
+
+.ai-summary-container {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  line-height: 1.6;
+}
+
+.summary-header {
+  border-bottom: 3px solid #2563eb;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.summary-header h1 {
+  color: #1e40af;
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.generation-meta {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+
+section {
+  margin-bottom: 32px;
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #e5e7eb;
+}
+
+section h2 {
+  color: #111827;
+  font-size: 20px;
+  margin: 0 0 16px 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+section h3 {
+  color: #374151;
+  font-size: 18px;
+  margin: 16px 0 12px 0;
+  font-weight: 600;
+}
+
+section h4 {
+  color: #4b5563;
+  font-size: 16px;
+  margin: 12px 0 8px 0;
+  font-weight: 600;
+}
+
+.executive-summary {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+.summary-card {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.summary-card p {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.summary-card strong {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.critical-findings {
+  background: #fef2f2;
+  border-left-color: #dc2626;
+}
+
+.critical-findings h2 {
+  color: #dc2626;
+}
+
+.alert-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.alert-list li {
+  background: white;
+  padding: 12px 12px 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 4px solid #dc2626;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-top: 12px;
+}
+
+.results-table thead {
+  background: #1e40af;
+  color: white;
+}
+
+.results-table th {
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 2px solid #1e3a8a;
+}
+
+.results-table td {
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.results-table tbody tr:hover {
+  background: #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.results-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.high-risk {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.moderate-risk {
+  color: #ea580c;
+  font-weight: 600;
+}
+
+.mild-risk {
+  color: #ca8a04;
+  font-weight: 600;
+}
+
+.normal {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.risk-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-badge.high-risk {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.risk-badge.moderate-risk {
+  background: #fed7aa;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.risk-badge.mild-risk {
+  background: #fef3c7;
+  color: #854d0e;
+  border: 1px solid #fde68a;
+}
+
+.risk-badge.normal {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.report-card {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.report-card h3 {
+  color: #1e40af;
+  margin: 0 0 12px 0;
+  font-size: 18px;
+}
+
+.report-card p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.report-card ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.report-card ul li {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.integrated-analysis {
+  background: #f0fdf4;
+  border-left-color: #16a34a;
+}
+
+.analysis-content {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+}
+
+.analysis-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.analysis-content li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.recommendations {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+}
+
+.recommendation-box {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
+}
+
+.recommendation-box ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.recommendation-box li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #1e3a8a;
+}
+
+.note {
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 12px;
+  padding: 8px;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.missing-data {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+}
+
+.missing-data ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.missing-data li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #92400e;
+}
+
+.disclaimer {
+  background: #fefce8;
+  border: 2px solid #fde047;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 32px;
+}
+
+.disclaimer h3 {
+  color: #854d0e;
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.disclaimer p {
+  color: #713f12;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 8px 0;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .ai-summary-container {
+    background: #1f2937;
+    color: #f3f4f6;
+  }
+  
+  section {
+    background: #374151;
+  }
+  
+  .summary-header {
+    border-bottom-color: #60a5fa;
+  }
+  
+  .summary-header h1 {
+    color: #93c5fd;
+  }
+  
+  .results-table {
+    background: #374151;
+  }
+  
+  .results-table thead {
+    background: #1e40af;
+  }
+  
+  .results-table td {
+    border-bottom-color: #4b5563;
+  }
+  
+  .report-card,
+  .summary-card,
+  .analysis-content,
+  .recommendation-box {
+    background: #4b5563;
+    border-color: #6b7280;
+  }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .ai-summary-container {
+    padding: 16px;
+    border-radius: 8px;
+  }
+  
+  .summary-header h1 {
+    font-size: 24px;
+  }
+  
+  section {
+    padding: 16px;
+  }
+  
+  section h2 {
+    font-size: 18px;
+  }
+  
+  .results-table {
+    font-size: 12px;
+  }
+  
+  .results-table th,
+  .results-table td {
+    padding: 8px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .ai-summary-container {
+    box-shadow: none;
+    padding: 0;
+  }
+  
+  section {
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
+  
+  .critical-findings {
+    page-break-inside: avoid;
+  }
+  
+  .results-table {
+    page-break-inside: avoid;
+  }
+  
+  .risk-badge {
+    border: 1px solid #000;
+  }
+}
+
+

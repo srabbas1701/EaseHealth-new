@@ -188,9 +188,20 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
               const t = await resp.text();
               throw new Error(`n8n non-JSON response: ${t?.slice(0,500)}`);
             }
-            const result = await resp.json();
-            if (!result?.summary) throw new Error('Invalid AI response');
-            return result.summary as string;
+            let result = await resp.json();
+            
+            // Handle array response from n8n (when workflow returns array)
+            if (Array.isArray(result) && result.length > 0) {
+              result = result[0];
+            }
+            
+            // Accept both 'summary' (OpenAI) and 'output' (Anthropic) field names
+            const responseContent = result?.summary || result?.output;
+            
+            if (!responseContent) {
+              throw new Error('Invalid AI response');
+            }
+            return responseContent as string;
           } catch (err) {
             const message = err instanceof Error ? err.message : 'AI generation failed';
             setAiError(message);

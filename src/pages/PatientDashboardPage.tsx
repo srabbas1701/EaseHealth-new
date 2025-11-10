@@ -138,7 +138,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
 
   const COLORS = ['#0075A2', '#0A2647', '#E53E3E', '#38A169'];
 
-  // Check for appointment success message from login
+  // Check for appointment success message from login and profile update reload trigger
   useEffect(() => {
     if (location.state?.appointmentCreated) {
       setShowSuccessMessage(true);
@@ -152,15 +152,26 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
       setAnnouncement(`Failed to create appointment: ${location.state.errorMessage || 'Unknown error'}`);
       console.error('❌ Appointment creation error:', location.state.errorMessage);
     }
-  }, [location.state]);
+
+    // Force reload if coming from profile update
+    if (location.state?.reloadData && user) {
+      console.log('🔄 Profile updated - forcing data reload');
+      refreshPatientData();
+      // Clear the state to prevent reload loop
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, user]);
 
   // Load patient data with caching
   useEffect(() => {
     const loadPatientData = async () => {
       if (!user) return;
 
-      // Check if we already have data for this user (prevent re-loading on tab focus)
-      if (patientProfile && patientProfile.user_id === user.id) {
+      // Force reload if coming from profile update or if no data cached
+      // This ensures fresh data is loaded after profile/report updates
+      const shouldForceReload = !patientProfile || patientProfile.user_id !== user.id;
+
+      if (!shouldForceReload) {
         console.log('📦 Using cached patient data');
         return;
       }
@@ -195,7 +206,7 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     };
 
     loadPatientData();
-  }, [user, patientProfile]);
+  }, [user]);
 
   // Manual refresh function
   const refreshPatientData = async () => {
@@ -204,6 +215,17 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
     try {
       setIsLoading(true);
       console.log('🔄 Manually refreshing patient data...');
+
+      // Clear patient reports cache to ensure we get fresh data
+      try {
+        if (patientProfile?.id) {
+          const cacheKey = `patient_reports_cache_${patientProfile.id}`;
+          sessionStorage.removeItem(cacheKey);
+          console.log('🗑️ Cleared patient reports cache');
+        }
+      } catch (err) {
+        console.warn('Failed to clear patient reports cache:', err);
+      }
 
       // Load patient profile and stats
       const { profile, stats } = await getPatientProfileWithStats(user.id);
@@ -1090,21 +1112,21 @@ function PatientDashboardPage({ user, session, profile, userState, isAuthenticat
                                   View
                                 </a>
                                 {!report.locked && (
-                                <button
-                                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
-                                  onClick={() => {
-                                    setFileToDelete({
-                                      type: 'labReport',
-                                      index: 0,
-                                      fileName: report.report_name,
-                                      reportId: report.id,
-                                    });
-                                    setShowDeleteModal(true);
-                                  }}
-                                >
-                                  <X className="w-4 h-4 mr-1" />
-                                  Delete
-                                </button>
+                                  <button
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center"
+                                    onClick={() => {
+                                      setFileToDelete({
+                                        type: 'labReport',
+                                        index: 0,
+                                        fileName: report.report_name,
+                                        reportId: report.id,
+                                      });
+                                      setShowDeleteModal(true);
+                                    }}
+                                  >
+                                    <X className="w-4 h-4 mr-1" />
+                                    Delete
+                                  </button>
                                 )}
                                 {report.locked && (
                                   <span className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 text-xs" title="This report is part of your medical record and can’t be deleted.">Locked</span>
