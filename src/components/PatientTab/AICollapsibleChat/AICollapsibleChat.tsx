@@ -22,6 +22,7 @@ interface AICollapsibleChatProps {
   reportNames?: string[];
   isEnabled: boolean;
   onChatStart?: () => void;
+  extractedText?: string;
 }
 
 const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
@@ -30,7 +31,8 @@ const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
   doctorId,
   reportNames = [],
   isEnabled,
-  onChatStart
+  onChatStart,
+  extractedText = ''
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -38,6 +40,7 @@ const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousReportIdsRef = useRef<string>('');
 
   const quickQuestions = [
     "What are the key abnormal findings?",
@@ -49,6 +52,17 @@ const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isLoading]);
+
+  // Clear chat messages when reportIds change (new report selected)
+  useEffect(() => {
+    const currentReportIdsKey = reportIds.sort().join(',');
+    if (previousReportIdsRef.current && previousReportIdsRef.current !== currentReportIdsKey) {
+      setMessages([]);
+      setError(null);
+      setCurrentQuestion('');
+    }
+    previousReportIdsRef.current = currentReportIdsKey;
+  }, [reportIds]);
 
   useEffect(() => {
     if (isExpanded && messages.length === 0 && reportIds.length > 0) {
@@ -78,50 +92,74 @@ const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
     setCurrentQuestion('');
 
     try {
-      // TODO: Replace with actual n8n webhook URL
-      // const response = await fetch('YOUR_N8N_WEBHOOK_URL', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     question,
-      //     patientId,
-      //     reportIds,
-      //     doctorId,
-      //     chatHistory: messages.slice(-10)
-      //   })
-      // });
+      // Use real n8n webhook with extracted text
+      const webhookUrl = (import.meta as any).env?.VITE_N8N_REPORT_CHAT_WEBHOOK;
+      
+      if (!webhookUrl) {
+        // TEMPORARY: Mock response when webhook URL is not configured
+        console.warn('⚠️ VITE_N8N_REPORT_CHAT_WEBHOOK not configured. Using mock response.');
+        
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const mockAnswer = `📊 **Mock Response** (Configure n8n webhook to get real AI responses)\n\n` +
+                          `Your question: "${question}"\n\n` +
+                          `Extracted text available: ${extractedText.length} characters\n\n` +
+                          `To enable real AI chat:\n` +
+                          `1. Set up your n8n /report-chat endpoint\n` +
+                          `2. Add VITE_N8N_REPORT_CHAT_WEBHOOK to .env\n` +
+                          `3. Restart your dev server`;
+        
+        const aiMessage: Message = {
+          id: generateId(),
+          role: 'assistant',
+          content: mockAnswer,
+          timestamp: new Date(),
+          confidence: 'low'
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setIsLoading(false);
+        return;
+      }
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question,
+          extractedText,
+          chatHistory: messages.slice(-10).map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          patientId,
+          reportIds,
+          doctorId
+        })
+      });
 
-      // MOCK RESPONSE FOR DEVELOPMENT
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      if (!response.ok) {
+        throw new Error(`AI service returned status ${response.status}`);
+      }
 
-      const mockResponse = {
-        answer: `Based on the ${reportIds.length} report(s) analyzed:\n\n` +
-                `📊 Analysis of ${reportNames.length > 0 ? reportNames.join(', ') : 'selected reports'}\n\n` +
-                `Your question: "${question}"\n\n` +
-                `⚠️ This is a mock response for development testing.\n` +
-                `Replace the n8n webhook URL in AICollapsibleChat.tsx to get real AI responses.\n\n` +
-                `The actual integration will analyze medical reports and provide intelligent responses based on Claude AI.`,
-        confidence: 'medium'
-      };
+      const data = await response.json();
 
       const aiMessage: Message = {
         id: generateId(),
         role: 'assistant',
-        content: mockResponse.answer,
+        content: data.answer || 'I received your question but couldn\'t generate a response.',
         timestamp: new Date(),
-        confidence: mockResponse.confidence as 'high' | 'medium' | 'low'
+        confidence: (data.confidence as 'high' | 'medium' | 'low') || 'medium'
       };
       setMessages(prev => [...prev, aiMessage]);
 
     } catch (err) {
       console.error('Chat error:', err);
       setError('Failed to get AI response. Please try again.');
-      
+
       const errorMessage: Message = {
         id: generateId(),
         role: 'system',
-        content: '⚠️ Unable to connect to AI service. Using mock response for development.',
+        content: '⚠️ Unable to connect to AI service. Please check your connection and try again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -169,8 +207,8 @@ const AICollapsibleChat: React.FC<AICollapsibleChatProps> = ({
         </div>
         <div className="chat-header-right">
           {isEnabled && messages.length > 1 && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); clearChat(); }} 
+            <button
+              onClick={(e) => { e.stopPropagation(); clearChat(); }}
               className="clear-btn"
               title="Clear chat"
             >

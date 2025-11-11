@@ -43,6 +43,8 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [savedConsultationId, setSavedConsultationId] = useState<string | null>(null);
   const [aiSummary, setAiSummary] = useState<string>('');
+  const [extractedText, setExtractedText] = useState<string>('');
+  const [chatEnabled, setChatEnabled] = useState<boolean>(false);
 
   const handleSave = async () => {
     setSaveMessage(null);
@@ -434,6 +436,10 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
 
     // Clear previous AI summary before generating new one
     setAiSummary('');
+    
+    // Reset chat state
+    setExtractedText('');
+    setChatEnabled(false);
 
     // Clear the old cache for this report selection to force fresh generation
     try {
@@ -444,7 +450,21 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
 
     try {
       const result = await onGenerateAI?.(selectedReportIds);
-      if (typeof result === 'string' && result.trim().length > 0) {
+      
+      // Handle both string and object response
+      let summaryText = '';
+      let extractedTextFromResponse = '';
+      
+      if (typeof result === 'string') {
+        // Legacy: only summary returned
+        summaryText = result;
+      } else if (result && typeof result === 'object' && 'summary' in result) {
+        // New format: { summary, extractedText }
+        summaryText = (result as any).summary || '';
+        extractedTextFromResponse = (result as any).extractedText || '';
+      }
+      
+      if (summaryText.trim().length > 0) {
         // sanitize AI output: remove surrounding ``` fences (```html or ```), trim
         const stripFences = (s: string) => {
           let out = s.trim();
@@ -452,7 +472,7 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
           out = out.replace(/\s*```\s*$/i, '');
           return out.trim();
         };
-        const cleaned = stripFences(result);
+        const cleaned = stripFences(summaryText);
 
         // Helper: sanitize HTML using DOMParser (browser) - remove scripts and unsafe attributes
         const sanitizeHtml = (htmlString: string) => {
@@ -548,12 +568,24 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         const safeOutput = finalHtml || cleaned.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         setAiSummary(safeOutput);
 
+        // Store extracted text and enable chat if available
+        if (extractedTextFromResponse && extractedTextFromResponse.trim().length > 0) {
+          setExtractedText(extractedTextFromResponse);
+          setChatEnabled(true);
+          console.log('✅ Chat enabled. Extracted text length:', extractedTextFromResponse.length);
+        }
+
         // Cache with report selection in the key to avoid stale data when selection changes
         try {
           if (patientId) {
             const reportKey = selectedReportIds.sort().join('_');
             const cacheKey = `ai_summary_${patientId}_${reportKey}`;
             sessionStorage.setItem(cacheKey, safeOutput);
+            
+            // Cache extracted text as well
+            if (extractedTextFromResponse) {
+              sessionStorage.setItem(`${cacheKey}_extracted`, extractedTextFromResponse);
+            }
           }
         } catch { }
       } else {
@@ -575,18 +607,29 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         const reportKey = selectedReportIds.sort().join('_');
         const cacheKey = `ai_summary_${patientId}_${reportKey}`;
         const cached = sessionStorage.getItem(cacheKey);
+        const cachedExtracted = sessionStorage.getItem(`${cacheKey}_extracted`);
 
         if (cached) {
           // sanitize cached as well (in case older value had fences)
           const sanitize = (s: string) => s.replace(/^\s*```(?:html|text)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
           setAiSummary(sanitize(cached));
+          
+          // Restore extracted text and enable chat if available
+          if (cachedExtracted) {
+            setExtractedText(cachedExtracted);
+            setChatEnabled(true);
+          }
         } else {
           // Different selection or no cache - clear previous summary
           setAiSummary('');
+          setExtractedText('');
+          setChatEnabled(false);
         }
       } else {
         // No reports selected - clear summary
         setAiSummary('');
+        setExtractedText('');
+        setChatEnabled(false);
       }
     } catch (e) {
       // ignore
@@ -686,7 +729,8 @@ const DiagnosisPrescriptionForm: React.FC<DiagnosisPrescriptionFormProps> = memo
         patientId={patientId}
         reportIds={selectedReportIds}
         doctorId={doctorId}
-        isEnabled={!!aiSummary && !isGeneratingAI}
+        isEnabled={!!aiSummary && !isGeneratingAI && chatEnabled}
+        extractedText={extractedText}
       />
 
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 border-2 border-teal-500 dark:border-teal-600">

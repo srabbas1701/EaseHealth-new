@@ -392,3 +392,5 @@ Image PDF: 3-5 seconds (pdf-parse + OCR)
 *Status: Issue #1 Complete, Issue #2 Documented*
 
 
+
+

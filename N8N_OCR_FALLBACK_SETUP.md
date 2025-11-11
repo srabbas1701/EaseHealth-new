@@ -400,3 +400,5 @@ return $json;
 **That's it! Your n8n workflow will now handle both text-based and image-based PDFs automatically.** 🎉
 
 
+
+

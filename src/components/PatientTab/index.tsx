@@ -198,10 +198,20 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
             // Accept both 'summary' (OpenAI) and 'output' (Anthropic) field names
             const responseContent = result?.summary || result?.output;
             
+            // Extract the extracted_text field for chat functionality
+            const extractedText = result?.extracted_text || '';
+            
             if (!responseContent) {
               throw new Error('Invalid AI response');
             }
-            return responseContent as string;
+            
+            // Log for verification
+            if (extractedText) {
+              console.log('📄 Extracted text length:', extractedText.length);
+            }
+            
+            // Return both summary and extractedText as an object
+            return { summary: responseContent as string, extractedText };
           } catch (err) {
             const message = err instanceof Error ? err.message : 'AI generation failed';
             setAiError(message);

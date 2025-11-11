@@ -469,3 +469,5 @@ For detailed component documentation, see: `src/components/PatientTab/ReportChat
 For integration examples, see: `src/components/PatientTab/ReportChat/ReportChatExample.tsx`
 
 
+
+

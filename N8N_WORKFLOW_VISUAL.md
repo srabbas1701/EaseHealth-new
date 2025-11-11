@@ -408,3 +408,5 @@ console.log('==================');
 **That's it! Follow this visual guide and you'll have OCR working in 20 minutes.** 🎉
 
 
+
+
