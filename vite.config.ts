@@ -15,6 +15,12 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/n8n\/ai-summary/, '/webhook/ai-summary'),
       },
+      '/api/n8n/report-chat': {
+        target: 'http://localhost:5678',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/n8n\/report-chat/, '/webhook/report-chat'),
+      },
     },
   },
 });

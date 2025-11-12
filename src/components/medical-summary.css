@@ -327,44 +327,89 @@ section h4 {
   margin: 8px 0;
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .ai-summary-container {
-    background: #1f2937;
-    color: #f3f4f6;
-  }
-  
-  section {
-    background: #374151;
-  }
-  
-  .summary-header {
-    border-bottom-color: #60a5fa;
-  }
-  
-  .summary-header h1 {
-    color: #93c5fd;
-  }
-  
-  .results-table {
-    background: #374151;
-  }
-  
-  .results-table thead {
-    background: #1e40af;
-  }
-  
-  .results-table td {
-    border-bottom-color: #4b5563;
-  }
-  
-  .report-card,
-  .summary-card,
-  .analysis-content,
-  .recommendation-box {
-    background: #4b5563;
-    border-color: #6b7280;
-  }
+/* Dark Mode Support - Using .dark class */
+.dark .ai-summary-container {
+  background: #1f2937;
+  color: #f3f4f6;
+}
+
+.dark section {
+  background: #374151;
+}
+
+.dark .summary-header {
+  border-bottom-color: #60a5fa;
+}
+
+.dark .summary-header h1 {
+  color: #93c5fd;
+}
+
+.dark .results-table {
+  background: #374151;
+}
+
+.dark .results-table thead {
+  background: #1e40af;
+}
+
+.dark .results-table td {
+  border-bottom-color: #4b5563;
+}
+
+.dark .report-card,
+.dark .summary-card,
+.dark .analysis-content,
+.dark .recommendation-box {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.dark .generation-meta {
+  color: #9ca3af;
+}
+
+.dark section h2 {
+  color: #e5e7eb;
+}
+
+.dark section h3 {
+  color: #d1d5db;
+}
+
+.dark section h4 {
+  color: #9ca3af;
+}
+
+.dark .summary-card p {
+  color: #e5e7eb;
+}
+
+.dark .summary-card strong {
+  color: #f3f4f6;
+}
+
+.dark .alert-list li {
+  background: #4b5563;
+  color: #e5e7eb;
+}
+
+.dark .note {
+  background: #374151;
+  color: #d1d5db;
+}
+
+.dark .disclaimer {
+  background: #78350f;
+  border-color: #f59e0b;
+}
+
+.dark .disclaimer h3 {
+  color: #fde047;
+}
+
+.dark .disclaimer p {
+  color: #fef3c7;
 }
 
 /* Mobile Responsive */
