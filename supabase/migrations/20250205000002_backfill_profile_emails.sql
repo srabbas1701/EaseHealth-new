@@ -24,3 +24,4 @@ COMMENT ON COLUMN public.profiles.email IS 'User email address, copied from auth
 
 
 
+
