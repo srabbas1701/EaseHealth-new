@@ -160,7 +160,9 @@ const PatientTabContent: React.FC<PatientTabContentProps> = memo(({ patientId, d
               throw new Error('Unable to access report files');
             }
 
-            const webhookUrl = (import.meta as any).env?.VITE_N8N_AI_SUMMARY_WEBHOOK || 'https://your-n8n-instance.com/webhook/ai-summary';
+            // Use env var if set, otherwise fallback to vite proxy path (works in dev)
+            // In production, VITE_N8N_AI_SUMMARY_WEBHOOK should be set to the actual n8n webhook URL
+            const webhookUrl = (import.meta as any).env?.VITE_N8N_AI_SUMMARY_WEBHOOK || '/api/n8n/ai-summary';
             const payload = {
               reports: validReports,
               patient_id: patientId,
