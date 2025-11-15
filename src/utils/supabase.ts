@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder_key'
 
-// Debug logging for environment variables
+// Debug logging for 
+// environment variables
 console.log('🔧 Environment Variables Check:');
 console.log('VITE_SUPABASE_URL:', supabaseUrl);
 console.log('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Present' : 'Missing');
@@ -1208,6 +1209,30 @@ export const createAppointment = async (
 
   console.log('✅ Appointment created successfully:', appointmentData);
   console.log('✅ Time slot status updated to "booked":', data);
+
+  // Fallback: Send Telegram notification (non-blocking)
+  // Primary notification is handled by Supabase Database Webhook → n8n
+  try {
+    const { sendTelegramNotificationFallback } = await import('./telegramNotification');
+    const { data: doctorData } = await supabase
+      .from('doctors')
+      .select('full_name')
+      .eq('id', doctorId)
+      .single();
+
+    await sendTelegramNotificationFallback({
+      appointmentId: appointmentId,
+      queueToken: queueToken,
+      patientId: patientId,
+      doctorName: doctorData?.full_name || 'Doctor',
+      date: date,
+      time: startTime
+    });
+  } catch (error) {
+    // Silent fail - notification is non-critical
+    console.warn('Telegram notification fallback failed:', error);
+  }
+
   return {
     id: appointmentId,
     doctor_id: doctorId,
@@ -1229,40 +1254,67 @@ export const createAppointment = async (
 export const cancelAppointment = async (appointmentId: string) => {
   console.log(`🔄 Cancelling appointment: ${appointmentId}`);
 
-  // Find the time slot with this appointment ID
+  // First, get the appointment details
+  const { data: appointment, error: appointmentFetchError } = await supabase
+    .from('appointments')
+    .select('*')
+    .eq('id', appointmentId)
+    .single()
+
+  if (appointmentFetchError || !appointment) {
+    console.error('❌ Error fetching appointment:', appointmentFetchError);
+    throw new Error('Appointment not found in appointments table');
+  }
+
+  // Try to find the time slot with this appointment ID
   const { data: timeSlot, error: findError } = await supabase
     .from('time_slots')
     .select('*')
     .eq('appointment_id', appointmentId)
-    .single()
+    .maybeSingle() // Use maybeSingle instead of single to handle 0 rows gracefully
 
-  if (findError) {
-    console.error('❌ Error finding time slot for appointment:', findError);
-    throw new Error('Appointment not found');
+  // If time slot not found by appointment_id, try to find it by matching date/time
+  let timeSlotToUpdate = timeSlot;
+  
+  if (!timeSlot && !findError) {
+    console.warn('⚠️ Time slot not found by appointment_id, trying to find by date/time match');
+    const { data: matchedSlot } = await supabase
+      .from('time_slots')
+      .select('*')
+      .eq('doctor_id', appointment.doctor_id)
+      .eq('schedule_date', appointment.schedule_date)
+      .eq('start_time', appointment.start_time)
+      .maybeSingle()
+    
+    timeSlotToUpdate = matchedSlot;
   }
 
-  if (!timeSlot) {
-    throw new Error('Appointment not found');
+  // Update the time slot if found
+  let updatedTimeSlot = null;
+  if (timeSlotToUpdate) {
+    const { data, error } = await supabase
+      .from('time_slots')
+      .update({
+        status: 'available',
+        appointment_id: null,
+        notes: 'Appointment cancelled - slot available'
+      })
+      .eq('id', timeSlotToUpdate.id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('❌ Error updating time slot:', error);
+      // Don't throw - continue to cancel appointment even if slot update fails
+    } else {
+      updatedTimeSlot = data;
+      console.log('✅ Time slot marked as available');
+    }
+  } else {
+    console.warn('⚠️ No matching time slot found - will only update appointment status');
   }
 
-  // Update the time slot to mark it as available again
-  const { data, error } = await supabase
-    .from('time_slots')
-    .update({
-      status: 'available',
-      appointment_id: null,
-      notes: 'Appointment cancelled - slot available'
-    })
-    .eq('id', timeSlot.id)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('❌ Error cancelling appointment:', error);
-    throw error;
-  }
-
-  // Update the appointment status to cancelled
+  // Always update the appointment status to cancelled
   const { data: appointmentData, error: appointmentError } = await supabase
     .from('appointments')
     .update({
@@ -1278,8 +1330,13 @@ export const cancelAppointment = async (appointmentId: string) => {
     throw appointmentError;
   }
 
-  console.log('✅ Appointment cancelled successfully:', { timeSlot: data, appointment: appointmentData });
-  return { timeSlot: data, appointment: appointmentData };
+  console.log('✅ Appointment cancelled successfully:', { 
+    timeSlot: updatedTimeSlot, 
+    appointment: appointmentData,
+    timeSlotUpdated: !!updatedTimeSlot 
+  });
+  
+  return { timeSlot: updatedTimeSlot, appointment: appointmentData };
 }
 
 // Get all appointments for a doctor

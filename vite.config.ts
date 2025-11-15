@@ -21,6 +21,36 @@ export default defineConfig({
         secure: false,
         rewrite: (path) => path.replace(/^\/api\/n8n\/report-chat/, '/webhook/report-chat'),
       },
+      '/api/n8n/appointment-notification': {
+        // Try to extract target from env var, fallback to localhost
+        target: (() => {
+          const webhookUrl = process.env.VITE_N8N_APPOINTMENT_WEBHOOK;
+          if (webhookUrl && webhookUrl.startsWith('http')) {
+            try {
+              const url = new URL(webhookUrl);
+              return `${url.protocol}//${url.host}`;
+            } catch {
+              return 'http://localhost:5678';
+            }
+          }
+          return 'http://localhost:5678';
+        })(),
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => {
+          // Extract path from env var if available
+          const webhookUrl = process.env.VITE_N8N_APPOINTMENT_WEBHOOK;
+          if (webhookUrl && webhookUrl.includes('/webhook/')) {
+            try {
+              const url = new URL(webhookUrl);
+              return url.pathname;
+            } catch {
+              return '/webhook/appointment-notification';
+            }
+          }
+          return '/webhook/appointment-notification';
+        },
+      },
     },
   },
 });

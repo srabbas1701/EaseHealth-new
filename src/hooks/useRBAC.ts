@@ -54,11 +54,16 @@ export const useRBAC = () => {
         */
 
         // Check if doctor
-        const { data: doctor } = await supabase
+        const { data: doctor, error: doctorError } = await supabase
           .from('doctors')
           .select('id')
           .eq('user_id', currentUser.id)
           .single()
+
+        // Ignore PGRST116 error (not found) - it's expected for non-doctor users
+        if (doctorError && doctorError.code !== 'PGRST116') {
+          console.warn('⚠️ useRBAC: Error checking doctor status:', doctorError)
+        }
 
         if (doctor) {
           console.log('🔍 useRBAC: User is doctor')

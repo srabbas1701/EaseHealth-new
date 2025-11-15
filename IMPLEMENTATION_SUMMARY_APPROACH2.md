@@ -401,3 +401,9 @@ async function getReportsForAI(patientId) {
 
 
 
+
+
+
+
+
+

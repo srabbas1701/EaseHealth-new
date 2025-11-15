@@ -1,0 +1,185 @@
+{
+  "name": "Appointment Telegram Notification (Enhanced)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "appointment-notification",
+        "options": {}
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "appointment-notification"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.telegram_user_id, p.full_name, p.phone_number, d.full_name as doctor_name, d.specialty\nFROM patients p\nJOIN appointments a ON p.id = a.patient_id\nJOIN doctors d ON a.doctor_id = d.id\nWHERE a.id = $1::uuid",
+        "options": {
+          "queryParameters": "={{ $json.record.id }}"
+        }
+      },
+      "id": "supabase-node",
+      "name": "Get Patient & Doctor Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "supabase-credential",
+          "name": "Supabase Database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhookData = $('Webhook').first().json;\nconst patientData = $('Get Patient & Doctor Data').first().json;\n\n// Use patient data if available, otherwise use webhook data\nconst telegramUserId = patientData?.telegram_user_id || webhookData?.record?.telegram_user_id;\nconst patientName = patientData?.full_name || 'Patient';\nconst doctorName = patientData?.doctor_name || webhookData?.record?.doctor_name || 'Doctor';\nconst specialty = patientData?.specialty || '';\nconst appointmentDate = webhookData?.record?.schedule_date || webhookData?.schedule_date;\nconst appointmentTime = webhookData?.record?.start_time || webhookData?.start_time;\nconst queueToken = webhookData?.record?.queue_token || webhookData?.queue_token;\n\n// Check if patient has Telegram ID\nif (!telegramUserId) {\n  return {\n    json: {\n      skip: true,\n      reason: 'Patient does not have Telegram ID configured'\n    }\n  };\n}\n\n// Format the Telegram message\nconst message = `🎉 *Appointment Confirmed!*\n\n👤 *Patient:* ${patientName}\n👨‍⚕️ *Doctor:* ${doctorName}${specialty ? `\\n🏥 *Specialty:* ${specialty}` : ''}\n📅 *Date:* ${appointmentDate}\n⏰ *Time:* ${appointmentTime}\n🎫 *Queue Token:* *${queueToken}*\n\nPlease arrive 10 minutes before your appointment.\n\nThank you for choosing EaseHealth!`;\n\nreturn {\n  json: {\n    chat_id: telegramUserId,\n    text: message,\n    parse_mode: 'Markdown',\n    skip: false\n  }\n};"
+      },
+      "id": "function-node",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "skip-condition",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-node",
+      "name": "Check Telegram ID",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-node",
+      "name": "Send Telegram Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1050, 250],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram-credential",
+          "name": "Telegram Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "respond-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Patient & Doctor Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Patient & Doctor Data": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Check Telegram ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Telegram ID": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-11-13T00:00:00.000Z",
+  "versionId": "1"
+}
+
+
+
+
+
+
+

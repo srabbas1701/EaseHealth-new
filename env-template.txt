@@ -9,3 +9,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key-here
 # VITE_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
 # VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
+# n8n Webhook URLs (OPTIONAL - for fallback notification only)
+# Primary notification works via Supabase Database Webhook (no env var needed)
+# Only add this if you want the fallback notification system
+# Replace with your actual n8n webhook URL (same as Supabase webhook URL in Step 3)
+# VITE_N8N_APPOINTMENT_WEBHOOK=https://your-actual-n8n-url.com/webhook/appointment-notification
+
